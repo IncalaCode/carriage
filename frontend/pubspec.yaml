@@ -12,6 +12,9 @@ dependencies:
   flutter:
     sdk: flutter
   video_player: ^2.4.5
+  image_picker: ^0.8.7+3
+  font_awesome_flutter: ^10.0.0
+  
 
 flutter:
   assets:
@@ -23,3 +26,12 @@ flutter:
         - asset: assets/fonts/NotoSans-Regular.ttf
         - asset: assets/fonts/NotoSans-Bold.ttf
           weight: 700
+
+
+dev_dependencies:
+  flutter_launcher_icons: ^0.11.0
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/app_icon.png" # Your app icon path

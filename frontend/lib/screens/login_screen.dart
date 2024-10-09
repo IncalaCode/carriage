@@ -1,5 +1,7 @@
 // lib/screens/login_screen.dart
 
+import 'package:carriage_app/screens/main_app_screen.dart';  // Replace 'your_app' with your actual package name
+
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
@@ -102,8 +104,10 @@ class LoginScreen extends StatelessWidget {
                 SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: () {
-                    // Handle login
-                    Navigator.pop(context);
+                    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => MainAppScreen()),
+    );
                   },
                   child: Text('Login', style: TextStyle(color: Colors.white)),
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
@@ -156,7 +160,10 @@ class LoginScreen extends StatelessWidget {
                 ElevatedButton(
                   onPressed: () {
                     // Handle registration
-                    Navigator.pop(context);
+                    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => MainAppScreen()),
+    );
                   },
                   child: Text('Register', style: TextStyle(color: Colors.white)),
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.black),

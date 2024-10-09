@@ -15,6 +15,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         fontFamily: 'NotoSans', 
       ),
+      debugShowCheckedModeBanner: false,
       home: SplashScreen(),  // Show the splash screen first
     );
   }
