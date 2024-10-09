@@ -3,6 +3,6 @@
 use Illuminate\Support\Facades\Route;
 
 
-Route::get('/home', function () {
-    return view('welcome');
-});
+use App\Http\Controllers\DriverController;
+
+Route::post('api/drivers/register', [DriverController::class, 'register']);
