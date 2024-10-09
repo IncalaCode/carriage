@@ -46,4 +46,49 @@ class AuthController extends Controller
             'user' => $user,
         ], 201);
     }
+
+         // New login method that sends OTP
+         public function login(Request $request)
+         {
+             $validator = Validator::make($request->all(), [
+                 'phone' => 'required|exists:drivers,phone',
+             ]);
+     
+             if ($validator->fails()) {
+                 return response()->json([
+                     'errors' => $validator->errors(),
+                 ], 422);
+             }
+     
+             // Get the driver using the provided phone number
+             $user = User::where('phone', $request->phone)->first();
+     
+             if (!$user) {
+                 return response()->json([
+                     'message' => 'User not found',
+                 ], 404);
+             }
+     
+             // Generate OTP
+             $otp = rand(1000, 9999);
+             $domain = "example.com"; // Replace with your domain
+             $driverId = $user->id;
+     
+             // Send OTP using otpSend
+             [$status, $response] = otpSend($user->phone, $otp, $domain, $driverId);
+     
+             if ($status === 200) {
+                 // OTP sent successfully
+                 return response()->json([
+                     'message' => 'OTP sent successfully!',
+                     'otp_response' => json_decode($response, true),
+                 ], 200);
+             } else {
+                 // OTP sending failed
+                 return response()->json([
+                     'message' => 'Failed to send OTP',
+                     'otp_response' => json_decode($response, true),
+                 ], 500);
+             }
+         }
 }
