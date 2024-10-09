@@ -16,7 +16,7 @@ class LoginScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Main logo at the center
-            Image.asset('assets/logo.png', height: 100),
+            Image.asset('assets/logo.png', height: 200),
             SizedBox(height: 50),
 
             // Login button
@@ -83,7 +83,7 @@ class LoginScreen extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Image.asset('assets/logo.png', height: 50), // Logo
+                Image.asset('assets/logo.png', height: 200), // Logo
                 SizedBox(height: 20),
                 TextFormField(
                   decoration: InputDecoration(
@@ -132,7 +132,7 @@ class LoginScreen extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Image.asset('assets/logo.png', height: 50), // Logo
+                Image.asset('assets/logo.png', height: 200), // Logo
                 SizedBox(height: 20),
                 TextFormField(
                   decoration: InputDecoration(
@@ -188,7 +188,7 @@ class LoginScreen extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Image.asset('assets/logo.png', height: 50), // Logo
+                Image.asset('assets/logo.png', height: 200), // Logo
                 SizedBox(height: 20),
                 TextFormField(
                   decoration: InputDecoration(
