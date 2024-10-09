@@ -5,6 +5,8 @@ import 'package:carriage_app/screens/main_app_screen.dart';  // Replace 'your_ap
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
 
 class LoginScreen extends StatelessWidget {
   @override

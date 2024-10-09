@@ -51,7 +51,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
             padding: EdgeInsets.only(right: 16.0), // Aligns to the top right corner
             child: Builder(
               builder: (context) => IconButton(
-                icon: Icon(Icons.menu, color: Colors.white), // White hamburger icon
+                icon: Icon(FontAwesomeIcons.bars, color: Colors.white), // White hamburger icon
                 onPressed: () {
                   setState(() {
                     isDrawerOpen = true; // Change state to update AppBar color
@@ -83,7 +83,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
                       radius: 40,
                       backgroundColor: Colors.white,
                       child: _profileImage == null
-                          ? Icon(Icons.person, size: 40, color: Colors.grey) // Default person icon
+                          ? Icon(FontAwesomeIcons.user, size: 40, color: Colors.grey) // Default person icon
                           : ClipOval(
                               child: Image.file(
                                 _profileImage!, // Show uploaded image
@@ -107,26 +107,27 @@ class _MainAppScreenState extends State<MainAppScreen> {
               ),
             ),
             Expanded(
-              child: ListView(
-                children: [
-                  _buildDrawerItem(Icons.person, 'Profile', context, () {
-                    // Navigate to Profile
-                  }),
-                  _buildDrawerItem(Icons.account_balance_wallet, 'Wallet', context, () {
-                    // Navigate to Wallet
-                  }),
-                  _buildDrawerItem(Icons.location_on, 'My Location', context, () {
-                    // Navigate to My Location
-                  }),
-                  _buildDrawerItem(Icons.shopping_cart, 'My Orders', context, () {
-                    // Navigate to Orders
-                  }),
-                  _buildDrawerItem(Icons.settings, 'Settings', context, () {
-                    // Navigate to Settings
-                  }),
-                ],
-              ),
-            ),
+  child: ListView(
+    children: [
+      _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context, () {
+        // Navigate to Profile
+      }),
+      _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context, () {
+        // Navigate to Wallet
+      }),
+      _buildDrawerItem(FontAwesomeIcons.mapMarkerAlt, 'My Location', context, () {
+        // Navigate to My Location
+      }),
+      _buildDrawerItem(FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
+        // Navigate to Orders
+      }),
+      _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context, () {
+        // Navigate to Settings
+      }),
+    ],
+  ),
+),
+
           ],
         ),
       ),
@@ -144,21 +145,22 @@ class _MainAppScreenState extends State<MainAppScreen> {
   }
 
   // Helper function for building drawer items
-  Widget _buildDrawerItem(IconData icon, String title, BuildContext context, Function onTap) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.black), // Set icon color to black
-      title: Text(
-        title, 
-        style: TextStyle(
-          fontSize: 18,
-          color: Colors.black, // Set text color to black for visibility
-          fontWeight: FontWeight.bold,
-        ),
+// Modify the helper function for building drawer items
+Widget _buildDrawerItem(IconData icon, String title, BuildContext context, Function onTap) {
+  return ListTile(
+    leading: Icon(icon, color: Colors.black), // Set icon color to black
+    title: Text(
+      title, 
+      style: TextStyle(
+        fontSize: 18,
+        color: Colors.black, // Set text color to black for visibility
+        fontWeight: FontWeight.bold,
       ),
-      tileColor: Colors.grey[200], // Set background color for the list item
-      onTap: () {
-        onTap();
-      },
-    );
-  }
+    ),
+    tileColor: Colors.grey[200], // Set background color for the list item
+    onTap: () {
+      onTap();
+    },
+  );
+}
 }

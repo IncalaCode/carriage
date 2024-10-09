@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'screens/splash_screen.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
 
 
 void main() {
