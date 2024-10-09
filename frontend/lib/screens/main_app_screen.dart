@@ -1,12 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io'; // For handling file operations
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-class MainAppScreen extends StatelessWidget {
+
+class MainAppScreen extends StatefulWidget {
+  @override
+  _MainAppScreenState createState() => _MainAppScreenState();
+}
+
+class _MainAppScreenState extends State<MainAppScreen> {
+  bool isDrawerOpen = false;
+  File? _profileImage; // Holds the uploaded profile picture
+
+  // Function to pick an image from the gallery
+  Future<void> _pickImage() async {
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    
+    if (pickedFile != null) {
+      setState(() {
+        _profileImage = File(pickedFile.path); // Update profile image after picking
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        elevation: 0, // Removes shadow under the AppBar for a cleaner look
+        elevation: 0,
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -16,23 +39,24 @@ class MainAppScreen extends StatelessWidget {
             ),
           ),
         ),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 0), // Adjusts logo's top margin
-              child: Image.asset('assets/logo.png', height: 200), // Reduced logo height
-            ),
-          ],
+        toolbarHeight: 80, // Increased height for full logo visibility
+        centerTitle: true,
+        title: Padding(
+          padding: const EdgeInsets.only(top: 0), // Adjust logo's position
+          child: Image.asset('assets/logo.png', height: 180), // Adjusted height for visibility
         ),
         actions: [
+          // Hamburger menu icon
           Padding(
-            padding: EdgeInsets.only(right: 16.0, top: 16.0), // Aligns to top right corner
+            padding: EdgeInsets.only(right: 16.0), // Aligns to the top right corner
             child: Builder(
               builder: (context) => IconButton(
-                icon: Icon(Icons.menu, color: Colors.white), // White menu icon
+                icon: Icon(Icons.menu, color: Colors.white), // White hamburger icon
                 onPressed: () {
-                  Scaffold.of(context).openDrawer(); // Correct context for opening the drawer
+                  setState(() {
+                    isDrawerOpen = true; // Change state to update AppBar color
+                  });
+                  Scaffold.of(context).openDrawer();
                 },
               ),
             ),
@@ -44,13 +68,31 @@ class MainAppScreen extends StatelessWidget {
           children: [
             DrawerHeader(
               decoration: BoxDecoration(
-                color: Colors.indigo, // Matches the app bar for consistency
+                gradient: LinearGradient(
+                  colors: [Colors.black, Colors.grey.shade800],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
               ),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 40,
-                    backgroundImage: AssetImage('assets/profile_picture.png'), // Profile picture
+                  // Display either the uploaded profile image or person icon
+                  GestureDetector(
+                    onTap: _pickImage, // Pick image on tapping the icon
+                    child: CircleAvatar(
+                      radius: 40,
+                      backgroundColor: Colors.white,
+                      child: _profileImage == null
+                          ? Icon(Icons.person, size: 40, color: Colors.grey) // Default person icon
+                          : ClipOval(
+                              child: Image.file(
+                                _profileImage!, // Show uploaded image
+                                fit: BoxFit.cover,
+                                width: 80,
+                                height: 80,
+                              ),
+                            ),
+                    ),
                   ),
                   SizedBox(width: 15),
                   Text(
@@ -90,7 +132,7 @@ class MainAppScreen extends StatelessWidget {
       ),
       body: Center(
         child: Text(
-          'Welcome to Carraige App!',
+          'Welcome to Carriage App!',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -104,8 +146,16 @@ class MainAppScreen extends StatelessWidget {
   // Helper function for building drawer items
   Widget _buildDrawerItem(IconData icon, String title, BuildContext context, Function onTap) {
     return ListTile(
-      leading: Icon(icon, color: Colors.indigo),
-      title: Text(title, style: TextStyle(fontSize: 18)),
+      leading: Icon(icon, color: Colors.black), // Set icon color to black
+      title: Text(
+        title, 
+        style: TextStyle(
+          fontSize: 18,
+          color: Colors.black, // Set text color to black for visibility
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      tileColor: Colors.grey[200], // Set background color for the list item
       onTap: () {
         onTap();
       },
