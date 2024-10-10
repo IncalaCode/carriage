@@ -3,6 +3,14 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io'; // For handling file operations
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
+// Corrected imports
+import 'sidebarProfile.dart';
+import 'sidebarWallet.dart';
+import 'sidebarMylocation.dart';
+import 'sidebarMyOrder.dart';
+import 'sidebarSettings.dart';
+
+
 
 class MainAppScreen extends StatefulWidget {
   @override
@@ -107,27 +115,46 @@ class _MainAppScreenState extends State<MainAppScreen> {
               ),
             ),
             Expanded(
-  child: ListView(
-    children: [
-      _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context, () {
-        // Navigate to Profile
-      }),
-      _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context, () {
-        // Navigate to Wallet
-      }),
-      _buildDrawerItem(FontAwesomeIcons.mapMarkerAlt, 'My Location', context, () {
-        // Navigate to My Location
-      }),
-      _buildDrawerItem(FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
-        // Navigate to Orders
-      }),
-      _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context, () {
-        // Navigate to Settings
-      }),
-    ],
-  ),
-),
-
+              child: ListView(
+                children: [
+                  _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context, () {
+                    // Navigate to Profile page
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ProfilePage()), // Corrected class name
+                    );
+                  }),
+                  _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context, () {
+                    // Navigate to Wallet page
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => WalletPage()), // Corrected class name
+                    );
+                  }),
+                  _buildDrawerItem(FontAwesomeIcons.mapMarkerAlt, 'My Location', context, () {
+                    // Navigate to My Location page
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => MyLocationPage()), // Corrected class name
+                    );
+                  }),
+                  _buildDrawerItem(FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
+                    // Navigate to My Orders page
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => MyOrdersPage()), // Corrected class name
+                    );
+                  }),
+                  _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context, () {
+                    // Navigate to Settings page
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => SettingsPage()), // Corrected class name
+                    );
+                  }),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -145,22 +172,21 @@ class _MainAppScreenState extends State<MainAppScreen> {
   }
 
   // Helper function for building drawer items
-// Modify the helper function for building drawer items
-Widget _buildDrawerItem(IconData icon, String title, BuildContext context, Function onTap) {
-  return ListTile(
-    leading: Icon(icon, color: Colors.black), // Set icon color to black
-    title: Text(
-      title, 
-      style: TextStyle(
-        fontSize: 18,
-        color: Colors.black, // Set text color to black for visibility
-        fontWeight: FontWeight.bold,
+  Widget _buildDrawerItem(IconData icon, String title, BuildContext context, Function onTap) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.black), // Set icon color to black
+      title: Text(
+        title, 
+        style: TextStyle(
+          fontSize: 18,
+          color: Colors.black, // Set text color to black for visibility
+          fontWeight: FontWeight.bold,
+        ),
       ),
-    ),
-    tileColor: Colors.grey[200], // Set background color for the list item
-    onTap: () {
-      onTap();
-    },
-  );
-}
+      tileColor: Colors.grey[200], // Set background color for the list item
+      onTap: () {
+        onTap();
+      },
+    );
+  }
 }

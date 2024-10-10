@@ -1,12 +1,8 @@
-// lib/screens/login_screen.dart
-
-import 'package:carriage_app/screens/main_app_screen.dart';  // Replace 'your_app' with your actual package name
-
+import 'package:carriage_app/screens/main_app_screen.dart'; 
 import 'package:flutter/material.dart';
-import 'dart:io';
+// import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-
 
 class LoginScreen extends StatelessWidget {
   @override
@@ -79,43 +75,57 @@ class LoginScreen extends StatelessWidget {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: Colors.black87,
-          content: Container(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset('assets/logo.png', height: 200), // Logo
-                SizedBox(height: 20),
-                TextFormField(
-                  decoration: InputDecoration(
-                    labelText: 'Email',
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
+          backgroundColor: Colors.black87.withOpacity(0.85),  // Increased background opacity for blur effect
+          content: Stack(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Back button
+                    Align(
+                      alignment: Alignment.topLeft,
+                      child: IconButton(
+                        icon: Icon(FontAwesomeIcons.arrowLeft, color: Colors.white),
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ),
+                    Image.asset('assets/logo.png', height: 200), // Logo
+                    SizedBox(height: 20),
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText: 'Email',
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    TextFormField(
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) => MainAppScreen()),
+                        );
+                      },
+                      child: Text('Login', style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
+                    ),
+                  ],
                 ),
-                SizedBox(height: 16),
-                TextFormField(
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
-                ),
-                SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => MainAppScreen()),
-    );
-                  },
-                  child: Text('Login', style: TextStyle(color: Colors.white)),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },
@@ -128,50 +138,63 @@ class LoginScreen extends StatelessWidget {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: Colors.black87,
-          content: Container(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset('assets/logo.png', height: 200), // Logo
-                SizedBox(height: 20),
-                TextFormField(
-                  decoration: InputDecoration(
-                    labelText: 'Full Name',
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
+          backgroundColor: Colors.black87.withOpacity(10),  // Increased background opacity
+          content: Stack(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Back button
+                    Align(
+                      alignment: Alignment.topLeft,
+                      child: IconButton(
+                        icon: Icon(FontAwesomeIcons.arrowLeft, color: Colors.white),
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ),
+                    Image.asset('assets/logo.png', height: 200), // Logo
+                    SizedBox(height: 20),
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText: 'Full Name',
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    TextFormField(
+                      keyboardType: TextInputType.phone,
+                      decoration: InputDecoration(
+                        labelText: 'Phone Number (Ethiopian)',
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                      validator: (value) {
+                        if (value == null || !RegExp(r'^(\+251|0)[1-9]\d{8}$').hasMatch(value)) {
+                          return 'Enter a valid Ethiopian phone number';
+                        }
+                        return null;
+                      },
+                    ),
+                    SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) => MainAppScreen()),
+                        );
+                      },
+                      child: Text('Register', style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
+                    ),
+                  ],
                 ),
-                SizedBox(height: 16),
-                TextFormField(
-                  keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
-                    labelText: 'Phone Number (Ethiopian)',
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
-                  validator: (value) {
-                    if (value == null || !RegExp(r'^(\+251|0)[1-9]\d{8}$').hasMatch(value)) {
-                      return 'Enter a valid Ethiopian phone number';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () {
-                    // Handle registration
-                    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => MainAppScreen()),
-    );
-                  },
-                  child: Text('Register', style: TextStyle(color: Colors.white)),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },
@@ -184,55 +207,67 @@ class LoginScreen extends StatelessWidget {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: Colors.black87,
-          content: Container(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset('assets/logo.png', height: 200), // Logo
-                SizedBox(height: 20),
-                TextFormField(
-                  decoration: InputDecoration(
-                    labelText: 'Full Name',
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
+          backgroundColor: Colors.black87.withOpacity(0.85),  // Increased background opacity
+          content: Stack(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Back button
+                    Align(
+                      alignment: Alignment.topLeft,
+                      child: IconButton(
+                        icon: Icon(FontAwesomeIcons.arrowLeft, color: Colors.white),
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ),
+                    Image.asset('assets/logo.png', height: 200), // Logo
+                    SizedBox(height: 20),
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText: 'Full Name',
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText: 'Address',
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    Text('Upload Driving License', style: TextStyle(color: Colors.white)),
+                    SizedBox(height: 8),
+                    ElevatedButton(
+                      onPressed: () async {
+                        final ImagePicker picker = ImagePicker();
+                        final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+                        if (image != null) {
+                          print('Image selected: ${image.path}');
+                        }
+                      },
+                      child: Text('Upload Image', style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
+                    ),
+                    SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      child: Text('Register', style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
+                    ),
+                  ],
                 ),
-                SizedBox(height: 16),
-                TextFormField(
-                  decoration: InputDecoration(
-                    labelText: 'Address',
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
-                ),
-                SizedBox(height: 16),
-                Text('Upload Driving License', style: TextStyle(color: Colors.white)),
-                SizedBox(height: 8),
-                ElevatedButton(
-                  onPressed: () async {
-                    // Pick an image for the driving license
-                    final ImagePicker picker = ImagePicker();
-                    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-                    if (image != null) {
-                      print('Image selected: ${image.path}');
-                    }
-                  },
-                  child: Text('Upload Image', style: TextStyle(color: Colors.white)),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
-                ),
-                SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () {
-                    // Handle registration
-                    Navigator.pop(context);
-                  },
-                  child: Text('Register', style: TextStyle(color: Colors.white)),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },
