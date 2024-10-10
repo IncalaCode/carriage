@@ -3,6 +3,14 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io'; // For handling file operations
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
+// Corrected imports
+import 'sidebarProfile.dart';
+import 'sidebarWallet.dart';
+import 'sidebarMylocation.dart';
+import 'sidebarMyOrder.dart';
+import 'sidebarSettings.dart';
+
+
 
 class MainAppScreen extends StatefulWidget {
   @override
@@ -51,7 +59,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
             padding: EdgeInsets.only(right: 16.0), // Aligns to the top right corner
             child: Builder(
               builder: (context) => IconButton(
-                icon: Icon(Icons.menu, color: Colors.white), // White hamburger icon
+                icon: Icon(FontAwesomeIcons.bars, color: Colors.white), // White hamburger icon
                 onPressed: () {
                   setState(() {
                     isDrawerOpen = true; // Change state to update AppBar color
@@ -83,7 +91,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
                       radius: 40,
                       backgroundColor: Colors.white,
                       child: _profileImage == null
-                          ? Icon(Icons.person, size: 40, color: Colors.grey) // Default person icon
+                          ? Icon(FontAwesomeIcons.user, size: 40, color: Colors.grey) // Default person icon
                           : ClipOval(
                               child: Image.file(
                                 _profileImage!, // Show uploaded image
@@ -109,20 +117,40 @@ class _MainAppScreenState extends State<MainAppScreen> {
             Expanded(
               child: ListView(
                 children: [
-                  _buildDrawerItem(Icons.person, 'Profile', context, () {
-                    // Navigate to Profile
+                  _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context, () {
+                    // Navigate to Profile page
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ProfilePage()), // Corrected class name
+                    );
                   }),
-                  _buildDrawerItem(Icons.account_balance_wallet, 'Wallet', context, () {
-                    // Navigate to Wallet
+                  _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context, () {
+                    // Navigate to Wallet page
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => WalletPage()), // Corrected class name
+                    );
                   }),
-                  _buildDrawerItem(Icons.location_on, 'My Location', context, () {
-                    // Navigate to My Location
+                  _buildDrawerItem(FontAwesomeIcons.mapMarkerAlt, 'My Location', context, () {
+                    // Navigate to My Location page
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => MyLocationPage()), // Corrected class name
+                    );
                   }),
-                  _buildDrawerItem(Icons.shopping_cart, 'My Orders', context, () {
-                    // Navigate to Orders
+                  _buildDrawerItem(FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
+                    // Navigate to My Orders page
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => MyOrdersPage()), // Corrected class name
+                    );
                   }),
-                  _buildDrawerItem(Icons.settings, 'Settings', context, () {
-                    // Navigate to Settings
+                  _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context, () {
+                    // Navigate to Settings page
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => SettingsPage()), // Corrected class name
+                    );
                   }),
                 ],
               ),
