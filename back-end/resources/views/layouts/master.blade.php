@@ -27,10 +27,10 @@
     -->
              <div class="logo">
                  <a href="http://www.creative-tim.com" class="simple-text logo-mini">
-                     CT
+                     MT
                  </a>
                  <a href="http://www.creative-tim.com" class="simple-text logo-normal">
-                     Creative Tim
+                     My Truck
                  </a>
              </div>
              <div class="sidebar-wrapper">
@@ -43,38 +43,20 @@
                      </li>
                      <li>
                          <a href="../examples/icons.html">
-                             <i class="now-ui-icons education_atom"></i>
-                             <p>Icons</p>
+                             <i class="now-ui-icons users_single-02"></i>
+                             <p>Drivers</p>
                          </a>
                      </li>
                      <li>
                          <a href="../examples/map.html">
-                             <i class="now-ui-icons location_map-big"></i>
-                             <p>Maps</p>
+                             <i class="now-ui-icons users_single-02"></i>
+                             <p>Users</p>
                          </a>
                      </li>
                      <li>
                          <a href="../examples/notifications.html">
-                             <i class="now-ui-icons ui-1_bell-53"></i>
-                             <p>Notifications</p>
-                         </a>
-                     </li>
-                     <li>
-                         <a href="../user.html">
-                             <i class="now-ui-icons users_single-02"></i>
-                             <p>User Profile</p>
-                         </a>
-                     </li>
-                     <li class="active">
-                         <a href="../examples/tables.html">
-                             <i class="now-ui-icons design_bullet-list-67"></i>
-                             <p>Table List</p>
-                         </a>
-                     </li>
-                     <li>
-                         <a href="../examples/typography.html">
-                             <i class="now-ui-icons text_caps-small"></i>
-                             <p>Typography</p>
+                             <i class="now-ui-icons ui-1_settings-gear-63"></i>
+                             <p>settings</p>
                          </a>
                      </li>
                  </ul>
@@ -109,40 +91,7 @@
                                  </span>
                              </div>
                          </form>
-                         <ul class="navbar-nav">
-                             <li class="nav-item">
-                                 <a class="nav-link" href="#pablo">
-                                     <i class="now-ui-icons media-2_sound-wave"></i>
-                                     <p>
-                                         <span class="d-lg-none d-md-block">Stats</span>
-                                     </p>
-                                 </a>
-                             </li>
-                             <li class="nav-item dropdown">
-                                 <a class="nav-link dropdown-toggle" href="http://example.com"
-                                     id="navbarDropdownMenuLink" data-toggle="dropdown" aria-haspopup="true"
-                                     aria-expanded="false">
-                                     <i class="now-ui-icons location_world"></i>
-                                     <p>
-                                         <span class="d-lg-none d-md-block">Some Actions</span>
-                                     </p>
-                                 </a>
-                                 <div class="dropdown-menu dropdown-menu-right"
-                                     aria-labelledby="navbarDropdownMenuLink">
-                                     <a class="dropdown-item" href="#">Action</a>
-                                     <a class="dropdown-item" href="#">Another action</a>
-                                     <a class="dropdown-item" href="#">Something else here</a>
-                                 </div>
-                             </li>
-                             <li class="nav-item">
-                                 <a class="nav-link" href="#pablo">
-                                     <i class="now-ui-icons users_single-02"></i>
-                                     <p>
-                                         <span class="d-lg-none d-md-block">Account</span>
-                                     </p>
-                                 </a>
-                             </li>
-                         </ul>
+
                      </div>
                  </div>
              </nav>
