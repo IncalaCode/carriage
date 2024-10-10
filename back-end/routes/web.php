@@ -24,3 +24,4 @@ function check($route, $filed = "page") {
     }
     return false;
 }
+Route::post('/admin/update', [AdminAuthController::class, 'updateAdmin'])->name('admin.update');

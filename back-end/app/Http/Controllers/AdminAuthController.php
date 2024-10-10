@@ -19,20 +19,16 @@ class AdminAuthController extends Controller
             'password' => 'required|string|min:8',
         ]);
 
-        // Return validation errors if any
         if ($validator->fails()) {
             return redirect()->route('admin.login')->withErrors($validator)->withInput();
         }
 
-        // Find the admin by email
         $admin = Admin::where('email', $request->email)->first();
 
-        // Check if admin exists and password is correct
         if (!$admin || !Hash::check($request->password, $admin->password)) {
             return redirect()->route('admin.login')->withErrors(['email' => 'Invalid credentials'])->withInput();
         }
 
-        // Store admin ID in session
         session(['admin_id' => $admin->id]);
 
         // Redirect to admin dashboard upon successful login
