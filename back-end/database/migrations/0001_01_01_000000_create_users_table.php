@@ -17,15 +17,19 @@ return new class extends Migration
             $table->string('last_name');
             $table->string('phone_number')->unique();
             $table->string('password');
-            $table->string('verified')->default('unverified');
+            $table->string('otp')->default('0');
+            $table->string('verified')->default(false);
             $table->timestamps();
         });
 
-        Schema::create('password_reset_tokens', function (Blueprint $table) {
-            $table->string('email')->primary();
-            $table->string('token');
-            $table->timestamp('created_at')->nullable();
-        });
+
+            Schema::create('user_password_reset_tokens', function (Blueprint $table) {
+                // Remove email as a primary key and just keep the token
+                $table->string('token')->primary();
+                $table->foreignId('user_id')->constrained()->onDelete('cascade');
+                $table->timestamp('created_at')->nullable();
+            });
+        
 
         Schema::create('sessions', function (Blueprint $table) {
             $table->string('id')->primary();

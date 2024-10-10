@@ -1,17 +1,18 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AdminAuthController;
 
 
-
-Route::get('/', function () {
-    return view('welcome');
-});
-
-Route::get('/admin', function () {
+Route::get('/admin/dashboard', function () {
     return view('admin.dashboard');
 });
-use App\Http\Controllers\DriverController;
 
-Route::post('api/drivers/register', [DriverController::class, 'register']);
+// Define the admin login form route and name it 'admin.login'
+Route::get('', function () {
+    return view('admin.login');
+})->name('admin.login');
 
+// Handle admin login form submission
+Route::post('admin/login', [AdminAuthController::class, 'login'])->name('admin.login.submit');
+Route::post('admin/logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
