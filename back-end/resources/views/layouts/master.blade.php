@@ -36,25 +36,25 @@
              <div class="sidebar-wrapper">
                  <ul class="nav">
                      <li>
-                         <a href="../examples/dashboard.html">
+                         <a href="{{ route('admin.dashboard') }}">
                              <i class="now-ui-icons design_app"></i>
                              <p>Dashboard</p>
                          </a>
                      </li>
                      <li>
-                         <a href="../examples/icons.html">
+                         <a href="{{ route('admin.drivers') }}">
                              <i class="now-ui-icons users_single-02"></i>
                              <p>Drivers</p>
                          </a>
                      </li>
                      <li>
-                         <a href="../examples/map.html">
+                         <a href="{{ route('admin.user') }}">
                              <i class="now-ui-icons users_single-02"></i>
                              <p>Users</p>
                          </a>
                      </li>
                      <li>
-                         <a href="../examples/notifications.html">
+                         <a href="{{ route('admin.settings') }}">
                              <i class="now-ui-icons ui-1_settings-gear-63"></i>
                              <p>settings</p>
                          </a>
@@ -163,7 +163,7 @@
                      <div class="copyright">
                          &copy;
                          <script>
-                         document.write(new Date().getFullYear())
+                             document.write(new Date().getFullYear())
                          </script>, Designed by
                          <a href="https://www.invisionapp.com" target="_blank">Invision</a>. Coded by
                          <a href="https://www.creative-tim.com" target="_blank">Creative Tim</a>.
