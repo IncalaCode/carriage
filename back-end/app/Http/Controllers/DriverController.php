@@ -141,4 +141,30 @@ class DriverController extends Controller
             'user' => $driver,
         ], 200);
     }
+
+    // app/Http/Controllers/DriverController.php
+    public function showDrivers()
+    {
+        $drivers = Driver::paginate(10); // Fetch 10 drivers per page
+        return view('admin.drivers', compact('drivers'));
+    }
+
+    public function addDriver(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => 'required|email|unique:drivers',
+            'phone' => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator);
+        }
+
+        Driver::create($request->all());
+        return redirect()->back()->with('success', 'Driver added successfully.');
+    }
+
+
 }

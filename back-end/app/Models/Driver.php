@@ -48,4 +48,4 @@ class Driver extends Authenticatable
      * Disable timestamps if you don't want to use them (optional)
      */
     public $timestamps = true; // This will use created_at and updated_at by default. Remove if not needed.
-}
+} // app/Models/Driver.php

@@ -146,3 +146,7 @@ Dashboard
 
 @section('scripts')
 @endsection
+<!-- Add this to your dashboard.blade.php -->
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
