@@ -90,4 +90,27 @@ class AdminAuthController extends Controller
             'admin' => $admin,
         ], 200);
     }
+
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required',
+            'new_password' => 'required|min:8|confirmed',
+        ]);
+
+        if (!Hash::check($request->current_password, auth()->user()->password)) {
+            return back()->withErrors(['current_password' => 'Current password is incorrect']);
+        }
+
+        auth()->user()->update(['password' => Hash::make($request->new_password)]);
+        return back()->with('success', 'Password changed successfully.');
+    }
+
+    public function changeEmail(Request $request)
+    {
+        $request->validate(['new_email' => 'required|email|unique:users,email']);
+        auth()->user()->update(['email' => $request->new_email]);
+        return back()->with('success', 'Email changed successfully.');
+    }
+
 }
