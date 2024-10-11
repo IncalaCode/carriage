@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Admin;
@@ -6,22 +7,21 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
+
 class AdminAuthController extends Controller
 {
     // Admin Login
-    public function adminLogin(Request $request)
+    public function login(Request $request)
     {
         // Validate the request data
         $validator = Validator::make($request->all(), [
             'email' => 'required|email',
-            'password' => 'required|string',
+            'password' => 'required|string|min:8',
         ]);
 
         // Return validation errors if any
         if ($validator->fails()) {
-            return response()->json([
-                'errors' => $validator->errors(),
-            ], 422);
+            return redirect()->route('admin.login')->withErrors($validator)->withInput();
         }
 
         // Find the admin by email
@@ -29,65 +29,49 @@ class AdminAuthController extends Controller
 
         // Check if admin exists and password is correct
         if (!$admin || !Hash::check($request->password, $admin->password)) {
-            return response()->json([
-                'message' => 'Invalid credentials',
-            ], 401);
+            return redirect()->route('admin.login')->withErrors(['email' => 'Invalid credentials'])->withInput();
         }
 
         // Store admin ID in session
         session(['admin_id' => $admin->id]);
 
-        return response()->json([
-            'message' => 'Admin logged in successfully',
-            'admin' => $admin,
-        ], 200);
+        // Redirect to admin dashboard upon successful login
+        return redirect('/admin/dashboard')->with('id', $admin->id);
     }
 
     // Admin Logout
-    public function adminLogout()
+    public function logout()
     {
         session()->forget('admin_id');
 
-        return response()->json([
-            'message' => 'Admin logged out successfully',
-        ], 200);
+        return redirect()->route('admin.login')->with('message', 'Logged out successfully');
     }
 
-    // Update Admin Details
     public function updateAdmin(Request $request)
     {
+        // Validate the form input
         $validator = Validator::make($request->all(), [
             'email' => 'required|email',
-            'password' => 'sometimes|required|string|min:8|confirmed',
+            'password' => 'required|string|min:8|confirmed', // confirmed checks for password_confirmation field
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'errors' => $validator->errors(),
-            ], 422);
+            return redirect()->back()->withErrors($validator)->withInput();
         }
 
+        // Get the current admin from the session
         $admin = Admin::find(session('admin_id'));
 
         if (!$admin) {
-            return response()->json([
-                'message' => 'Admin not found',
-            ], 404);
+            return redirect()->back()->with('message', 'Admin not found');
         }
 
-        // Update email
+        // Update the email and password
         $admin->email = $request->email;
-
-        // Update password if provided
-        if ($request->filled('password')) {
-            $admin->password = Hash::make($request->password);
-        }
-
+        $admin->password = Hash::make($request->password);
         $admin->save();
 
-        return response()->json([
-            'message' => 'Admin updated successfully',
-            'admin' => $admin,
-        ], 200);
+        return redirect()->back()->with('message', 'Admin updated successfully');
     }
+
 }
