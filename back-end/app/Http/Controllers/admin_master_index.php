@@ -7,12 +7,21 @@ use App\Models\Driver;
 
 class admin_master_index extends Controller
 {
+    /**
+     * Constructor: Apply session check for all methods in this controller.
+     */
+    public function __construct()
+    {
+        if (!session()->has('admin_id')) {
+            // Redirect to login if admin is not authenticated
+            redirect()->route('admin.login')->with('message', 'Please log in first.')->send();
+            exit;  // Stop further execution
+        }
+    }
+
     public function driverPage()
     {
-        // Fetch drivers with pagination
         $drivers = Driver::paginate(10);
-
-        // Return the admin.drivers view with the data
         return view('admin.drivers', compact('drivers'));
     }
 
@@ -20,21 +29,22 @@ class admin_master_index extends Controller
     {
         return view('admin.settings');
     }
-    public function userpage()
+
+    public function userPage()
     {
-        return view("admin.user");
+        return view('admin.user');
     }
 
-
-    // for the activate and disactive 
     public function toggleStatus($id, Request $request)
-{
-    $driver = Driver::findOrFail($id);
-    $driver->status = $request->status;
-    if ($driver->save()) {
-        return response()->json(['success' => true]);
-    }
-    return response()->json(['success' => false], 500);
-}
+    {
+        $request->validate(['status' => 'required|boolean']);
+        $driver = Driver::findOrFail($id);
+        $driver->verified = $request->status;
 
+        if ($driver->save()) {
+            return response()->json(['success' => true]);
+        }
+
+        return response()->json(['success' => false], 500);
+    }
 }

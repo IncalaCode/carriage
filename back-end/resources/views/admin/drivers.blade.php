@@ -127,7 +127,7 @@
                                     </td>
                                     <td class="text-right">
                                         <button class="btn btn-sm {{ $driver->status ? 'btn-danger' : 'btn-success' }}"
-                                            onclick="toggleStatus(this, {{ $driver->id }}, {{ $driver->status ? 0 : 1 }})">
+                                            onclick="toggleStatus(this, {{ $driver->id }}, {{ $driver->status ? 00 : 1 }})">
                                             <span class="button-text">
                                                 {{ $driver->status ? 'Deactivate' : 'Activate' }}
                                             </span>

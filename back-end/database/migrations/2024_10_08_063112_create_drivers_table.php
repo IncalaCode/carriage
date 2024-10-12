@@ -11,26 +11,26 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasTable('password_reset_tokens')) {
-            // Create the drivers table
-            Schema::create('drivers', function (Blueprint $table) {
-                $table->id();
-                $table->string('first_name');
-                $table->string('last_name');
-                $table->string('password');
-                $table->string('phone_number')->unique();
-                $table->string('driver_id');
-                $table->string('id_card_image_path');  // for ID image scan
-                $table->timestamps();
-            });
-        }
+        // Create the drivers table
+        Schema::create('drivers', function (Blueprint $table) {
+            $table->id();
+            $table->string('first_name');
+            $table->string('last_name');
+            $table->string('password');
+            $table->string('phone_number')->unique();
+            $table->string('driver_id')->unique(); // Ensure this is unique, if applicable
+            $table->boolean('verified')->default(0);
+            $table->boolean('Status')->default(0);
+            $table->string('id_card_image_path')->nullable(); // Make this nullable if not mandatory
+            $table->timestamps();
+        });
 
         // Create the password_reset_tokens table
         Schema::create('drivers_password_reset_tokens', function (Blueprint $table) {
-            $table->id(); // Add an auto-incrementing ID
-            $table->foreignId('driver_id')->constrained()->onDelete('cascade'); // Foreign key reference to drivers
+            $table->id(); // Auto-incrementing ID
+            $table->foreignId('driver_id')->constrained('drivers')->onDelete('cascade'); // Foreign key reference to drivers
             $table->string('token')->unique(); // Token must be unique
-            $table->timestamp('created_at')->nullable(); // Timestamp to track when the token was created
+            $table->timestamp('created_at')->nullable(); // Timestamp for token creation
         });
     }
 
@@ -39,6 +39,8 @@ return new class extends Migration
      */
     public function down(): void
     {
+        // Drop the password_reset_tokens table first, then drop the drivers table
+        Schema::dropIfExists('drivers_password_reset_tokens');
         Schema::dropIfExists('drivers');
     }
 };
