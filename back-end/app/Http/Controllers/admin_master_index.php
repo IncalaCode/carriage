@@ -24,4 +24,17 @@ class admin_master_index extends Controller
     {
         return view("admin.user");
     }
+
+
+    // for the activate and disactive 
+    public function toggleStatus($id, Request $request)
+{
+    $driver = Driver::findOrFail($id);
+    $driver->status = $request->status;
+    if ($driver->save()) {
+        return response()->json(['success' => true]);
+    }
+    return response()->json(['success' => false], 500);
+}
+
 }
