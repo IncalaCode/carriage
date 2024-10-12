@@ -29,6 +29,9 @@ Route::post('admin/logout', [AdminAuthController::class, 'logout'])->name('admin
 
 Route::post('/admin/update', [AdminAuthController::class, 'updateAdmin'])->name('admin.update');
 
+Route::post('/admin/drivers/{id}/toggle-status', [admin_master_index::class, 'toggleStatus']);
+
+
 function check($route, $filed = "page")
 {
     if (!session()->has('admin_id')) {
