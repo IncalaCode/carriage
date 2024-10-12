@@ -7,7 +7,7 @@ use App\Http\Controllers\admin_master_index;
 
 
 
- 
+
 
 Route::get('', function () {
     return view('admin.login');
@@ -29,7 +29,8 @@ Route::post('admin/logout', [AdminAuthController::class, 'logout'])->name('admin
 
 Route::post('/admin/update', [AdminAuthController::class, 'updateAdmin'])->name('admin.update');
 
-function check($route, $filed = "page") {
+function check($route, $filed = "page")
+{
     if (!session()->has('admin_id')) {
         return redirect()->route($route)->with('message', "Please log in to access the $filed.");
     }
