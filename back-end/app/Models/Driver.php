@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Foundation\Auth\User as Authenticatable; // Use this if Driver is meant to be an authenticatable user.
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class Driver extends Authenticatable
@@ -21,6 +21,7 @@ class Driver extends Authenticatable
         'last_name',
         'phone_number',
         'password',
+        'verified',
         'driver_id', // Include this as it's in your migration.
         'id_card_image_path', // Include this as well based on your schema.
     ];
@@ -42,10 +43,23 @@ class Driver extends Authenticatable
      */
     protected $casts = [
         'password' => 'hashed',
+        'verified' => 'boolean', // Cast the verified attribute to a boolean.
     ];
 
     /**
-     * Disable timestamps if you don't want to use them (optional)
+     * Indicates if the model should be timestamped.
+     *
+     * @var bool
      */
     public $timestamps = true; // This will use created_at and updated_at by default. Remove if not needed.
-} // app/Models/Driver.php
+
+    /**
+     * If you are using the driver as an authenticatable user,
+     * you might want to set the guard for the Driver model.
+     * This is optional and based on your application needs.
+     */
+    protected $table = 'drivers'; // Optional: Specify the table name if it's not the plural of the model name.
+
+
+    // Add any additional methods or relationships as needed.
+}
