@@ -3648,7 +3648,7 @@ a[data-toggle="collapse"][aria-expanded="true"] .caret,
 .navbar .form-group .input-group-addon,
 .navbar .input-group .form-group-addon,
 .navbar .input-group .input-group-addon {
-  color: #FFFFFF;
+  color: #3d1e1e;
 }
 
 .navbar .form-group.no-border .form-control,
@@ -3658,17 +3658,17 @@ a[data-toggle="collapse"][aria-expanded="true"] .caret,
 
 .navbar .form-group.no-border .form-control::-moz-placeholder,
 .navbar .input-group.no-border .form-control::-moz-placeholder {
-  color: #FFFFFF;
+  color: #1a1313;
 }
 
 .navbar .form-group.no-border .form-control:-ms-input-placeholder,
 .navbar .input-group.no-border .form-control:-ms-input-placeholder {
-  color: #FFFFFF;
+  color: #080707;
 }
 
 .navbar .form-group.no-border .form-control::-webkit-input-placeholder,
 .navbar .input-group.no-border .form-control::-webkit-input-placeholder {
-  color: #FFFFFF;
+  color: #030303;
 }
 
 .navbar p {
@@ -5652,8 +5652,8 @@ Created using IcoMoon - icomoon.io
 }
 
 .panel-header {
-  height: 260px;
-  padding-top: 80px;
+  height: 50px;
+  padding-top: 20px;
   padding-bottom: 45px;
   background: #141E30;
   /* fallback for old browsers */
@@ -5679,7 +5679,7 @@ Created using IcoMoon - icomoon.io
 }
 
 .panel-header-sm {
-  height: 135px;
+  height: 1px;
 }
 
 .panel-header-lg {
@@ -7364,3 +7364,4 @@ Created using IcoMoon - icomoon.io
 }
 
 /*# sourceMappingURL=now-ui-dashboard.css.map */
+
