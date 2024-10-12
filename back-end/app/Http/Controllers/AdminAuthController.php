@@ -47,8 +47,10 @@ class AdminAuthController extends Controller
     {
         // Validate the form input
         $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-            'password' => 'required|string|min:8|confirmed', // confirmed checks for password_confirmation field
+            'currentEmail' => 'required|email',
+            'currentpassword' => 'required|string|min:8',
+            'newEmail' => 'required|email',
+            'newpassword' => 'required|string|min:8|confirmed', // confirmed checks for password_confirmation field
         ]);
 
         if ($validator->fails()) {
@@ -63,8 +65,8 @@ class AdminAuthController extends Controller
         }
 
         // Update the email and password
-        $admin->email = $request->email;
-        $admin->password = Hash::make($request->password);
+        $admin->email = $request->newEmail;
+        $admin->password = Hash::make($request->newpassword);
         $admin->save();
 
         return redirect()->back()->with('message', 'Admin updated successfully');

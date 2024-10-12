@@ -42,25 +42,20 @@ class DriverController extends Controller
             'otp' => rand(1000, 9999), // Store the OTP
         ]);
 
-        $token = $driver->createToken('auth_token')->plainTextToken;
-
         // Call the otpSend function
-        [$status, $response] = otpSend($driver->phone, $driver->otp, "example.com", $driver->id);
+         $response = otpSend($driver->phone, $driver->otp, "example.com", $driver->id);
 
-        if ($status === 200) {
+        // Return success response
+        if ($response['status']  === 'success') {
             return response()->json([
-                'message' => 'Driver registered successfully, OTP sent!',
-                'token' => $token,
-                'user' => $driver,
+                'message' => 'OTP sent successfully!',
                 'otp_response' => json_decode($response, true),
-            ], 201);
+            ], 200);
         } else {
             return response()->json([
-                'message' => 'Driver registered, but OTP sending failed',
-                'token' => $token,
-                'user' => $driver,
+                'message' => 'Failed to send OTP',
                 'otp_response' => json_decode($response, true),
-            ], 201);
+            ], 500);
         }
     }
 
