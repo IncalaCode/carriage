@@ -2,70 +2,15 @@
 
 @section('title', 'Dashboard')
 
-@section('link')
-<!-- Custom Toast CSS -->
-<style>
-.toast {
-    position: absolute;
-    top: 20px;
-    /* Positioning to the top-right corner */
-    right: 20px;
-    /* Adjust for right positioning */
-    background-color: #333;
-    color: white;
-    padding: 15px 25px;
-    /* Slightly increased padding for aesthetics */
-    border-radius: 15px;
-    /* Curved corners */
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-    z-index: 9999;
-    opacity: 0;
-    transform: translateY(-20px);
-    transition: opacity 0.5s ease, transform 0.5s ease;
-}
 
-.toast.show {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-/* Cool animations */
-.toast-slide-in {
-    animation: slideIn 0.5s forwards;
-}
-
-.toast-fade-out {
-    animation: fadeOut 0.5s forwards;
-}
-
-@keyframes slideIn {
-    from {
-        transform: translateY(-30px);
-        opacity: 0;
-    }
-
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-@keyframes fadeOut {
-    from {
-        opacity: 1;
-    }
-
-    to {
-        opacity: 0;
-    }
-}
-</style>
-@endsection
 
 @section('content')
+
 <div class="row">
     <div class="col-md-12">
         <div class="card"></div>
+        <div id="toast-container">
+        </div>
 
         <div class="col-md-12">
             <div class="card card-plain">
@@ -151,7 +96,9 @@
 </div>
 
 <!-- Toast Container -->
-<div id="toast-container"></div>
+
+
+
 @endsection
 
 @section('scripts')
@@ -216,10 +163,36 @@ function updateDriverUI(driverId, newStatus, button) {
 }
 
 // Helper function: Show custom toast notification
+// Helper function: Show custom toast notification
 function showToast(message, bgColor) {
     const toast = document.createElement('div');
-    toast.className = 'toast toast-slide-in'; // Add animation class
-    toast.style.backgroundColor = bgColor;
+
+    // Add necessary classes
+    toast.className = 'toast toast-slide-in';
+
+    // Set the styles dynamically
+    toast.style.width = '100%'; // Full width of the parent container
+
+    toast.style.backgroundColor = bgColor; // Background color
+    toast.style.padding = '20px 30px'; // Padding
+    toast.style.borderRadius = '10px'; // Border radius
+    toast.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.5)'; // Box shadow
+    toast.style.opacity = '0'; // Initial opacity for animation
+    toast.style.transform = 'translateY(-20px)'; // Initial transform for animation
+    toast.style.transition = 'opacity 0.5s ease, transform 0.5s ease'; // Smooth transition
+    toast.style.position = 'relative'; // Set position
+    toast.style.marginTop = '10px'; // Spacing between multiple toasts
+    toast.style.zIndex = '99999'; // Make sure it appears above other elements
+
+    // Set height dynamically
+    toast.style.minHeight = '60px'; // Minimum height
+    toast.style.maxHeight = '300px'; // Maximum height
+    toast.style.overflowY = 'auto'; // Allow scrolling for long content
+
+    // Set responsive max-width
+    toast.style.maxWidth = '90%'; // Prevent overflow on smaller screens
+
+    // Handle text
     toast.innerText = message;
 
     // Append toast to the container
@@ -229,15 +202,17 @@ function showToast(message, bgColor) {
     // Show the toast
     setTimeout(() => {
         toast.classList.add('show');
+        toast.style.opacity = '1'; // Fade-in
+        toast.style.transform = 'translateY(0)'; // Slide in
     }, 100);
 
     // Hide the toast after 3 seconds
     setTimeout(() => {
         toast.classList.remove('show');
-        toast.classList.add('toast-fade-out'); // Add fade-out class
+        toast.classList.add('toast-fade-out'); // Fade-out animation
         setTimeout(() => {
-            toastContainer.removeChild(toast);
-        }, 500); // Wait for fade-out transition
+            toastContainer.removeChild(toast); // Remove the toast after fading out
+        }, 500); // Wait for the fade-out transition
     }, 3000);
 }
 
