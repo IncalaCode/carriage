@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io'; // For handling file operations
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart'; // For Google Maps
 
 // Corrected imports
 import 'sidebarProfile.dart';
@@ -9,8 +10,6 @@ import 'sidebarWallet.dart';
 import 'sidebarMylocation.dart';
 import 'sidebarMyOrder.dart';
 import 'sidebarSettings.dart';
-
-
 
 class MainAppScreen extends StatefulWidget {
   @override
@@ -20,16 +19,32 @@ class MainAppScreen extends StatefulWidget {
 class _MainAppScreenState extends State<MainAppScreen> {
   bool isDrawerOpen = false;
   File? _profileImage; // Holds the uploaded profile picture
+  GoogleMapController? mapController;
+  final LatLng _initialPosition = LatLng(37.7749, -122.4194); // San Francisco coordinates
 
   // Function to pick an image from the gallery
   Future<void> _pickImage() async {
     final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
-    
     if (pickedFile != null) {
       setState(() {
         _profileImage = File(pickedFile.path); // Update profile image after picking
       });
     }
+  }
+
+  // Function to handle Google Map creation
+  void _onMapCreated(GoogleMapController controller) {
+    mapController = controller;
+  }
+
+  // Function to show the order form
+  void _showOrderForm() {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return OrderForm();
+      },
+    );
   }
 
   @override
@@ -54,7 +69,6 @@ class _MainAppScreenState extends State<MainAppScreen> {
           child: Image.asset('assets/logo.png', height: 180), // Adjusted height for visibility
         ),
         actions: [
-          // Hamburger menu icon
           Padding(
             padding: EdgeInsets.only(right: 16.0), // Aligns to the top right corner
             child: Builder(
@@ -84,7 +98,6 @@ class _MainAppScreenState extends State<MainAppScreen> {
               ),
               child: Row(
                 children: [
-                  // Display either the uploaded profile image or person icon
                   GestureDetector(
                     onTap: _pickImage, // Pick image on tapping the icon
                     child: CircleAvatar(
@@ -118,38 +131,33 @@ class _MainAppScreenState extends State<MainAppScreen> {
               child: ListView(
                 children: [
                   _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context, () {
-                    // Navigate to Profile page
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => ProfilePage()), // Corrected class name
+                      MaterialPageRoute(builder: (context) => ProfilePage()),
                     );
                   }),
                   _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context, () {
-                    // Navigate to Wallet page
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => WalletPage()), // Corrected class name
+                      MaterialPageRoute(builder: (context) => WalletPage()),
                     );
                   }),
                   _buildDrawerItem(FontAwesomeIcons.mapMarkerAlt, 'My Location', context, () {
-                    // Navigate to My Location page
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => MyLocationPage()), // Corrected class name
+                      MaterialPageRoute(builder: (context) => MyLocationPage()),
                     );
                   }),
                   _buildDrawerItem(FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
-                    // Navigate to My Orders page
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => MyOrdersPage()), // Corrected class name
+                      MaterialPageRoute(builder: (context) => MyOrdersPage()),
                     );
                   }),
                   _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context, () {
-                    // Navigate to Settings page
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => SettingsPage()), // Corrected class name
+                      MaterialPageRoute(builder: (context) => SettingsPage()),
                     );
                   }),
                 ],
@@ -158,15 +166,32 @@ class _MainAppScreenState extends State<MainAppScreen> {
           ],
         ),
       ),
-      body: Center(
-        child: Text(
-          'Welcome to Carriage App!',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.indigo,
+      body: Stack(
+        children: [
+          // Google Map integration
+          GoogleMap(
+            onMapCreated: _onMapCreated,
+            initialCameraPosition: CameraPosition(
+              target: _initialPosition,
+              zoom: 12.0,
+            ),
+            mapType: MapType.normal,
           ),
-        ), // Main content
+          // "Order Now" button
+          Positioned(
+            bottom: 20,
+            right: 20,
+            child: FloatingActionButton(
+              onPressed: _showOrderForm, // Show order form when pressed
+              backgroundColor: Colors.blueAccent,
+              child: Text(
+                'Order\nNow',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -174,19 +199,77 @@ class _MainAppScreenState extends State<MainAppScreen> {
   // Helper function for building drawer items
   Widget _buildDrawerItem(IconData icon, String title, BuildContext context, Function onTap) {
     return ListTile(
-      leading: Icon(icon, color: Colors.black), // Set icon color to black
+      leading: Icon(icon, color: Colors.black),
       title: Text(
-        title, 
+        title,
         style: TextStyle(
           fontSize: 18,
-          color: Colors.black, // Set text color to black for visibility
+          color: Colors.black,
           fontWeight: FontWeight.bold,
         ),
       ),
-      tileColor: Colors.grey[200], // Set background color for the list item
+      tileColor: Colors.grey[200],
       onTap: () {
         onTap();
       },
+    );
+  }
+}
+
+// New Order Form Widget
+class OrderForm extends StatelessWidget {
+  final TextEditingController destinationController = TextEditingController();
+  final TextEditingController materialTypeController = TextEditingController();
+  String? loadType;
+  
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(16.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Order Form',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 20),
+          TextField(
+            controller: destinationController,
+            decoration: InputDecoration(labelText: 'Destination'),
+          ),
+          TextField(
+            controller: materialTypeController,
+            decoration: InputDecoration(labelText: 'Material Type'),
+          ),
+          DropdownButton<String>(
+            hint: Text('Select Load Type'),
+            value: loadType,
+            onChanged: (String? newValue) {
+              loadType = newValue;
+            },
+            items: <String>['Half Load', 'Full Load']
+                .map<DropdownMenuItem<String>>((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value),
+              );
+            }).toList(),
+          ),
+          SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () {
+              // Handle the order submission logic here
+              String destination = destinationController.text;
+              String materialType = materialTypeController.text;
+              // Use loadType variable
+              print('Order submitted: Destination - $destination, Material Type - $materialType, Load Type - $loadType');
+              Navigator.pop(context); // Close the form after submission
+            },
+            child: Text('Request'),
+          ),
+        ],
+      ),
     );
   }
 }

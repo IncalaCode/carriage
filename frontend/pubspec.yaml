@@ -1,4 +1,4 @@
-name: carriage_app
+name: My_truck
 description: "A new Flutter project."
 
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -14,6 +14,10 @@ dependencies:
   video_player: ^2.4.5
   image_picker: ^0.8.7+3
   font_awesome_flutter: ^10.0.0
+  google_maps_flutter: ^2.1.7
+  geolocator: ^9.0.2
+  geocoding: ^2.0.5
+  path_provider: ^2.0.11
   
 
 flutter:
