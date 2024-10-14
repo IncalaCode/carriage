@@ -1,4 +1,4 @@
-import 'package:carriage_app/screens/main_app_screen.dart'; 
+import 'package:My_truck/screens/main_app_screen.dart'; 
 import 'package:flutter/material.dart';
 // import 'dart:io';
 import 'package:image_picker/image_picker.dart';

@@ -18,7 +18,7 @@ class SettingsPage extends StatelessWidget {
         children: [
           ListTile(
             leading: Icon(FontAwesomeIcons.userCog),
-            title: Text('Account Settings'),
+            title: Text('Delete Account'),
             trailing: Icon(FontAwesomeIcons.arrowRight),
             onTap: () {
               // Navigate to account settings
