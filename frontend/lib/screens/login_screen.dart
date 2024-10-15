@@ -1,276 +1,173 @@
-import 'package:My_truck/screens/main_app_screen.dart'; 
 import 'package:flutter/material.dart';
-// import 'dart:io';
-import 'package:image_picker/image_picker.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:My_truck/screens/RegisterUser.dart';
+import 'package:My_truck/screens/RegisterDriver.dart';
+import 'package:My_truck/screens/main_app_screen.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
+  @override
+  _LoginScreenState createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  // Track if the current mode is user or driver login
+  bool isUserLogin = true;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Main logo at the center
-            Image.asset('assets/logo.png', height: 200),
-            SizedBox(height: 50),
-
-            // Login button
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: 15.0),
-                backgroundColor: Colors.black87,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10.0),
-                ),
-              ),
-              onPressed: () {
-                _showLoginPopup(context);
-              },
-              child: Text("Login", style: TextStyle(color: Colors.white)),
-            ),
-            SizedBox(height: 20),
-
-            // Register as User button
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: 15.0),
-                backgroundColor: Colors.black87,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10.0),
-                ),
-              ),
-              onPressed: () {
-                _showRegisterUserPopup(context);
-              },
-              child: Text("Register as User", style: TextStyle(color: Colors.white)),
-            ),
-            SizedBox(height: 20),
-
-            // Register as Driver button
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: 15.0),
-                backgroundColor: Colors.black87,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10.0),
-                ),
-              ),
-              onPressed: () {
-                _showRegisterDriverPopup(context);
-              },
-              child: Text("Register as Driver", style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Popup for login
-  void _showLoginPopup(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.black87.withOpacity(0.85),  // Increased background opacity for blur effect
-          content: Stack(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Back button
-                    Align(
-                      alignment: Alignment.topLeft,
-                      child: IconButton(
-                        icon: Icon(FontAwesomeIcons.arrowLeft, color: Colors.white),
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                      ),
+              // Main logo at the top
+              Image.asset('assets/logo.png', height: 250), // Smaller logo as per request
+              SizedBox(height: 50),
+
+              // Switch between User and Driver Login
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // User Login option
+                  InkWell(
+                    onTap: () {
+                      setState(() {
+                        isUserLogin = true;
+                      });
+                    },
+                    child: Column(
+                      children: [
+                        Text(
+                          'User Login',
+                          style: TextStyle(
+                            color: isUserLogin ? Colors.white : Colors.grey,
+                            fontSize: 20,
+                            fontWeight: isUserLogin ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                        SizedBox(height: 5),
+                        isUserLogin ? Container(height: 2, width: 60, color: Colors.blue) : Container(),
+                      ],
                     ),
-                    Image.asset('assets/logo.png', height: 200), // Logo
-                    SizedBox(height: 20),
+                  ),
+                  SizedBox(width: 30),
+                  
+                  // Driver Login option
+                  InkWell(
+                    onTap: () {
+                      setState(() {
+                        isUserLogin = false;
+                      });
+                    },
+                    child: Column(
+                      children: [
+                        Text(
+                          'Driver Login',
+                          style: TextStyle(
+                            color: !isUserLogin ? Colors.white : Colors.grey,
+                            fontSize: 20,
+                            fontWeight: !isUserLogin ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                        SizedBox(height: 5),
+                        !isUserLogin ? Container(height: 2, width: 60, color: Colors.blue) : Container(),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              SizedBox(height: 50),
+
+              // Username and password fields
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 30.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("user name", style: TextStyle(color: Colors.white, fontSize: 20)),
                     TextFormField(
                       decoration: InputDecoration(
-                        labelText: 'Email',
-                        filled: true,
+                        prefixIcon: Icon(FontAwesomeIcons.person),
+                        hintText: 'User Name',
                         fillColor: Colors.white,
+                        filled: true,
                       ),
                     ),
-                    SizedBox(height: 16),
+                    SizedBox(height: 20),
+                    Text("password", style: TextStyle(color: Colors.white, fontSize: 20)),
                     TextFormField(
                       obscureText: true,
                       decoration: InputDecoration(
-                        labelText: 'Password',
-                        filled: true,
+                        prefixIcon: Icon(FontAwesomeIcons.lock),
+                        hintText: 'Password',
                         fillColor: Colors.white,
+                        filled: true,
                       ),
-                    ),
-                    SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => MainAppScreen()),
-                        );
-                      },
-                      child: Text('Login', style: TextStyle(color: Colors.white)),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
-  // Popup for registering as a user
-  void _showRegisterUserPopup(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.black87.withOpacity(10),  // Increased background opacity
-          content: Stack(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Back button
-                    Align(
-                      alignment: Alignment.topLeft,
-                      child: IconButton(
-                        icon: Icon(FontAwesomeIcons.arrowLeft, color: Colors.white),
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                      ),
-                    ),
-                    Image.asset('assets/logo.png', height: 200), // Logo
-                    SizedBox(height: 20),
-                    TextFormField(
-                      decoration: InputDecoration(
-                        labelText: 'Full Name',
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
-                    ),
-                    SizedBox(height: 16),
-                    TextFormField(
-                      keyboardType: TextInputType.phone,
-                      decoration: InputDecoration(
-                        labelText: 'Phone Number (Ethiopian)',
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
-                      validator: (value) {
-                        if (value == null || !RegExp(r'^(\+251|0)[1-9]\d{8}$').hasMatch(value)) {
-                          return 'Enter a valid Ethiopian phone number';
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => MainAppScreen()),
-                        );
-                      },
-                      child: Text('Register', style: TextStyle(color: Colors.white)),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+              SizedBox(height: 20),
 
-  // Popup for registering as a driver
-  void _showRegisterDriverPopup(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.black87.withOpacity(0.85),  // Increased background opacity
-          content: Stack(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Back button
-                    Align(
-                      alignment: Alignment.topLeft,
-                      child: IconButton(
-                        icon: Icon(FontAwesomeIcons.arrowLeft, color: Colors.white),
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                      ),
-                    ),
-                    Image.asset('assets/logo.png', height: 200), // Logo
-                    SizedBox(height: 20),
-                    TextFormField(
-                      decoration: InputDecoration(
-                        labelText: 'Full Name',
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
-                    ),
-                    SizedBox(height: 16),
-                    TextFormField(
-                      decoration: InputDecoration(
-                        labelText: 'Address',
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
-                    ),
-                    SizedBox(height: 16),
-                    Text('Upload Driving License', style: TextStyle(color: Colors.white)),
-                    SizedBox(height: 8),
-                    ElevatedButton(
-                      onPressed: () async {
-                        final ImagePicker picker = ImagePicker();
-                        final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-                        if (image != null) {
-                          print('Image selected: ${image.path}');
-                        }
-                      },
-                      child: Text('Upload Image', style: TextStyle(color: Colors.white)),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
-                    ),
-                    SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      child: Text('Register', style: TextStyle(color: Colors.white)),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
-                    ),
-                  ],
+              // Login button with blue border
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 15.0),
+                  backgroundColor: Colors.black87,
+                  shape: RoundedRectangleBorder(
+                    side: BorderSide(color: Colors.blue, width: 2), // Blue border
+                    borderRadius: BorderRadius.circular(10.0),
+                  ),
+                ),
+                onPressed: () {
+                  // Redirect to main app screen
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => MainAppScreen()),
+                  );
+                },
+                child: Text("Login", style: TextStyle(color: Colors.white)),
+              ),
+
+              SizedBox(height: 20),
+
+              // Register Button (changes based on login type)
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 15.0),
+                  backgroundColor: Colors.black87,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10.0),
+                  ),
+                ),
+                onPressed: () {
+                  if (isUserLogin) {
+                    // Navigate to RegisterUser page
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => RegisterUser()),
+                    );
+                  } else {
+                    // Navigate to RegisterDriver page
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => RegisterDriver()),
+                    );
+                  }
+                },
+                child: Text(
+                  isUserLogin ? "Register as User" : "Register as Driver",
+                  style: TextStyle(color: Colors.white),
                 ),
               ),
             ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
