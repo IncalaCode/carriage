@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class RegisterScreen extends StatefulWidget {
   @override
@@ -10,18 +12,53 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _phoneNumberController = TextEditingController();
 
-  // This is where we'll send data to the backend
+  // This method sends data to the backend and logs everything in the terminal
+  Future<void> _sendRegistrationData(
+      String fullName, String phoneNumber) async {
+    String apiUrl =
+        'https://your-backend-api.com/register'; // Replace with your actual Laravel backend URL
+
+    Map<String, String> data = {
+      'fullName': fullName,
+      'phoneNumber': phoneNumber,
+    };
+
+    // Log the collected data in the terminal
+    print("Sending the following data to backend:");
+    print("Full Name: $fullName, Phone Number: $phoneNumber");
+
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode(data),
+      );
+
+      // Log the backend response in the terminal
+      if (response.statusCode == 200) {
+        print(
+            'Registration successful. Response from backend: ${response.body}');
+      } else {
+        print('Registration failed. Status code: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error sending registration data: $error');
+    }
+  }
+
+  // This method is called when the user submits the form
   void _register() {
     if (_formKey.currentState!.validate()) {
       // Collect form data
       String fullName = _fullNameController.text;
       String phoneNumber = _phoneNumberController.text;
 
-      // Here you would send the data to the backend (Laravel)
-      // You can use the 'http' package to send a POST request to the backend API
-      print("Full Name: $fullName, Phone Number: $phoneNumber");
+      // Send data to backend and display in terminal
+      _sendRegistrationData(fullName, phoneNumber);
 
-      // Navigate back to login or another screen
+      // Navigate back or show success message (optional)
       Navigator.pop(context);
     }
   }
