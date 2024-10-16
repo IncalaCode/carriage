@@ -45,20 +45,13 @@ class AuthController extends Controller
         // Send OTP using otpSend
         $response  = otpSend($user->phone_number, "Your OTP is: ", $otp, $user->id);
 
-        // Return success response
-        if ($response['status']  === 'success') {
-            return response()->json([
-                'message' => 'OTP sent successfully!',
-                'otp_response' => json_decode($response, true),
-            ], 200);
-        } else {
-            return response()->json([
-                'message' => 'Failed to send OTP',
-                'otp_response' => json_decode($response, true),
-            ], 500);
-        }
+
+        return response()->json([
+            'message' => 'OTP sent successfully!',
+            'otp_response' => $response,
+        ], 200);
     }
-    
+
     // New login method that sends OTP
     public function login(Request $request)
     {
@@ -87,9 +80,9 @@ class AuthController extends Controller
         // Send OTP using otpSend
         $response = otpSend($user->phone_number, "Your OTP is: ", $otp, $user->id);
 
-        if($response['status'] == "success"){
-        $user->otp = $otp; // Update the OTP in the user record
-        $user->save();
+        if ($response['status'] == "success") {
+            $user->otp = $otp; // Update the OTP in the user record
+            $user->save();
         }
 
         return response()->json([
@@ -113,13 +106,13 @@ class AuthController extends Controller
         }
 
         // Get the user using the provided phone number
-        
+
         $user = User::where('phone_number', $request->phone_number)->first();
 
         $otp = substr($request->otp, -4);
 
         // Check if the provided OTP matches the stored OTP
-        if ($user->otp !==  $otp ) {
+        if ($user->otp !==  $otp) {
             return response()->json([
                 'message' => 'Invalid OTP',
             ], 401);

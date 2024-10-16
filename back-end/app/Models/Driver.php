@@ -23,7 +23,11 @@ class Driver extends Authenticatable
         'password',
         'verified',
         'driver_id', // Include this as it's in your migration.
-        'id_card_image_path', // Include this as well based on your schema.
+        'id_card_image_path',
+        'car_type',
+        'driver_license_photo',
+        'car_plate_photo',
+        'user_photo', // Include this as well based on your schema.
     ];
 
     /**

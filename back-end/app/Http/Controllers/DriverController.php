@@ -19,6 +19,10 @@ class DriverController extends Controller
             'driver_id' => 'required|string|max:255',
             'id_card_image' => 'required|image|max:2048',
             'password' => 'required|string|min:8|confirmed',
+            'car_type' => 'required|string|max:255',
+            'driver_license_photo' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+            'car_plate_photo' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+            'user_photo' => 'required|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -29,6 +33,9 @@ class DriverController extends Controller
 
         // Handle file upload for ID card
         $idCardPath = $request->file('id_card_image')->store('id_cards', 'public');
+        $driver_license_photo = $request->file('driver_license_photo')->store('driver_photos', 'public');
+        $car_plate_photo = $request->file('car_plate_photo')->store('driver_photos', 'public');
+        $user_photo = $request->file('user_photo')->store('driver_photos', 'public');
 
         $driver = Driver::create([
             'first_name' => $request->first_name,
@@ -38,12 +45,16 @@ class DriverController extends Controller
             'driver_id' => $request->driver_id,
             'password' => Hash::make($request->password),
             'id_card_image_path' => $idCardPath,
+            'car_type' => $request->car_type,
+            'driver_license_photo' => $driver_license_photo,
+            'car_plate_photo' => $car_plate_photo,
+            'user_photo' => $user_photo,
             'verified' => false, // Initially set verified to false
             'otp' => rand(1000, 9999), // Store the OTP
         ]);
 
         // Call the otpSend function
-         $response = otpSend($driver->phone, $driver->otp, "example.com", $driver->id);
+        $response = otpSend($driver->phone, $driver->otp, "example.com", $driver->id);
 
         // Return success response
         if ($response['status']  === 'success') {
@@ -136,5 +147,4 @@ class DriverController extends Controller
             'user' => $driver,
         ], 200);
     }
-
 }
