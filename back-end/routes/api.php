@@ -11,6 +11,7 @@ use App\Http\Controllers\AdminAuthController;
 // Route for user registration
 Route::post('/user/register', [AuthController::class, 'register']);
 Route::post('/user/login', [AuthController::class, 'login']);
+Route::post('user/send-otp', [AuthController::class, 'sendOtp']);
 Route::post('/user/verify', [AuthController::class, 'verifyOtp']);
 
 // Example route to test if it's working

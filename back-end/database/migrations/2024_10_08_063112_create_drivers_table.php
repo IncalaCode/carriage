@@ -22,6 +22,10 @@ return new class extends Migration
             $table->boolean('verified')->default(0);
             $table->boolean('Status')->default(0);
             $table->string('id_card_image_path')->nullable(); // Make this nullable if not mandatory
+            $table->string('car_type');
+            $table->string('driver_license_photo');
+            $table->string('car_plate_photo');
+            $table->string('user_photo');
             $table->timestamps();
         });
 
