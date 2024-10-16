@@ -3,6 +3,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:io'; // For file handling (image upload)
 import 'package:image_picker/image_picker.dart'; // For image picking
 import 'sidebarProfileEdit.dart';
+import 'login_screen.dart';
+
  // Edit profile page
 class ProfilePage extends StatefulWidget {
   @override
@@ -120,7 +122,7 @@ class _ProfilePageState extends State<ProfilePage> {
               label: Text('Logout'),
               onPressed: () {
                 // Navigate to Login page after logout
-                Navigator.pushReplacementNamed(context, '/login_screen');
+                Navigator.pushReplacementNamed(context, 'LoginScreen');
               },
             ),
           ],

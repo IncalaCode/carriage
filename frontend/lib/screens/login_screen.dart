@@ -1,15 +1,14 @@
+import 'package:My_truck/screens/main_app_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert'; // for jsonEncode
 import 'package:image_picker/image_picker.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:carriage_app/screens/main_app_screen.dart';
 
 class LoginScreen extends StatelessWidget {
   // Function to send login data to backend and print response to terminal
   Future<void> _sendLoginData(String email, String password) async {
-    String apiUrl =
-        'https://your-backend-api.com/login'; // Replace with your actual backend URL
+    String apiUrl = 'https://your-backend-api.com/login'; // Replace with your actual backend URL
 
     Map<String, String> data = {
       'email': email,
@@ -38,10 +37,8 @@ class LoginScreen extends StatelessWidget {
   }
 
   // Function to send registration data to backend and print response to terminal
-  Future<void> _sendRegistrationData(String fullName, String phoneNumber,
-      String role, String address, String license) async {
-    String apiUrl =
-        'https://your-backend-api.com/register'; // Replace with your actual backend URL
+  Future<void> _sendRegistrationData(String fullName, String phoneNumber, String role, String address, String license) async {
+    String apiUrl = 'https://your-backend-api.com/register'; // Replace with your actual backend URL
 
     Map<String, String> data = {
       'full_name': fullName,
@@ -63,8 +60,7 @@ class LoginScreen extends StatelessWidget {
       );
 
       if (response.statusCode == 200) {
-        print(
-            'Registration successful. Response from backend: ${response.body}');
+        print('Registration successful. Response from backend: ${response.body}');
       } else {
         print('Registration failed. Status code: ${response.statusCode}');
       }
@@ -108,8 +104,7 @@ class LoginScreen extends StatelessWidget {
               onPressed: () {
                 _showRegisterUserPopup(context);
               },
-              child: Text("Register as User",
-                  style: TextStyle(color: Colors.white)),
+              child: Text("Register as User", style: TextStyle(color: Colors.white)),
             ),
             SizedBox(height: 20),
             ElevatedButton(
@@ -123,8 +118,7 @@ class LoginScreen extends StatelessWidget {
               onPressed: () {
                 _showRegisterDriverPopup(context);
               },
-              child: Text("Register as Driver",
-                  style: TextStyle(color: Colors.white)),
+              child: Text("Register as Driver", style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -151,8 +145,7 @@ class LoginScreen extends StatelessWidget {
                     Align(
                       alignment: Alignment.topLeft,
                       child: IconButton(
-                        icon: Icon(FontAwesomeIcons.arrowLeft,
-                            color: Colors.white),
+                        icon: Icon(FontAwesomeIcons.arrowLeft, color: Colors.white),
                         onPressed: () {
                           Navigator.pop(context);
                         },
@@ -185,18 +178,14 @@ class LoginScreen extends StatelessWidget {
                     SizedBox(height: 20),
                     ElevatedButton(
                       onPressed: () {
-                        _sendLoginData(
-                            email, password); // Send login data to backend
+                        _sendLoginData(email, password); // Send login data to backend
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(
-                              builder: (context) => MainAppScreen()),
+                          MaterialPageRoute(builder: (context) => MainAppScreen()),
                         );
                       },
-                      child:
-                          Text('Login', style: TextStyle(color: Colors.white)),
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black),
+                      child: Text('Login', style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
                     ),
                   ],
                 ),
@@ -227,8 +216,7 @@ class LoginScreen extends StatelessWidget {
                     Align(
                       alignment: Alignment.topLeft,
                       child: IconButton(
-                        icon: Icon(FontAwesomeIcons.arrowLeft,
-                            color: Colors.white),
+                        icon: Icon(FontAwesomeIcons.arrowLeft, color: Colors.white),
                         onPressed: () {
                           Navigator.pop(context);
                         },
@@ -261,18 +249,14 @@ class LoginScreen extends StatelessWidget {
                     SizedBox(height: 20),
                     ElevatedButton(
                       onPressed: () {
-                        _sendRegistrationData(
-                            fullName, phoneNumber, 'user', '', '');
+                        _sendRegistrationData(fullName, phoneNumber, 'user', '', '');
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(
-                              builder: (context) => MainAppScreen()),
+                          MaterialPageRoute(builder: (context) => MainAppScreen()),
                         );
                       },
-                      child: Text('Register',
-                          style: TextStyle(color: Colors.white)),
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black),
+                      child: Text('Register', style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
                     ),
                   ],
                 ),
@@ -305,8 +289,7 @@ class LoginScreen extends StatelessWidget {
                     Align(
                       alignment: Alignment.topLeft,
                       child: IconButton(
-                        icon: Icon(FontAwesomeIcons.arrowLeft,
-                            color: Colors.white),
+                        icon: Icon(FontAwesomeIcons.arrowLeft, color: Colors.white),
                         onPressed: () {
                           Navigator.pop(context);
                         },
@@ -336,35 +319,28 @@ class LoginScreen extends StatelessWidget {
                       },
                     ),
                     SizedBox(height: 16),
-                    Text('Upload Driving License',
-                        style: TextStyle(color: Colors.white)),
+                    Text('Upload Driving License', style: TextStyle(color: Colors.white)),
                     SizedBox(height: 8),
                     ElevatedButton(
                       onPressed: () async {
                         final ImagePicker picker = ImagePicker();
-                        final XFile? image =
-                            await picker.pickImage(source: ImageSource.gallery);
+                        final XFile? image = await picker.pickImage(source: ImageSource.gallery);
                         if (image != null) {
                           license = image.path;
                           print('License Image selected: $license');
                         }
                       },
-                      child: Text('Upload Image',
-                          style: TextStyle(color: Colors.white)),
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black),
+                      child: Text('Upload Image', style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
                     ),
                     SizedBox(height: 20),
                     ElevatedButton(
                       onPressed: () {
-                        _sendRegistrationData(
-                            fullName, phoneNumber, 'driver', address, license);
+                        _sendRegistrationData(fullName, phoneNumber, 'driver', address, license);
                         Navigator.pop(context);
                       },
-                      child: Text('Register',
-                          style: TextStyle(color: Colors.white)),
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black),
+                      child: Text('Register', style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
                     ),
                   ],
                 ),

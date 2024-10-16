@@ -13,10 +13,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _phoneNumberController = TextEditingController();
 
   // This method sends data to the backend and logs everything in the terminal
-  Future<void> _sendRegistrationData(
-      String fullName, String phoneNumber) async {
-    String apiUrl =
-        'https://your-backend-api.com/register'; // Replace with your actual Laravel backend URL
+  Future<void> _sendRegistrationData(String fullName, String phoneNumber) async {
+    String apiUrl = 'https://your-backend-api.com/register'; // Replace with your actual Laravel backend URL
 
     Map<String, String> data = {
       'fullName': fullName,
@@ -38,8 +36,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       // Log the backend response in the terminal
       if (response.statusCode == 200) {
-        print(
-            'Registration successful. Response from backend: ${response.body}');
+        print('Registration successful. Response from backend: ${response.body}');
       } else {
         print('Registration failed. Status code: ${response.statusCode}');
       }

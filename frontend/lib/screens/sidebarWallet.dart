@@ -40,13 +40,13 @@ class WalletPage extends StatelessWidget {
                   onPressed: () {
                     // Deposit via CBE functionality
                   },
-                  child: Text('Deposit via CBE'),
+                  child: Text('Deposit'),
                 ),
                 ElevatedButton(
                   onPressed: () {
                     // Deposit via Telebirr functionality
                   },
-                  child: Text('Deposit via Telebirr'),
+                  child: Text('Deposit via CBE'),
                 ),
               ],
             ),
