@@ -56,40 +56,29 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'phone_number' => 'required|exists:users,phone_number',
+            'first_name' => 'required|string',
+            'password' => 'required|string',
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'errors' => $validator->errors(),
-            ], 422);
+            return response()->json($validator->errors(), 422);
         }
 
-        // Get the user using the provided phone number
-        $user = User::where('phone_number', $request->phone_number)->first();
+        // Attempt to find the user by first name
+        $user = User::where(
+            'first_name',
+            $request->first_name
+        )->first();
 
-        if (!$user) {
-            return response()->json([
-                'message' => 'User not found',
-            ], 404);
+        // Check if the user exists and the password is correct
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return response()->json(['error' => 'Invalid first name or password'], 401);
         }
 
-        // Generate OTP
-        $otp = rand(1000, 9999); // Adjusted OTP to 4 digits
-
-        // Send OTP using otpSend
-        $response = otpSend($user->phone_number, "Your OTP is: ", $otp, $user->id);
-
-        if ($response['status'] == "success") {
-            $user->otp = $otp; // Update the OTP in the user record
-            $user->save();
-        }
-
-        return response()->json([
-            'message' => 'user found wiating for otp',
-            'otp_response' => json_encode($response, true),
-        ], 201);
+        // Generate token or session, as needed (optional)
+        return response()->json(['message' => 'Login successful', 'user' => $user], 200);
     }
+
 
     // Verify OTP and update the user's verified status
     public function verifyOtp(Request $request)

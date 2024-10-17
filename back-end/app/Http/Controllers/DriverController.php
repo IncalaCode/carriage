@@ -7,6 +7,9 @@ use App\Models\Driver;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
+require "otp.php";
+
+
 class DriverController extends Controller
 {
     public function register(Request $request)
@@ -14,8 +17,7 @@ class DriverController extends Controller
         $validator = Validator::make($request->all(), [
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:drivers',
-            'phone' => 'required',
+            'phone_number' => 'required',
             'driver_id' => 'required|string|max:255',
             'id_card_image' => 'required|image|max:2048',
             'password' => 'required|string|min:8|confirmed',
@@ -41,7 +43,7 @@ class DriverController extends Controller
             'first_name' => $request->first_name,
             'last_name' => $request->last_name,
             'email' => $request->email,
-            'phone' => $request->phone,
+            'phone_number' => $request->phone_number,
             'driver_id' => $request->driver_id,
             'password' => Hash::make($request->password),
             'id_card_image_path' => $idCardPath,
@@ -57,61 +59,41 @@ class DriverController extends Controller
         $response = otpSend($driver->phone, $driver->otp, "example.com", $driver->id);
 
         // Return success response
-        if ($response['status']  === 'success') {
-            return response()->json([
-                'message' => 'OTP sent successfully!',
-                'otp_response' => json_decode($response, true),
-            ], 200);
-        } else {
-            return response()->json([
-                'message' => 'Failed to send OTP',
-                'otp_response' => json_decode($response, true),
-            ], 500);
-        }
+        return response()->json([
+            'message' => 'OTP sent successfully!',
+            'otp_response' => json_decode($response, true),
+        ], 200);
     }
 
     // New login method that sends OTP
+    // use Illuminate\Support\Facades\Hash; // Make sure to import Hash facade
+    // use Illuminate\Http\Request;
+
     public function login(Request $request)
     {
+        // Validate the incoming request
         $validator = Validator::make($request->all(), [
-            'phone' => 'required|exists:drivers,phone',
+            'first_name' => 'required|string|max:255',
+            'password' => 'required|string|min:8',
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'errors' => $validator->errors(),
-            ], 422);
+            return response()->json($validator->errors(), 422);
         }
 
-        // Get the driver using the provided phone number
-        $driver = Driver::where('phone', $request->phone)->first();
+        // Attempt to find the driver by first name
+        $driver = Driver::where('first_name', $request->first_name)->first();
 
-        if (!$driver) {
-            return response()->json([
-                'message' => 'User not found',
-            ], 404);
+        // Check if the driver exists and if the password is correct
+        if (!$driver || !Hash::check($request->password, $driver->password)) {
+            return response()->json(['error' => 'Invalid first name or password'], 401);
         }
 
-        // Generate a new OTP
-        $otp = rand(1000, 9999);
-        $driver->otp = $otp; // Update the OTP in the driver record
-        $driver->save();
-
-        // Send OTP using otpSend
-        [$status, $response] = otpSend($driver->phone, $otp, "example.com", $driver->id);
-
-        if ($status === 200) {
-            return response()->json([
-                'message' => 'OTP sent successfully!',
-                'otp_response' => json_decode($response, true),
-            ], 200);
-        } else {
-            return response()->json([
-                'message' => 'Failed to send OTP',
-                'otp_response' => json_decode($response, true),
-            ], 500);
-        }
+        // Generate token or session (if necessary)
+        // For API-based authentication, you can generate a token here using Passport or Sanctum
+        return response()->json(['message' => 'Login successful', 'driver' => $driver], 200);
     }
+
 
     // Verify OTP and update the driver's verified status
     public function verifyOtp(Request $request)

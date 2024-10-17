@@ -14,6 +14,7 @@ return new class extends Migration
         // Create the drivers table
         Schema::create('drivers', function (Blueprint $table) {
             $table->id();
+            $table->uuid('uid')->unique()->after('id');
             $table->string('first_name');
             $table->string('last_name');
             $table->string('password');
@@ -46,5 +47,8 @@ return new class extends Migration
         // Drop the password_reset_tokens table first, then drop the drivers table
         Schema::dropIfExists('drivers_password_reset_tokens');
         Schema::dropIfExists('drivers');
+        Schema::table('drivers', function (Blueprint $table) {
+            $table->dropColumn('uid');
+        });
     }
 };
