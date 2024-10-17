@@ -62,7 +62,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
             ),
           ),
         ),
-        toolbarHeight: 80, // Increased height for full logo visibility
+        toolbarHeight:100, // Increased height for full logo visibility
         centerTitle: true,
         title: Padding(
           padding: const EdgeInsets.only(top: 0), // Adjust logo's position
@@ -70,7 +70,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
         ),
         actions: [
           Padding(
-            padding: EdgeInsets.only(right: 16.0), // Aligns to the top right corner
+            padding: EdgeInsets.only( top: 0,right: 16.0), // Aligns to the top right corner
             child: Builder(
               builder: (context) => IconButton(
                 icon: Icon(FontAwesomeIcons.bars, color: Colors.white), // White hamburger icon
@@ -218,8 +218,10 @@ class _MainAppScreenState extends State<MainAppScreen> {
 
 // New Order Form Widget
 class OrderForm extends StatelessWidget {
+  final TextEditingController FromController = TextEditingController();
   final TextEditingController destinationController = TextEditingController();
   final TextEditingController materialTypeController = TextEditingController();
+  final TextEditingController BirrController = TextEditingController();
   String? loadType;
   
   @override
@@ -235,13 +237,22 @@ class OrderForm extends StatelessWidget {
           ),
           SizedBox(height: 20),
           TextField(
+            controller: FromController,
+            decoration: InputDecoration(labelText: 'From(መነሻ )'),
+          ),
+          TextField(
             controller: destinationController,
-            decoration: InputDecoration(labelText: 'Destination'),
+            decoration: InputDecoration(labelText: 'Destination(መድረሻ )'),
           ),
           TextField(
             controller: materialTypeController,
-            decoration: InputDecoration(labelText: 'Material Type'),
+            decoration: InputDecoration(labelText: 'Material Type(የሚጓጓዘው እቃ አይነት )'),
           ),
+          TextField(
+            controller: materialTypeController,
+            decoration: InputDecoration(labelText: 'Birr'),
+          ),
+          
           DropdownButton<String>(
             hint: Text('Select Load Type'),
             value: loadType,
@@ -260,10 +271,13 @@ class OrderForm extends StatelessWidget {
           ElevatedButton(
             onPressed: () {
               // Handle the order submission logic here
+              String From = FromController.text;
               String destination = destinationController.text;
               String materialType = materialTypeController.text;
+              String Birr = BirrController.text;
+
               // Use loadType variable
-              print('Order submitted: Destination - $destination, Material Type - $materialType, Load Type - $loadType');
+              print('Order submitted: From - $From, Destination - $destination, Material Type - $materialType, Load Type - $loadType, Birr - $Birr');
               Navigator.pop(context); // Close the form after submission
             },
             child: Text('Request'),

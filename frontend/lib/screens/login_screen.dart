@@ -1,71 +1,71 @@
-import 'package:My_truck/screens/main_app_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert'; // for jsonEncode
-import 'package:image_picker/image_picker.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:My_truck/screens/RegisterUser.dart';
+import 'package:My_truck/screens/RegisterDriver.dart';
+import 'package:My_truck/screens/main_app_screen.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
-class LoginScreen extends StatelessWidget {
-  // Function to send login data to backend and print response to terminal
-  Future<void> _sendLoginData(String email, String password) async {
-    String apiUrl = 'https://your-backend-api.com/login'; // Replace with your actual backend URL
+class LoginScreen extends StatefulWidget {
+  @override
+  _LoginScreenState createState() => _LoginScreenState();
+}
 
-    Map<String, String> data = {
-      'email': email,
-      'password': password,
-    };
+class _LoginScreenState extends State<LoginScreen> {
+  bool isUserLogin = true;
+  String _email = '';
+  String _password = '';
+  String _errorMessage = '';
 
-    print('Sending Login Data: $data');
+  // Function to handle login and send data to the backend
+  Future<void> _login() async {
+    print('Email: $_email');
+    print('Password: $_password');
 
-    try {
-      final response = await http.post(
-        Uri.parse(apiUrl),
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: jsonEncode(data),
-      );
-
-      if (response.statusCode == 200) {
-        print('Login successful. Response from backend: ${response.body}');
-      } else {
-        print('Login failed. Status code: ${response.statusCode}');
-      }
-    } catch (error) {
-      print('Error during login: $error');
-    }
-  }
-
-  // Function to send registration data to backend and print response to terminal
-  Future<void> _sendRegistrationData(String fullName, String phoneNumber, String role, String address, String license) async {
-    String apiUrl = 'https://your-backend-api.com/register'; // Replace with your actual backend URL
-
-    Map<String, String> data = {
-      'full_name': fullName,
-      'phone_number': phoneNumber,
-      'role': role, // "user" or "driver"
-      'address': address, // Only applicable for driver
-      'license': license, // Only applicable for driver
-    };
-
-    print('Sending Registration Data: $data');
+    final url = Uri.parse('https://your-laravel-backend-url.com/api/login');
 
     try {
       final response = await http.post(
-        Uri.parse(apiUrl),
+        url,
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json'
         },
-        body: jsonEncode(data),
+        body: json.encode({
+          'email': _email,
+          'password': _password,
+        }),
       );
 
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
       if (response.statusCode == 200) {
-        print('Registration successful. Response from backend: ${response.body}');
+        // Assuming the backend returns a success message in the body
+        var responseBody = json.decode(response.body);
+
+        if (responseBody['message'] == 'Login successful') {
+          // Navigate to the main app screen
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => MainAppScreen()),
+          );
+        } else {
+          // Show an error prompt if the login failed
+          setState(() {
+            _errorMessage = 'Login failed. Please check your credentials and try again.';
+          });
+        }
       } else {
-        print('Registration failed. Status code: ${response.statusCode}');
+        // Show an error prompt if the response status is not 200
+        setState(() {
+          _errorMessage = 'Login failed. Please check your credentials and try again.';
+        });
       }
-    } catch (error) {
-      print('Error during registration: $error');
+    } catch (e) {
+      print('Error: $e');
+      setState(() {
+        _errorMessage = 'An error occurred. Please try again later.';
+      });
     }
   }
 
@@ -74,281 +74,159 @@ class LoginScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.black,
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset('assets/logo.png', height: 200),
-            SizedBox(height: 50),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: 15.0),
-                backgroundColor: Colors.black87,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10.0),
-                ),
-              ),
-              onPressed: () {
-                _showLoginPopup(context);
-              },
-              child: Text("Login", style: TextStyle(color: Colors.white)),
-            ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: 15.0),
-                backgroundColor: Colors.black87,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10.0),
-                ),
-              ),
-              onPressed: () {
-                _showRegisterUserPopup(context);
-              },
-              child: Text("Register as User", style: TextStyle(color: Colors.white)),
-            ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: 15.0),
-                backgroundColor: Colors.black87,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10.0),
-                ),
-              ),
-              onPressed: () {
-                _showRegisterDriverPopup(context);
-              },
-              child: Text("Register as Driver", style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showLoginPopup(BuildContext context) {
-    String email = '';
-    String password = '';
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.black87.withOpacity(0.85),
-          content: Stack(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Align(
-                      alignment: Alignment.topLeft,
-                      child: IconButton(
-                        icon: Icon(FontAwesomeIcons.arrowLeft, color: Colors.white),
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                      ),
+              Image.asset('assets/logo.png', height: 250),
+              SizedBox(height: 50),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  InkWell(
+                    onTap: () {
+                      setState(() {
+                        isUserLogin = true;
+                      });
+                    },
+                    child: Column(
+                      children: [
+                        Text(
+                          'User Login',
+                          style: TextStyle(
+                            color: isUserLogin ? Colors.white : Colors.grey,
+                            fontSize: 20,
+                            fontWeight: isUserLogin ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                        SizedBox(height: 5),
+                        isUserLogin ? Container(height: 2, width: 60, color: Colors.blue) : Container(),
+                      ],
                     ),
-                    Image.asset('assets/logo.png', height: 200),
-                    SizedBox(height: 20),
+                  ),
+                  SizedBox(width: 30),
+                  InkWell(
+                    onTap: () {
+                      setState(() {
+                        isUserLogin = false;
+                      });
+                    },
+                    child: Column(
+                      children: [
+                        Text(
+                          'Driver Login',
+                          style: TextStyle(
+                            color: !isUserLogin ? Colors.white : Colors.grey,
+                            fontSize: 20,
+                            fontWeight: !isUserLogin ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                        SizedBox(height: 5),
+                        !isUserLogin ? Container(height: 2, width: 60, color: Colors.blue) : Container(),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              SizedBox(height: 50),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 30.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("User Name", style: TextStyle(color: Colors.white, fontSize: 20)),
                     TextFormField(
                       decoration: InputDecoration(
-                        labelText: 'Email',
-                        filled: true,
+                        prefixIcon: Icon(FontAwesomeIcons.person),
+                        hintText: 'User Name',
                         fillColor: Colors.white,
+                        filled: true,
                       ),
                       onChanged: (value) {
-                        email = value;
+                        _email = value;
                       },
                     ),
-                    SizedBox(height: 16),
+                    SizedBox(height: 20),
+                    Text("Password", style: TextStyle(color: Colors.white, fontSize: 20)),
                     TextFormField(
                       obscureText: true,
                       decoration: InputDecoration(
-                        labelText: 'Password',
-                        filled: true,
+                        prefixIcon: Icon(FontAwesomeIcons.lock),
+                        hintText: 'Password',
                         fillColor: Colors.white,
+                        filled: true,
                       ),
                       onChanged: (value) {
-                        password = value;
+                        _password = value;
                       },
-                    ),
-                    SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: () {
-                        _sendLoginData(email, password); // Send login data to backend
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => MainAppScreen()),
-                        );
-                      },
-                      child: Text('Login', style: TextStyle(color: Colors.white)),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
-  void _showRegisterUserPopup(BuildContext context) {
-    String fullName = '';
-    String phoneNumber = '';
+              SizedBox(height: 20),
 
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.black87.withOpacity(10),
-          content: Stack(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Align(
-                      alignment: Alignment.topLeft,
-                      child: IconButton(
-                        icon: Icon(FontAwesomeIcons.arrowLeft, color: Colors.white),
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                      ),
-                    ),
-                    Image.asset('assets/logo.png', height: 200),
-                    SizedBox(height: 20),
-                    TextFormField(
-                      decoration: InputDecoration(
-                        labelText: 'Full Name',
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
-                      onChanged: (value) {
-                        fullName = value;
-                      },
-                    ),
-                    SizedBox(height: 16),
-                    TextFormField(
-                      keyboardType: TextInputType.phone,
-                      decoration: InputDecoration(
-                        labelText: 'Phone Number (Ethiopian)',
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
-                      onChanged: (value) {
-                        phoneNumber = value;
-                      },
-                    ),
-                    SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: () {
-                        _sendRegistrationData(fullName, phoneNumber, 'user', '', '');
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => MainAppScreen()),
-                        );
-                      },
-                      child: Text('Register', style: TextStyle(color: Colors.white)),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
-                    ),
-                  ],
+              // Show error message if login fails
+              if (_errorMessage.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 30.0),
+                  child: Text(
+                    _errorMessage,
+                    style: TextStyle(color: Colors.red, fontSize: 16),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+
+              SizedBox(height: 20),
+
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 15.0),
+                  backgroundColor: Colors.black87,
+                  shape: RoundedRectangleBorder(
+                    side: BorderSide(color: Colors.blue, width: 2),
+                    borderRadius: BorderRadius.circular(10.0),
+                  ),
+                ),
+                onPressed: _login, // Call the login function
+                child: Text("Login", style: TextStyle(color: Colors.white)),
+              ),
+
+              SizedBox(height: 20),
+
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 15.0),
+                  backgroundColor: Colors.black87,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10.0),
+                  ),
+                ),
+                onPressed: () {
+                  if (isUserLogin) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => RegisterUser()),
+                    );
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => RegisterDriver()),
+                    );
+                  }
+                },
+                child: Text(
+                  isUserLogin ? "Register as User" : "Register as Driver",
+                  style: TextStyle(color: Colors.white),
                 ),
               ),
             ],
           ),
-        );
-      },
-    );
-  }
-
-  void _showRegisterDriverPopup(BuildContext context) {
-    String fullName = '';
-    String address = '';
-    String phoneNumber = '';
-    String license = '';
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.black87.withOpacity(0.85),
-          content: Stack(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Align(
-                      alignment: Alignment.topLeft,
-                      child: IconButton(
-                        icon: Icon(FontAwesomeIcons.arrowLeft, color: Colors.white),
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                      ),
-                    ),
-                    Image.asset('assets/logo.png', height: 200),
-                    SizedBox(height: 20),
-                    TextFormField(
-                      decoration: InputDecoration(
-                        labelText: 'Full Name',
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
-                      onChanged: (value) {
-                        fullName = value;
-                      },
-                    ),
-                    SizedBox(height: 16),
-                    TextFormField(
-                      decoration: InputDecoration(
-                        labelText: 'Address',
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
-                      onChanged: (value) {
-                        address = value;
-                      },
-                    ),
-                    SizedBox(height: 16),
-                    Text('Upload Driving License', style: TextStyle(color: Colors.white)),
-                    SizedBox(height: 8),
-                    ElevatedButton(
-                      onPressed: () async {
-                        final ImagePicker picker = ImagePicker();
-                        final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-                        if (image != null) {
-                          license = image.path;
-                          print('License Image selected: $license');
-                        }
-                      },
-                      child: Text('Upload Image', style: TextStyle(color: Colors.white)),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
-                    ),
-                    SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: () {
-                        _sendRegistrationData(fullName, phoneNumber, 'driver', address, license);
-                        Navigator.pop(context);
-                      },
-                      child: Text('Register', style: TextStyle(color: Colors.white)),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
