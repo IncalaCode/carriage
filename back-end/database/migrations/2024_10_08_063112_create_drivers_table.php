@@ -14,6 +14,7 @@ return new class extends Migration
         // Create the drivers table
         Schema::create('drivers', function (Blueprint $table) {
             $table->id();
+            $table->uuid('uid')->unique()->after('id');
             $table->string('first_name');
             $table->string('last_name');
             $table->string('password');
@@ -22,6 +23,10 @@ return new class extends Migration
             $table->boolean('verified')->default(0);
             $table->boolean('Status')->default(0);
             $table->string('id_card_image_path')->nullable(); // Make this nullable if not mandatory
+            $table->string('car_type');
+            $table->string('driver_license_photo');
+            $table->string('car_plate_photo');
+            $table->string('user_photo');
             $table->timestamps();
         });
 
@@ -42,5 +47,8 @@ return new class extends Migration
         // Drop the password_reset_tokens table first, then drop the drivers table
         Schema::dropIfExists('drivers_password_reset_tokens');
         Schema::dropIfExists('drivers');
+        Schema::table('drivers', function (Blueprint $table) {
+            $table->dropColumn('uid');
+        });
     }
 };
