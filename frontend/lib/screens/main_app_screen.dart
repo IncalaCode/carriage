@@ -62,11 +62,11 @@ class _MainAppScreenState extends State<MainAppScreen> {
             ),
           ),
         ),
-        toolbarHeight:100, // Increased height for full logo visibility
+        toolbarHeight:80, // Increased height for full logo visibility
         centerTitle: true,
         title: Padding(
-          padding: const EdgeInsets.only(top: 0), // Adjust logo's position
-          child: Image.asset('assets/logo.png', height: 180), // Adjusted height for visibility
+          padding: const EdgeInsets.only(top: 50), // Adjust logo's position
+          child: Image.asset('assets/Nave.png', height: 100), // Adjusted height for visibility
         ),
         actions: [
           Padding(
@@ -253,20 +253,20 @@ class OrderForm extends StatelessWidget {
             decoration: InputDecoration(labelText: 'Birr'),
           ),
           
-          DropdownButton<String>(
-            hint: Text('Select Load Type'),
-            value: loadType,
-            onChanged: (String? newValue) {
-              loadType = newValue;
-            },
-            items: <String>['Half Load', 'Full Load']
-                .map<DropdownMenuItem<String>>((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value),
-              );
-            }).toList(),
-          ),
+          // DropdownButton<String>(
+          //   hint: Text('Select Load Type'),
+          //   value: loadType,
+          //   onChanged: (String? newValue) {
+          //     loadType = newValue;
+          //   },
+          //   items: <String>['Half Load', 'Full Load']
+          //       .map<DropdownMenuItem<String>>((String value) {
+          //     return DropdownMenuItem<String>(
+          //       value: value,
+          //       child: Text(value),
+          //     );
+          //   }).toList(),
+          // ),
           SizedBox(height: 20),
           ElevatedButton(
             onPressed: () {

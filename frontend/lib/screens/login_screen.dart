@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart'; 
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:My_truck/screens/RegisterUser.dart';
 import 'package:My_truck/screens/RegisterDriver.dart';
 import 'package:My_truck/screens/main_app_screen.dart';
+import 'package:My_truck/screens/Driver_main_screen.dart'; // Your Driver's main screen
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -124,11 +125,19 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 onPressed: () {
-                  // Redirect to main app screen
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => MainAppScreen()),
-                  );
+                  if (isUserLogin) {
+                    // Redirect to main app screen for users
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => MainAppScreen()),
+                    );
+                  } else {
+                    // Redirect to the driver-specific screen
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => DriverAppScreen()), // Replace with the actual Driver screen
+                    );
+                  }
                 },
                 child: Text("Login", style: TextStyle(color: Colors.white)),
               ),

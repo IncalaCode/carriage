@@ -14,6 +14,8 @@ dependencies:
   video_player: ^2.4.5
   image_picker: ^0.8.7+3
   font_awesome_flutter: ^10.0.0
+  permission_handler: ^10.2.0  # Add the latest version here
+  camera: ^0.10.0 
   google_maps_flutter: ^2.1.7
   geolocator: ^9.0.2
   geocoding: ^2.0.5
@@ -24,6 +26,8 @@ flutter:
   assets:
     - assets/splash_video.mp4
     - assets/logo.png  # Your logo image
+    - assets/app_icon.png
+    - assets/Nave.png
   fonts:
     - family: NotoSans
       fonts:

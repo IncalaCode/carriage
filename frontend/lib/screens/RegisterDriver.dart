@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart'; 
+import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'DriverOTP.dart';
 
 class RegisterDriver extends StatefulWidget {
@@ -10,6 +11,7 @@ class RegisterDriver extends StatefulWidget {
 
 class _RegisterDriverState extends State<RegisterDriver> {
   final _formKey = GlobalKey<FormState>();
+  final ScrollController _scrollController = ScrollController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
 
@@ -20,30 +22,112 @@ class _RegisterDriverState extends State<RegisterDriver> {
   String carType = '';
   bool isPasswordVisible = false;
   bool isConfirmPasswordVisible = false;
+
   XFile? drivingLicensePhoto;
   XFile? carPlatePhoto;
   XFile? idCardPhoto;
   XFile? driverPhoto;
 
-  Future<void> _takePhoto(Function(XFile?) onPhotoTaken) async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.camera); 
-    if (image != null) {
-      onPhotoTaken(image);
+  // Checkbox state management
+  bool isDrivingLicenseTaken = false;
+  bool isCarPlateTaken = false;
+  bool isIdCardTaken = false;
+  bool isDriverPhotoTaken = false;
+
+  // Check and request camera permissions
+  Future<bool> _requestCameraPermission() async {
+    PermissionStatus cameraPermission = await Permission.camera.request();
+    if (cameraPermission.isGranted) {
+      return true;
+    } else if (cameraPermission.isDenied) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Camera permission is required to take photos.'),
+        duration: Duration(seconds: 2),
+      ));
+      return false;
+    } else if (cameraPermission.isPermanentlyDenied) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Camera Permission Required'),
+          content: Text('Camera access is permanently denied. Please enable it from the app settings.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                openAppSettings();
+              },
+              child: Text('Open Settings'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+          ],
+        ),
+      );
+      return false;
+    }
+    return false;
+  }
+
+  Future<void> _takePhoto(Function(XFile?) onPhotoTaken, String type) async {
+    bool hasPermission = await _requestCameraPermission();
+    if (hasPermission) {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.camera);
+      if (image != null) {
+        onPhotoTaken(image);
+
+        // Update the checkbox state and button text depending on the type
+        setState(() {
+          switch (type) {
+            case 'DrivingLicense':
+              isDrivingLicenseTaken = true;
+              break;
+            case 'CarPlate':
+              isCarPlateTaken = true;
+              break;
+            case 'IdCard':
+              isIdCardTaken = true;
+              break;
+            case 'DriverPhoto':
+              isDriverPhotoTaken = true;
+              break;
+          }
+        });
+      }
     }
   }
 
-Widget _buildPhotoButton(String label, Function(XFile?) onPhotoTaken) {
-  return ElevatedButton(
-    onPressed: () => _takePhoto(onPhotoTaken),
-    child: Text(label),
-    style: ElevatedButton.styleFrom(
-      backgroundColor: Colors.black, // Set the background color
-      foregroundColor: Colors.white,  // Set the text color
-    ),
-  );
-}
-
+  Widget _buildPhotoCheckbox(String label, Function(XFile?) onPhotoTaken, bool isTaken, String type) {
+    return Row(
+      children: [
+        Checkbox(
+          value: isTaken,
+          activeColor: Colors.blue, // Change color to blue once checked
+          onChanged: (bool? value) {
+            if (!isTaken) {
+              _takePhoto(onPhotoTaken, type);
+            }
+          },
+        ),
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () {
+              _takePhoto(onPhotoTaken, type);
+            },
+            child: Text(isTaken ? '$label Taken' : label),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isTaken ? Colors.green : Colors.black, // Set the background color
+              foregroundColor: Colors.white,  // Set the text color
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +147,9 @@ Widget _buildPhotoButton(String label, Function(XFile?) onPhotoTaken) {
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
+          autovalidateMode: AutovalidateMode.onUserInteraction, // Enable autovalidation
           child: ListView(
+            controller: _scrollController, // Added ScrollController
             children: [
               // First Name Field
               TextFormField(
@@ -124,8 +210,8 @@ Widget _buildPhotoButton(String label, Function(XFile?) onPhotoTaken) {
                   ),
                 ),
                 validator: (value) {
-                  if (value == null || value.length < 6) {
-                    return 'Password must be at least 6 characters';
+                  if (value == null || value.length < 8) {
+                    return 'Password must be at least 8 characters';
                   }
                   return null;
                 },
@@ -183,61 +269,51 @@ Widget _buildPhotoButton(String label, Function(XFile?) onPhotoTaken) {
               ),
               SizedBox(height: 16),
 
-              // Driving License Photo Button
-              _buildPhotoButton('Take Driving License Photo', (photo) {
+              // Driving License Photo Checkbox and Button
+              _buildPhotoCheckbox('Take Driving License Photo', (photo) {
                 setState(() {
                   drivingLicensePhoto = photo;
                 });
-              }),
+              }, isDrivingLicenseTaken, 'DrivingLicense'),
               SizedBox(height: 16),
 
-              // Car Plate Photo Button
-              _buildPhotoButton('Take Car Plate Photo', (photo) {
+              // Car Plate Photo Checkbox and Button
+              _buildPhotoCheckbox('Take Car Plate Photo', (photo) {
                 setState(() {
                   carPlatePhoto = photo;
                 });
-              }),
+              }, isCarPlateTaken, 'CarPlate'),
               SizedBox(height: 16),
 
-              // ID Card Photo Button
-              _buildPhotoButton('Take ID Card Photo', (photo) {
+              // ID Card Photo Checkbox and Button
+              _buildPhotoCheckbox('Take ID Card Photo', (photo) {
                 setState(() {
                   idCardPhoto = photo;
                 });
-              }),
+              }, isIdCardTaken, 'IdCard'),
               SizedBox(height: 16),
 
-              // User Photo Button
-              _buildPhotoButton('Take User Photo', (photo) {
+              // User Photo Checkbox and Button
+              _buildPhotoCheckbox('Take User Photo', (photo) {
                 setState(() {
                   driverPhoto = photo;
                 });
-              }),
+              }, isDriverPhotoTaken, 'DriverPhoto'),
               SizedBox(height: 16),
 
               ElevatedButton.icon(
                 icon: Icon(FontAwesomeIcons.arrowRight, color: Colors.blue),
                 label: Text('Next', style: TextStyle(color: Colors.blue)),
                 style: ElevatedButton.styleFrom(
-                  side: BorderSide(color: Colors.blue),
-                  backgroundColor: Colors.black,
+                  backgroundColor: Colors.white, // Set background to white
                 ),
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
                     _formKey.currentState!.save();
-                    // Ensure all photos are taken
-                    if (drivingLicensePhoto == null || carPlatePhoto == null || idCardPhoto == null || driverPhoto == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text('Please take all required photos'),
-                        backgroundColor: Colors.red,
-                      ));
-                    } else {
-                      // Navigate to OTP Screen
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => DriverOTP()),
-                      );
-                    }
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => DriverOTP()),
+                    );
                   }
                 },
               ),
