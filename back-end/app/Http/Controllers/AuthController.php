@@ -16,12 +16,14 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         // Validate the request data
-        $validator = Validator::make($request->all(), [
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'phone_number' => 'required|digits_between:1,14|unique:users,phone_number',
-            'password' => 'required|string|min:8|confirmed', // password_confirmation field should be present
-        ]);
+
+$validator = Validator::make($request->all(), [
+    'first_name' => 'required|string|max:255',
+    'last_name' => 'required|string|max:255',
+    'phone_number' => 'required|string|min:1|max:15|unique:users,phone_number', // Changed to string and adjusted rules
+    'password' => 'required|string|min:8|confirmed', // password_confirmation field should be present
+]);
+
 
         // Return validation errors if any
         if ($validator->fails()) {

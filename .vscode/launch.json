@@ -8,6 +8,12 @@
             "name": "Listen for Xdebug",
             "type": "php",
             "request": "launch",
+            "port": 8000
+        },
+        {
+            "name": "Listen for Xdebug",
+            "type": "php",
+            "request": "launch",
             "port": [
                 9003,
                 9000

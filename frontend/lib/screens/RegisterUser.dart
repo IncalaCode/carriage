@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart'; // Importing FontAwesome
-import 'UserOTP.dart'; // Import the OTP screen (optional)
-// Import the login screen for navigation
-import 'package:http/http.dart' as http; // Importing HTTP package
-import 'dart:convert'; // For encoding data to JSON
+import 'UserOTP.dart'; // Import the OTP screen
+// Importing HTTP package
+// For encoding data to JSON
 
 class RegisterUser extends StatefulWidget {
   @override
@@ -12,68 +11,33 @@ class RegisterUser extends StatefulWidget {
 
 class _RegisterUserState extends State<RegisterUser> {
   final _formKey = GlobalKey<FormState>();
-  String firstName = '';
-  String lastName = '';
-  String password = '';
-  String confirmPassword = '';
+  String firstName = 'cala';
+  String lastName = 'cala';
+  String password = '12345678';
+  String confirmPassword = '12345678';
   bool passwordVisible = false; // To toggle password visibility
   bool confirmPasswordVisible = false; // To toggle confirm password visibility
   String _errorMessage = '';
 
-  // Function to handle registration and send data to the backend
-  Future<void> _registerUser() async {
+  // Function to handle registration and navigate to OTP page
+  void _registerUser() {
     // Printing entered data to the terminal for debugging
     print('First Name: $firstName');
     print('Last Name: $lastName');
     print('Password: $password');
 
-    final url = Uri.parse('https://your-laravel-backend-url.com/api/register'); // Replace with your Laravel endpoint
-
-    try {
-      // Sending POST request to the backend
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: json.encode({
-          'first_name': firstName,
-          'last_name': lastName,
-          'password': password,
-        }),
-      );
-
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        var responseBody = json.decode(response.body);
-
-        // Assuming success message from the backend
-        if (responseBody['message'] == 'Registration successful') {
-          // Navigate to Login page after successful registration
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => UserOTP()), // Replace with your login page
-          );
-        } else {
-          // Show error message if registration fails
-          setState(() {
-            _errorMessage = responseBody['message'] ?? 'Registration failed. Please try again.';
-          });
-        }
-      } else {
-        // Show an error message for non-200 responses
-        setState(() {
-          _errorMessage = 'Registration failed. Please try again.';
-        });
-      }
-    } catch (e) {
-      print('Error: $e');
-      setState(() {
-        _errorMessage = 'An error occurred. Please try again later.';
-      });
-    }
+    // Navigate to OTP page with user data
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => UserOTP(
+          firstName: firstName,
+          lastName: lastName,
+          password: password,
+          confirmPassword: confirmPassword, // Correctly reference confirmPassword
+        ),
+      ),
+    );
   }
 
   @override
@@ -122,7 +86,7 @@ class _RegisterUserState extends State<RegisterUser> {
                       return null;
                     },
                     onSaved: (value) {
-                      firstName = value!;
+                      firstName = value!; // Save first name
                     },
                   ),
                   SizedBox(height: 16),
@@ -147,7 +111,7 @@ class _RegisterUserState extends State<RegisterUser> {
                       return null;
                     },
                     onSaved: (value) {
-                      lastName = value!;
+                      lastName = value!; // Save last name
                     },
                   ),
                   SizedBox(height: 16),

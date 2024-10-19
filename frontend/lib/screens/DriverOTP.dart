@@ -1,11 +1,34 @@
 import 'dart:async';
 import 'dart:convert'; // For encoding/decoding JSON
+import 'dart:typed_data'; // For handling image bytes
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http; // Import the http package
+import 'package:http_parser/http_parser.dart'; // For setting content type of image
 import 'package:My_truck/screens/main_app_screen.dart';
+import 'config.dart'; // Ensure this points to your correct config file
 
 class DriverOTP extends StatefulWidget {
+  final String firstName;
+  final String lastName;
+  final String password;
+  final String carType;
+  final Uint8List? drivingLicensePhoto;
+  final Uint8List? carPlatePhoto;
+  final Uint8List? idCardPhoto;
+  final Uint8List? driverPhoto;
+
+  DriverOTP({
+    required this.firstName,
+    required this.lastName,
+    required this.password,
+    required this.carType,
+    this.drivingLicensePhoto,
+    this.carPlatePhoto,
+    this.idCardPhoto,
+    this.driverPhoto,
+  });
+
   @override
   _DriverOTPState createState() => _DriverOTPState();
 }
@@ -17,7 +40,6 @@ class _DriverOTPState extends State<DriverOTP> {
   bool otpVisible = false;
   Timer? countdownTimer;
   int countdownSeconds = 120; // 2 minutes countdown
-  String generatedOtp = ''; // Store OTP for debugging
 
   @override
   void dispose() {
@@ -43,41 +65,86 @@ class _DriverOTPState extends State<DriverOTP> {
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
-  // Function to send phone number and request OTP
-  Future<void> sendPhoneNumber() async {
-    final url = Uri.parse('https://your-backend-api/send-otp'); // Replace with your backend URL
+  // Function to send phone number and all collected data to backend and request OTP
+  Future<void> sendDriverDataAndRequestOtp() async {
+    final url = Uri.parse(Config.baseUrl + '/driver/register'); // Your Laravel API
 
     try {
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: jsonEncode({
-          'phoneNumber': phoneNumber
-        }),
-      );
+      var request = http.MultipartRequest('POST', url);
+
+      // Add text fields
+      request.fields['first_name'] = widget.firstName;
+      request.fields['last_name'] = widget.lastName;
+      request.fields['password'] = widget.password;
+      request.fields['car_type'] = widget.carType;
+      request.fields['phone_number'] = phoneNumber;
+
+      // Add image files if available and not null
+      if (widget.drivingLicensePhoto != null) {
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'driving_license_photo',
+            widget.drivingLicensePhoto!,
+            filename: 'driving_license.jpg',
+            contentType: MediaType('image', 'jpeg'),
+          ),
+        );
+      }
+      if (widget.carPlatePhoto != null) {
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'car_plate_photo',
+            widget.carPlatePhoto!,
+            filename: 'car_plate.jpg',
+            contentType: MediaType('image', 'jpeg'),
+          ),
+        );
+      }
+      if (widget.idCardPhoto != null) {
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'id_card_photo',
+            widget.idCardPhoto!,
+            filename: 'id_card.jpg',
+            contentType: MediaType('image', 'jpeg'),
+          ),
+        );
+      }
+      if (widget.driverPhoto != null) {
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'driver_photo',
+            widget.driverPhoto!,
+            filename: 'driver_photo.jpg',
+            contentType: MediaType('image', 'jpeg'),
+          ),
+        );
+      }
+
+      // Send request and handle the response
+      var response = await request.send();
+      var responseData = await response.stream.bytesToString();
+
+      print('Response status: ${response.statusCode}');
+      print('Response data: $responseData');
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
         setState(() {
           otpVisible = true;
           countdownSeconds = 120;
-          generatedOtp = data['otp']; // Assuming the OTP is returned here
         });
         startCountdown();
-        print('OTP sent to user: $generatedOtp'); // Print OTP for debugging
       } else {
-        print('Failed to send OTP');
+        print('Failed to send data and request OTP. Status Code: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error sending OTP: $e');
+      print('Error sending data and requesting OTP: $e');
     }
   }
 
   // Function to verify OTP
   Future<void> verifyOtp() async {
-    final url = Uri.parse('https://your-backend-api/verify-otp'); // Replace with your backend URL
+    final url = Uri.parse(Config.baseUrl + "/driver/verify"); // Update this line
 
     try {
       final response = await http.post(
@@ -86,19 +153,18 @@ class _DriverOTPState extends State<DriverOTP> {
           'Content-Type': 'application/json'
         },
         body: jsonEncode({
-          'phoneNumber': phoneNumber,
+          'phone_number': phoneNumber,
           'otp': otp
         }),
       );
 
       if (response.statusCode == 200) {
-        // If OTP is verified, navigate to the login screen
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => MainAppScreen()),
         );
       } else {
-        print('OTP verification failed');
+        print('OTP verification failed. Status Code: ${response.statusCode}');
       }
     } catch (e) {
       print('Error verifying OTP: $e');
@@ -158,7 +224,7 @@ class _DriverOTPState extends State<DriverOTP> {
                     onPressed: () {
                       if (_formKey.currentState!.validate()) {
                         _formKey.currentState!.save();
-                        sendPhoneNumber(); // Send phone number to backend
+                        sendDriverDataAndRequestOtp(); // Send data and request OTP
                       }
                     },
                     icon: FaIcon(FontAwesomeIcons.solidPaperPlane, color: Colors.blue),

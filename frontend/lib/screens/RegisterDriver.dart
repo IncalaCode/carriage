@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'dart:typed_data'; // For handling image bytes
-
+import 'dart:typed_data';
+// For handling image bytes
 import 'DriverOTP.dart';
-import 'login_screen.dart'; // Replace with your login screen
 
 class RegisterDriver extends StatefulWidget {
   @override
@@ -52,69 +49,34 @@ class _RegisterDriverState extends State<RegisterDriver> {
     );
   }
 
-  // Function to handle the registration process and send data to the backend
-  Future<void> _registerDriver() async {
-    print('First Name: $firstName');
-    print('Last Name: $lastName');
-    print('Password: $password');
-    print('Car Type: $carType');
+  // Modified function to navigate to the Driver OTP page and pass data
+  void _registerDriver() {
+    if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
 
-    final url = Uri.parse('https://your-laravel-backend-url.com/api/register_driver'); // Replace with your Laravel API URL
-
-    try {
-      // Prepare the request
-      var request = http.MultipartRequest('POST', url);
-      request.fields['first_name'] = firstName;
-      request.fields['last_name'] = lastName;
-      request.fields['password'] = password;
-      request.fields['car_type'] = carType;
-
-      // Add image bytes to the request if available
-      if (drivingLicensePhotoBytes != null) {
-        request.files.add(http.MultipartFile.fromBytes('driving_license_photo', drivingLicensePhotoBytes!, filename: 'driving_license.jpg'));
-      }
-      if (carPlatePhotoBytes != null) {
-        request.files.add(http.MultipartFile.fromBytes('car_plate_photo', carPlatePhotoBytes!, filename: 'car_plate.jpg'));
-      }
-      if (idCardPhotoBytes != null) {
-        request.files.add(http.MultipartFile.fromBytes('id_card_photo', idCardPhotoBytes!, filename: 'id_card.jpg'));
-      }
-      if (driverPhotoBytes != null) {
-        request.files.add(http.MultipartFile.fromBytes('driver_photo', driverPhotoBytes!, filename: 'driver_photo.jpg'));
-      }
-
-      // Send the request
-      var response = await request.send();
-      var responseData = await response.stream.bytesToString();
-      print('Response status: ${response.statusCode}');
-      print('Response body: $responseData');
-
-      if (response.statusCode == 200) {
-        var responseBody = json.decode(responseData);
-
-        if (responseBody['message'] == 'Registration successful') {
-          // Navigate to Login Screen after successful registration
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => DriverOTP()), // Replace with your actual login screen
-          );
-        } else {
-          // Show error message if registration fails
-          setState(() {
-            _errorMessage = responseBody['message'] ?? 'Registration failed. Please try again.';
-          });
-        }
+      if (drivingLicensePhotoBytes == null || carPlatePhotoBytes == null || idCardPhotoBytes == null || driverPhotoBytes == null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Please take all required photos'),
+          backgroundColor: Colors.red,
+        ));
       } else {
-        // Show error message for non-200 responses
-        setState(() {
-          _errorMessage = 'Registration failed. Please try again.';
-        });
+        // Navigate to the Driver OTP page and pass the collected data
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DriverOTP(
+              firstName: firstName,
+              lastName: lastName,
+              password: password,
+              carType: carType,
+              drivingLicensePhoto: drivingLicensePhotoBytes, // Updated field name
+              carPlatePhoto: carPlatePhotoBytes, // Updated field name
+              idCardPhoto: idCardPhotoBytes, // Updated field name
+              driverPhoto: driverPhotoBytes, // Updated field name
+            ),
+          ),
+        );
       }
-    } catch (e) {
-      print('Error: $e');
-      setState(() {
-        _errorMessage = 'An error occurred. Please try again later.';
-      });
     }
   }
 
@@ -296,19 +258,7 @@ class _RegisterDriverState extends State<RegisterDriver> {
                   side: BorderSide(color: Colors.blue),
                   backgroundColor: Colors.black,
                 ),
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    _formKey.currentState!.save();
-                    if (drivingLicensePhotoBytes == null || carPlatePhotoBytes == null || idCardPhotoBytes == null || driverPhotoBytes == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text('Please take all required photos'),
-                        backgroundColor: Colors.red,
-                      ));
-                    } else {
-                      _registerDriver(); // Send the form data to backend
-                    }
-                  }
-                },
+                onPressed: _registerDriver,
               ),
 
               if (_errorMessage.isNotEmpty)

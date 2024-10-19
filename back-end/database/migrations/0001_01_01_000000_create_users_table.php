@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->uuid('uid')->unique()->after('id');
+            $table->uuid('uid')->unique();  // Remove 'after' since the table is being created
             $table->string('first_name');
             $table->string('last_name');
             $table->string('phone_number')->unique();
@@ -24,14 +24,11 @@ return new class extends Migration
             $table->timestamps();
         });
 
-
         Schema::create('user_password_reset_tokens', function (Blueprint $table) {
-            // Remove email as a primary key and just keep the token
             $table->string('token')->primary();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->timestamp('created_at')->nullable();
         });
-
 
         Schema::create('sessions', function (Blueprint $table) {
             $table->string('id')->primary();
@@ -48,11 +45,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('users');
-        Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('uid');
-        });
+        Schema::dropIfExists('user_password_reset_tokens');
+        Schema::dropIfExists('users');  // Dropping the entire 'users' table, no need to drop 'uid' separately
     }
 };

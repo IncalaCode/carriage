@@ -13,6 +13,8 @@ import 'sidebarSettings.dart';
 
 class MainAppScreen extends StatefulWidget {
   @override
+  String baseUrl = "http://127.0.0.1:8000/api/";
+
   _MainAppScreenState createState() => _MainAppScreenState();
 }
 
@@ -56,13 +58,16 @@ class _MainAppScreenState extends State<MainAppScreen> {
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Colors.black, Colors.grey.shade800],
+              colors: [
+                Colors.black,
+                Colors.grey.shade800
+              ],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),
           ),
         ),
-        toolbarHeight:100, // Increased height for full logo visibility
+        toolbarHeight: 100, // Increased height for full logo visibility
         centerTitle: true,
         title: Padding(
           padding: const EdgeInsets.only(top: 0), // Adjust logo's position
@@ -70,7 +75,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
         ),
         actions: [
           Padding(
-            padding: EdgeInsets.only( top: 0,right: 16.0), // Aligns to the top right corner
+            padding: EdgeInsets.only(top: 0, right: 16.0), // Aligns to the top right corner
             child: Builder(
               builder: (context) => IconButton(
                 icon: Icon(FontAwesomeIcons.bars, color: Colors.white), // White hamburger icon
@@ -91,7 +96,10 @@ class _MainAppScreenState extends State<MainAppScreen> {
             DrawerHeader(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.black, Colors.grey.shade800],
+                  colors: [
+                    Colors.black,
+                    Colors.grey.shade800
+                  ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
@@ -223,7 +231,7 @@ class OrderForm extends StatelessWidget {
   final TextEditingController materialTypeController = TextEditingController();
   final TextEditingController BirrController = TextEditingController();
   String? loadType;
-  
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -252,15 +260,16 @@ class OrderForm extends StatelessWidget {
             controller: materialTypeController,
             decoration: InputDecoration(labelText: 'Birr'),
           ),
-          
           DropdownButton<String>(
             hint: Text('Select Load Type'),
             value: loadType,
             onChanged: (String? newValue) {
               loadType = newValue;
             },
-            items: <String>['Half Load', 'Full Load']
-                .map<DropdownMenuItem<String>>((String value) {
+            items: <String>[
+              'Half Load',
+              'Full Load'
+            ].map<DropdownMenuItem<String>>((String value) {
               return DropdownMenuItem<String>(
                 value: value,
                 child: Text(value),

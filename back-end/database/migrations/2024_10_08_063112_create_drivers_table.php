@@ -14,7 +14,7 @@ return new class extends Migration
         // Create the drivers table
         Schema::create('drivers', function (Blueprint $table) {
             $table->id();
-            $table->uuid('uid')->unique()->after('id');
+            $table->uuid('uid')->unique();
             $table->string('first_name');
             $table->string('last_name');
             $table->string('password');

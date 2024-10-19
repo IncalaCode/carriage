@@ -22,7 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
     print('Email: $_email');
     print('Password: $_password');
 
-    final url = Uri.parse('https://your-laravel-backend-url.com/api/login');
+    final url = Uri.parse('http://127.0.0.1:8000/api/login');
 
     try {
       final response = await http.post(

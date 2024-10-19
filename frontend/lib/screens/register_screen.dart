@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'config.dart';
 
 class RegisterScreen extends StatefulWidget {
   @override
@@ -14,8 +15,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   // This method sends data to the backend and logs everything in the terminal
   Future<void> _sendRegistrationData(String fullName, String phoneNumber) async {
-    String apiUrl = 'https://your-backend-api.com/register'; // Replace with your actual Laravel backend URL
-
     Map<String, String> data = {
       'fullName': fullName,
       'phoneNumber': phoneNumber,
@@ -27,7 +26,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse(apiUrl),
+        Uri.parse(Config.baseUrl + '/user/register'),
         headers: {
           "Content-Type": "application/json",
         },
