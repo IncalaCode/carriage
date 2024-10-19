@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 require "otp.php";
 
@@ -31,6 +32,7 @@ $validator = Validator::make($request->all(), [
                 'errors' => $validator->errors(),
             ], 422);
         }
+
 
         $otp = rand(1000, 9999); // Adjusted OTP to 4 digits
 
@@ -57,28 +59,36 @@ $validator = Validator::make($request->all(), [
     // New login method that sends OTP
     public function login(Request $request)
     {
+        // Validate the phone number and OTP
         $validator = Validator::make($request->all(), [
-            'first_name' => 'required|string',
-            'password' => 'required|string',
+            'phone_number' => 'required|digits_between:1,14', // Adjust the digits to match your phone number format
+            'otp' => 'required|digits:4', // Assuming OTP is 6 digits
         ]);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
+            return response()->json(['error' => $validator->errors()], 422);
         }
 
-        // Attempt to find the user by first name
-        $user = User::where(
-            'first_name',
-            $request->first_name
-        )->first();
+        // Check if a user exists with the given phone number
+        $user = User::where('phone_number', $request->phone_number)->first();
 
-        // Check if the user exists and the password is correct
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json(['error' => 'Invalid first name or password'], 401);
+        if (!$user) {
+            return response()->json(['error' => 'User not found'], 404);
         }
 
-        // Generate token or session, as needed (optional)
-        return response()->json(['message' => 'Login successful', 'user' => $user], 200);
+        // Verify OTP (assuming OTP is stored in the database for the user)
+        if ($user->otp !== $request->otp) {
+            return response()->json(['error' => 'Invalid OTP'], 401);
+        }
+
+        // OTP is correct, so mark the user as authenticated
+        // (You can implement your session or token system here for logged-in users)
+
+        // You can generate a token (if using Sanctum or Passport) or return a success response
+        return response()->json([
+            'message' => 'Login successful',
+            'user' => $user, // Optionally return user details
+        ], 200);
     }
 
 
@@ -117,6 +127,48 @@ $validator = Validator::make($request->all(), [
         return response()->json([
             'message' => 'OTP verified successfully',
             'user' => $user,
+        ], 200);
+    }
+    public function userResendOtp(Request $request)
+    {
+        // Validate the phone number
+        $validator = Validator::make($request->all(), [
+            'phone_number' => 'required|digits_between:1,14',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()], 422);
+        }
+
+        // Find the user by phone number
+        $user = User::where('phone_number', $request->phone_number)->first();
+
+        if (!$user) {
+            return response()->json(['error' => 'User not found'], 404);
+        }
+
+        // Throttling: Check the last OTP sent time
+        $lastOtpSent = Carbon::parse($user->updated_at);
+        $now = Carbon::now();
+        $resendDelay = 60; // Set the delay in seconds before allowing another OTP to be sent
+
+        if ($lastOtpSent->diffInSeconds($now) < $resendDelay) {
+            return response()->json([
+                'error' => 'Please wait before resending OTP.',
+            ], 429); // Too Many Requests status
+        }
+
+        // Generate a new OTP
+        $otp = rand(1000, 9999); // 4-digit OTP
+        $user->otp = $otp;
+        $user->save();
+
+        // Send the new OTP
+        $response = otpSend($user->phone_number, "Your new OTP is: ", $otp, $user->id);
+
+        return response()->json([
+            'message' => 'OTP resent successfully!',
+            'otp_response' => $response,
         ], 200);
     }
 }

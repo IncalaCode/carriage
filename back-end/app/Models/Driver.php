@@ -30,6 +30,7 @@ class Driver extends Authenticatable
         'car_plate_photo',
         'user_photo',
         'uid', // Include this as well based on your schema.
+        'otp',
     ];
 
     /**
