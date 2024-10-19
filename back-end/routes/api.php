@@ -15,9 +15,9 @@ Route::post('user/send-otp', [AuthController::class, 'sendOtp']);
 Route::post('/user/verify', [AuthController::class, 'verifyOtp']);
 
 // Example route to test if it's working
-Route::get('/user/register', function () {
-    return "wow";
-});
+// Route::get('/user/register', function () {
+//     return "wow";
+// });
 
 // Route for driver registration and login only for dirivers
 Route::post('/driver/register', [DriverController::class, 'register']);

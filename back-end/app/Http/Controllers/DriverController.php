@@ -71,27 +71,33 @@ class DriverController extends Controller
 
     public function login(Request $request)
     {
-        // Validate the incoming request
         $validator = Validator::make($request->all(), [
-            'first_name' => 'required|string|max:255',
-            'password' => 'required|string|min:8',
+            'phone_number' => 'required|digits_between:1,14', // Adjust the digits as per your requirements
         ]);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
+            return response()->json(['error' => $validator->errors()], 422);
         }
 
-        // Attempt to find the driver by first name
-        $driver = Driver::where('first_name', $request->first_name)->first();
+        // Find the driver by phone number
+        $driver = Driver::where('phone_number', $request->phone_number)->first();
 
-        // Check if the driver exists and if the password is correct
-        if (!$driver || !Hash::check($request->password, $driver->password)) {
-            return response()->json(['error' => 'Invalid first name or password'], 401);
+        if (!$driver) {
+            return response()->json(['error' => 'Driver not found'], 404);
         }
 
-        // Generate token or session (if necessary)
-        // For API-based authentication, you can generate a token here using Passport or Sanctum
-        return response()->json(['message' => 'Login successful', 'driver' => $driver], 200);
+        // Generate and send OTP
+        $otp = rand(1000, 9999); // 4-digit OTP
+        $driver->otp = $otp;
+        $driver->save();
+
+        // Send OTP using the same otpSend function as for users
+        $response = otpSend($driver->phone_number, "Your OTP is: ", $otp, $driver->id);
+
+        return response()->json([
+            'message' => 'OTP sent successfully!',
+            'otp_response' => $response,
+        ], 200);
     }
 
 
