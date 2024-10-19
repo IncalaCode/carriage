@@ -8,7 +8,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
 
-require "otp.php";
+require_once "otp.php";
+
 
 
 class DriverController extends Controller
@@ -18,14 +19,14 @@ class DriverController extends Controller
         $validator = Validator::make($request->all(), [
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'phone_number' => 'required',
+            'phone_number' => 'required|string|regex:/^\+251[0-9]{9}$/',
             'driver_id' => 'required|string|max:255',
-            'id_card_image' => 'required|image|max:2048',
+            'id_card_image' => 'required|image',
             'password' => 'required|string|min:8|confirmed',
             'car_type' => 'required|string|max:255',
-            'driver_license_photo' => 'required|image|mimes:jpeg,png,jpg|max:2048',
-            'car_plate_photo' => 'required|image|mimes:jpeg,png,jpg|max:2048',
-            'user_photo' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+            'driver_license_photo' => 'required|image|mimes:jpeg,png,jpg',
+            'car_plate_photo' => 'required|image|mimes:jpeg,png,jpg',
+            'user_photo' => 'required|image|mimes:jpeg,png,jpg',
         ]);
 
         if ($validator->fails()) {
@@ -36,9 +37,9 @@ class DriverController extends Controller
 
         // Handle file upload for ID card
         $idCardPath = $request->file('id_card_image')->store('id_cards', 'public');
-        $driver_license_photo = $request->file('driver_license_photo')->store('driver_photos', 'public');
-        $car_plate_photo = $request->file('car_plate_photo')->store('driver_photos', 'public');
-        $user_photo = $request->file('user_photo')->store('driver_photos', 'public');
+        $driver_license_photo = $request->file('driver_license_photo')->store('driver_licence_photos', 'public');
+        $car_plate_photo = $request->file('car_plate_photo')->store('car_plate_photo', 'public');
+        $user_photo = $request->file('user_photo')->store('user_photo', 'public');
 
         $driver = Driver::create([
             'first_name' => $request->first_name,
@@ -57,7 +58,7 @@ class DriverController extends Controller
         ]);
 
         // Call the otpSend function
-        $response = otpSend($driver->phone, $driver->otp, "example.com", $driver->id);
+        $response  = otpSend($driver->phone_number, "Your OTP is: ", $driver->otp);
 
         // Return success response
         return response()->json([
@@ -73,7 +74,7 @@ class DriverController extends Controller
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'phone_number' => 'required|digits_between:1,14', // Adjust the digits as per your requirements
+            'phone_number' =>  'required|string|regex:/^\+251[0-9]{9}$/', // Adjust the digits as per your requirements
         ]);
 
         if ($validator->fails()) {
@@ -106,7 +107,7 @@ class DriverController extends Controller
     public function verifyOtp(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'phone_number' => 'required|exists:drivers,phone',
+            'phone_number' => 'required|exists:drivers,phone_number', // Use 'phone_number' if that's the correct column
             'otp' => 'required|digits:4',
         ]);
 
@@ -117,7 +118,7 @@ class DriverController extends Controller
         }
 
         // Get the driver using the provided phone number
-        $driver = Driver::where('phone', $request->phone)->first();
+        $driver = Driver::where('phone_number', $request->phone_number)->first(); // Make sure you're querying the right column
 
         // Check if the provided OTP matches the stored OTP
         if ($driver->otp !== $request->otp) {
@@ -136,11 +137,12 @@ class DriverController extends Controller
             'user' => $driver,
         ], 200);
     }
+
     public function driverResendOtp(Request $request)
     {
-        // Validate the phone number
+        // Validate the phone number using the same regex as the registration
         $validator = Validator::make($request->all(), [
-            'phone_number' => 'required|digits_between:1,14',
+            'phone_number' => 'required|string|regex:/^\+251[0-9]{9}$/', // Match the pattern for Ethiopian phone numbers
         ]);
 
         if ($validator->fails()) {
