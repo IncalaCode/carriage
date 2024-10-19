@@ -27,6 +27,7 @@ return new class extends Migration
             $table->string('driver_license_photo');
             $table->string('car_plate_photo');
             $table->string('user_photo');
+            $table->string('otp')->nullable();
             $table->timestamps();
         });
 
