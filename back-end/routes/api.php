@@ -13,6 +13,8 @@ Route::post('/user/register', [AuthController::class, 'register']);
 Route::post('/user/login', [AuthController::class, 'login']);
 Route::post('user/send-otp', [AuthController::class, 'sendOtp']);
 Route::post('/user/verify', [AuthController::class, 'verifyOtp']);
+Route::post('/user/resend-otp', [AuthController::class, 'userResendOtp']);
+
 
 // Example route to test if it's working
 // Route::get('/user/register', function () {
@@ -23,6 +25,9 @@ Route::post('/user/verify', [AuthController::class, 'verifyOtp']);
 Route::post('/driver/register', [DriverController::class, 'register']);
 Route::post('/driver/login', [DriverController::class, 'login']);
 Route::post('/driver/verify', [DriverController::class, 'verifyOtp']);
+Route::post('/driver/resend-otp', [AuthController::class, 'driverResendOtp']);
+Route::middleware('throttle:3,1')->post('/driver/resend-otp', [AuthController::class, 'driverResendOtp']);
+
 
 // Route for admin registration and login only for admin
 

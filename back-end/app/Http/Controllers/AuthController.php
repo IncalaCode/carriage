@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 require "otp.php";
 
@@ -124,6 +125,48 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'OTP verified successfully',
             'user' => $user,
+        ], 200);
+    }
+    public function userResendOtp(Request $request)
+    {
+        // Validate the phone number
+        $validator = Validator::make($request->all(), [
+            'phone_number' => 'required|digits_between:1,14',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()], 422);
+        }
+
+        // Find the user by phone number
+        $user = User::where('phone_number', $request->phone_number)->first();
+
+        if (!$user) {
+            return response()->json(['error' => 'User not found'], 404);
+        }
+
+        // Throttling: Check the last OTP sent time
+        $lastOtpSent = Carbon::parse($user->updated_at);
+        $now = Carbon::now();
+        $resendDelay = 60; // Set the delay in seconds before allowing another OTP to be sent
+
+        if ($lastOtpSent->diffInSeconds($now) < $resendDelay) {
+            return response()->json([
+                'error' => 'Please wait before resending OTP.',
+            ], 429); // Too Many Requests status
+        }
+
+        // Generate a new OTP
+        $otp = rand(1000, 9999); // 4-digit OTP
+        $user->otp = $otp;
+        $user->save();
+
+        // Send the new OTP
+        $response = otpSend($user->phone_number, "Your new OTP is: ", $otp, $user->id);
+
+        return response()->json([
+            'message' => 'OTP resent successfully!',
+            'otp_response' => $response,
         ], 200);
     }
 }
