@@ -4,6 +4,9 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+
 android {
     namespace = "com.example.carriage_app"
     compileSdk = flutter.compileSdkVersion
@@ -26,6 +29,11 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
+
+    dependencies {
+    implementation 'androidx.appcompat:appcompat:1.4.0' // Add this line
+}
+
 
     buildTypes {
         release {
