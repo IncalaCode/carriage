@@ -27,6 +27,7 @@ return new class extends Migration
             $table->string('driver_license_photo');
             $table->string('car_plate_photo');
             $table->string('user_photo');
+            $table->boolean('approved')->default(false);
             $table->string('otp')->nullable();
             $table->timestamps();
         });
@@ -50,6 +51,7 @@ return new class extends Migration
         Schema::dropIfExists('drivers');
         Schema::table('drivers', function (Blueprint $table) {
             $table->dropColumn('uid');
+            $table->dropColumn('approved');
         });
     }
 };

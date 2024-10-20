@@ -78,3 +78,12 @@ class Driver extends Authenticatable
         });
     }
 }
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class RequestModel extends Model
+{
+    protected $table = 'requests'; // Set the correct table name if it's different
+}
