@@ -7,6 +7,7 @@ use App\Models\Driver;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
+use App\Models\RequestModel;
 
 require_once "otp.php";
 
@@ -54,6 +55,7 @@ class DriverController extends Controller
             'car_plate_photo' => $car_plate_photo,
             'user_photo' => $user_photo,
             'verified' => false, // Initially set verified to false
+            'approved' => false,
             'otp' => rand(1000, 9999), // Store the OTP
         ]);
 
@@ -179,5 +181,23 @@ class DriverController extends Controller
             'message' => 'OTP resent successfully!',
             'otp_response' => $response,
         ], 200);
+    }
+
+    public function accessRequests(Request $request)
+    {
+        // Retrieve the authenticated driver using the 'driver' guard
+        $driver = auth('driver')->user();
+
+        // Check if the driver is approved by the admin
+        if (!$driver->approved) {
+            return response()->json([
+                'message' => 'Your account is not approved by the admin yet.',
+            ], 403); // Forbidden
+        }
+
+        // If the driver is approved, allow access to requests
+        $requests = RequestModel::where('driver_id', $driver->id)->get();
+
+        return response()->json($requests);
     }
 }

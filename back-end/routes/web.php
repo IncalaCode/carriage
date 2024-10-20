@@ -11,6 +11,16 @@ Route::get('', function () {
 
 Route::post('admin/login', [AdminAuthController::class, 'login'])->name('admin.login.submit');
 Route::post('admin/logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
+// Show unapproved drivers
+
+Route::get('/admin/unapproved-drivers', [AdminAuthController::class, 'showUnapprovedDrivers'])->name('admin.unapproved_drivers');
+// Approve driver
+Route::put('/admin/approve-driver/{id}', [AdminAuthController::class, 'approveDriver'])->name('admin.approve_driver');
+// Optional: Reject driver
+Route::put('/admin/reject-driver/{id}', [AdminAuthController::class, 'rejectDriver'])->name('admin.reject_driver');
+Route::get('/admin/drivers/{driver}/details', [AdminAuthController::class, 'showDriverDetails'])->name('admin.driver_details');
+
+
 
 // Protected Routes Using Controller Constructor Logic
 Route::get('/admin/dashboard', function () {
