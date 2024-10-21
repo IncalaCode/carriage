@@ -5,6 +5,8 @@ use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DriverController;
 use App\Http\Controllers\AdminAuthController;
+use App\Http\Controllers\SSEController;
+use App\Http\Controllers\RideRequestController;
 
 
 
@@ -35,3 +37,14 @@ Route::middleware('throttle:3,1')->post('/driver/resend-otp', [AuthController::c
 Route::post('/adminLogin', [AuthController::class, 'adminLogin']);
 Route::post('/adminLogout', [AuthController::class, 'adminLogout']);
 Route::post('/updateAdmin', [AuthController::class, 'updateAdmin']);
+
+
+// for the sse 
+Route::get('/sse/driver/{driverId}', [SSEController::class, 'streamDriverRequests']);
+Route::get('/sse/client/{clientId}', [SSEController::class, 'streamClientUpdates']);
+
+Route::post('/ride/request', [RideRequestController::class, 'requestRide']);
+Route::post('/ride/respond', [RideRequestController::class, 'respondToRide']);
+Route::post('/ride-requests/lock', [RideRequestController::class, 'lockRideRequest']);
+Route::post('/ride/confirm', [RideRequestController::class, 'requestconfrim']);
+
