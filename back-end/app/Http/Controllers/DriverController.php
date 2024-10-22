@@ -60,7 +60,7 @@ class DriverController extends Controller
         ]);
 
         // Call the otpSend function
-        $response  = otpSend($driver->phone_number, "Your OTP is: ", $driver->otp);
+        // $response  = otpSend($driver->phone_number, "Your OTP is: ", $driver->otp);
 
         // Return success response
         return response()->json([
