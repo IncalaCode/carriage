@@ -35,3 +35,8 @@ Route::middleware('throttle:3,1')->post('/driver/resend-otp', [AuthController::c
 Route::post('/adminLogin', [AuthController::class, 'adminLogin']);
 Route::post('/adminLogout', [AuthController::class, 'adminLogout']);
 Route::post('/updateAdmin', [AuthController::class, 'updateAdmin']);
+
+
+Route::middleware('auth:driver')->group(function () {
+    Route::get('/driver/requests', [DriverController::class, 'accessRequests']);
+});
