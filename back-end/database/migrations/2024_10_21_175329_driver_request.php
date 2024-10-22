@@ -5,12 +5,13 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 
-class CreateDriversTable extends Migration
+class driverrequest extends Migration
 {
+
 
     public function up(): void
     {
-        Schema::create('drivers', function (Blueprint $table) {
+        Schema::create('drivers_request', function (Blueprint $table) {
             $table->id();
             $table->bigInteger('driver_id')->unique();  // Unique Driver ID
             $table->decimal('longitude', 10, 8);  // Driver's longitude location

@@ -47,7 +47,7 @@ class DriverController extends Controller
             'last_name' => $request->last_name,
             'email' => $request->email,
             'phone_number' => $request->phone_number,
-            'driver_id' => $request->driver_id,
+            // 'driver_id' => $request->driver_id,
             'password' => Hash::make($request->password),
             'id_card_image_path' => $idCardPath,
             'car_type' => $request->car_type,
@@ -62,10 +62,11 @@ class DriverController extends Controller
         // Call the otpSend function
         // $response  = otpSend($driver->phone_number, "Your OTP is: ", $driver->otp);
 
+
         // Return success response
         return response()->json([
             'message' => 'OTP sent successfully!',
-            'otp_response' => json_decode($response, true),
+            'otp_response' => "OTP sent successfully!" ,
             "token" => $driver->uuid
         ], 200);
     }
