@@ -4,6 +4,7 @@
 use Symfony\Component\Console\Input\ArgvInput;
 
 define('LARAVEL_START', microtime(true));
+header("Access-Control-Allow-Origin: *");
 
 // Register the Composer autoloader...
 require __DIR__.'/vendor/autoload.php';

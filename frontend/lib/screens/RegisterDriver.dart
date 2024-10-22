@@ -1,6 +1,8 @@
-import 'package:flutter/material.dart'; 
+import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:typed_data';
+// For handling image bytes
 import 'DriverOTP.dart';
 
 class RegisterDriver extends StatefulWidget {
@@ -20,30 +22,65 @@ class _RegisterDriverState extends State<RegisterDriver> {
   String carType = '';
   bool isPasswordVisible = false;
   bool isConfirmPasswordVisible = false;
-  XFile? drivingLicensePhoto;
-  XFile? carPlatePhoto;
-  XFile? idCardPhoto;
-  XFile? driverPhoto;
+  Uint8List? drivingLicensePhotoBytes;
+  Uint8List? carPlatePhotoBytes;
+  Uint8List? idCardPhotoBytes;
+  Uint8List? driverPhotoBytes;
+  String _errorMessage = '';
 
-  Future<void> _takePhoto(Function(XFile?) onPhotoTaken) async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.camera); 
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _takePhoto(Function(Uint8List?) onPhotoTaken) async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.camera);
     if (image != null) {
-      onPhotoTaken(image);
+      Uint8List bytes = await image.readAsBytes();
+      onPhotoTaken(bytes);
     }
   }
 
-Widget _buildPhotoButton(String label, Function(XFile?) onPhotoTaken) {
-  return ElevatedButton(
-    onPressed: () => _takePhoto(onPhotoTaken),
-    child: Text(label),
-    style: ElevatedButton.styleFrom(
-      backgroundColor: Colors.black, // Set the background color
-      foregroundColor: Colors.white,  // Set the text color
-    ),
-  );
-}
+  Widget _buildPhotoButton(String label, Function(Uint8List?) onPhotoTaken) {
+    return ElevatedButton(
+      onPressed: () => _takePhoto(onPhotoTaken),
+      child: Text(label),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.black, // Set the background color
+        foregroundColor: Colors.white, // Set the text color
+      ),
+    );
+  }
 
+  // Modified function to navigate to the Driver OTP page and pass data
+  void _registerDriver() {
+    if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
+
+      if (drivingLicensePhotoBytes == null || carPlatePhotoBytes == null || idCardPhotoBytes == null || driverPhotoBytes == null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Please take all required photos'),
+          backgroundColor: Colors.red,
+        ));
+      } else {
+        // Navigate to the Driver OTP page and pass the collected data
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DriverOTP(
+              firstName: firstName,
+              lastName: lastName,
+              password: password,
+              confirm_password: _passwordController.text,
+
+              carType: carType,
+              drivingLicensePhoto: drivingLicensePhotoBytes, // Updated field name
+              carPlatePhoto: carPlatePhotoBytes, // Updated field name
+              idCardPhoto: idCardPhotoBytes, // Updated field name
+              driverPhoto: driverPhotoBytes, // Updated field name
+            ),
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -184,63 +221,56 @@ Widget _buildPhotoButton(String label, Function(XFile?) onPhotoTaken) {
               SizedBox(height: 16),
 
               // Driving License Photo Button
-              _buildPhotoButton('Take Driving License Photo', (photo) {
+              _buildPhotoButton('Take Driving License Photo', (bytes) {
                 setState(() {
-                  drivingLicensePhoto = photo;
+                  drivingLicensePhotoBytes = bytes;
                 });
               }),
               SizedBox(height: 16),
 
               // Car Plate Photo Button
-              _buildPhotoButton('Take Car Plate Photo', (photo) {
+              _buildPhotoButton('Take Car Plate Photo', (bytes) {
                 setState(() {
-                  carPlatePhoto = photo;
+                  carPlatePhotoBytes = bytes;
                 });
               }),
               SizedBox(height: 16),
 
               // ID Card Photo Button
-              _buildPhotoButton('Take ID Card Photo', (photo) {
+              _buildPhotoButton('Take ID Card Photo', (bytes) {
                 setState(() {
-                  idCardPhoto = photo;
+                  idCardPhotoBytes = bytes;
                 });
               }),
               SizedBox(height: 16),
 
               // User Photo Button
-              _buildPhotoButton('Take User Photo', (photo) {
+              _buildPhotoButton('Take User Photo', (bytes) {
                 setState(() {
-                  driverPhoto = photo;
+                  driverPhotoBytes = bytes;
                 });
               }),
               SizedBox(height: 16),
 
+              // Submit Button
               ElevatedButton.icon(
                 icon: Icon(FontAwesomeIcons.arrowRight, color: Colors.blue),
-                label: Text('Next', style: TextStyle(color: Colors.blue)),
+                label: Text('Submit', style: TextStyle(color: Colors.blue)),
                 style: ElevatedButton.styleFrom(
                   side: BorderSide(color: Colors.blue),
                   backgroundColor: Colors.black,
                 ),
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    _formKey.currentState!.save();
-                    // Ensure all photos are taken
-                    if (drivingLicensePhoto == null || carPlatePhoto == null || idCardPhoto == null || driverPhoto == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text('Please take all required photos'),
-                        backgroundColor: Colors.red,
-                      ));
-                    } else {
-                      // Navigate to OTP Screen
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => DriverOTP()),
-                      );
-                    }
-                  }
-                },
+                onPressed: _registerDriver,
               ),
+
+              if (_errorMessage.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: Text(
+                    _errorMessage,
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
             ],
           ),
         ),

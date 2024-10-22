@@ -3,9 +3,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:io'; // For file handling (image upload)
 import 'package:image_picker/image_picker.dart'; // For image picking
 import 'sidebarProfileEdit.dart';
-import 'login_screen.dart';
 
- // Edit profile page
+// Edit profile page
 class ProfilePage extends StatefulWidget {
   @override
   _ProfilePageState createState() => _ProfilePageState();
@@ -40,11 +39,11 @@ class _ProfilePageState extends State<ProfilePage> {
           IconButton(
             icon: FaIcon(FontAwesomeIcons.userEdit),
             onPressed: () {
-  Navigator.push(
-    context,
-    MaterialPageRoute(builder: (context) => EditProfilePage()),
-  );
-},
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => EditProfilePage()),
+              );
+            },
           ),
         ],
       ),
@@ -76,7 +75,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
             ),
             SizedBox(height: 20),
-            
+
             // Full Name
             Row(
               children: [
@@ -89,7 +88,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ],
             ),
             SizedBox(height: 8),
-            
+
             // Email
             Row(
               children: [
@@ -102,7 +101,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ],
             ),
             SizedBox(height: 8),
-            
+
             // Phone Number
             Row(
               children: [
@@ -115,7 +114,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ],
             ),
             Spacer(),
-            
+
             // Logout Button
             ElevatedButton.icon(
               icon: FaIcon(FontAwesomeIcons.signOutAlt),
