@@ -12,17 +12,21 @@ class DriverOTP extends StatefulWidget {
   final String firstName;
   final String lastName;
   final String password;
+  final String confirm_password;
   final String carType;
   final Uint8List? drivingLicensePhoto;
   final Uint8List? carPlatePhoto;
   final Uint8List? idCardPhoto;
   final Uint8List? driverPhoto;
+  // final String driverId; // Ensure this field exists
 
   DriverOTP({
     required this.firstName,
     required this.lastName,
     required this.password,
+    required this.confirm_password,
     required this.carType,
+    // required this.driverId, // Driver ID is now required
     this.drivingLicensePhoto,
     this.carPlatePhoto,
     this.idCardPhoto,
@@ -72,18 +76,20 @@ class _DriverOTPState extends State<DriverOTP> {
     try {
       var request = http.MultipartRequest('POST', url);
 
-      // Add text fields
+      // Add text fields, ensuring field names match Laravel's expectations
       request.fields['first_name'] = widget.firstName;
       request.fields['last_name'] = widget.lastName;
       request.fields['password'] = widget.password;
+      request.fields['password_confirmation'] = widget.confirm_password;
       request.fields['car_type'] = widget.carType;
       request.fields['phone_number'] = phoneNumber;
+      // request.fields['driver_id'] = widget.driverId; // Driver ID is added
 
       // Add image files if available and not null
       if (widget.drivingLicensePhoto != null) {
         request.files.add(
           http.MultipartFile.fromBytes(
-            'driving_license_photo',
+            'driver_license_photo', // Use 'driver_license_photo' as expected in backend
             widget.drivingLicensePhoto!,
             filename: 'driving_license.jpg',
             contentType: MediaType('image', 'jpeg'),
@@ -93,7 +99,7 @@ class _DriverOTPState extends State<DriverOTP> {
       if (widget.carPlatePhoto != null) {
         request.files.add(
           http.MultipartFile.fromBytes(
-            'car_plate_photo',
+            'car_plate_photo', // Corrected field name for car plate photo
             widget.carPlatePhoto!,
             filename: 'car_plate.jpg',
             contentType: MediaType('image', 'jpeg'),
@@ -103,7 +109,7 @@ class _DriverOTPState extends State<DriverOTP> {
       if (widget.idCardPhoto != null) {
         request.files.add(
           http.MultipartFile.fromBytes(
-            'id_card_photo',
+            'id_card_image', // Corrected field name for id card photo
             widget.idCardPhoto!,
             filename: 'id_card.jpg',
             contentType: MediaType('image', 'jpeg'),
@@ -113,7 +119,7 @@ class _DriverOTPState extends State<DriverOTP> {
       if (widget.driverPhoto != null) {
         request.files.add(
           http.MultipartFile.fromBytes(
-            'driver_photo',
+            'user_photo', // Corrected field name for driver photo
             widget.driverPhoto!,
             filename: 'driver_photo.jpg',
             contentType: MediaType('image', 'jpeg'),
@@ -144,7 +150,7 @@ class _DriverOTPState extends State<DriverOTP> {
 
   // Function to verify OTP
   Future<void> verifyOtp() async {
-    final url = Uri.parse(Config.baseUrl + "/driver/verify"); // Update this line
+    final url = Uri.parse(Config.baseUrl + "/driver/verify");
 
     try {
       final response = await http.post(
@@ -224,6 +230,11 @@ class _DriverOTPState extends State<DriverOTP> {
                     onPressed: () {
                       if (_formKey.currentState!.validate()) {
                         _formKey.currentState!.save();
+                        // Ensure password meets minimum length requirement
+                        if (widget.password.length < 8) {
+                          print("Password must be at least 8 characters.");
+                          return;
+                        }
                         sendDriverDataAndRequestOtp(); // Send data and request OTP
                       }
                     },

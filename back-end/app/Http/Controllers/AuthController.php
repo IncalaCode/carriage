@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
-require "otp.php";
+require_once "otp.php";
+
 
 class AuthController extends Controller
 {
@@ -17,14 +18,12 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         // Validate the request data
-
-$validator = Validator::make($request->all(), [
-    'first_name' => 'required|string|max:255',
-    'last_name' => 'required|string|max:255',
-    'phone_number' => 'required|string|min:1|max:15|unique:users,phone_number', // Changed to string and adjusted rules
-    'password' => 'required|string|min:8|confirmed', // password_confirmation field should be present
-]);
-
+        $validator = Validator::make($request->all(), [
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'phone_number' => 'required|string|regex:/^\+251[0-9]{9}$/',
+            'password' => 'required|string|min:8|confirmed', // password_confirmation field should be present
+        ]);
 
         // Return validation errors if any
         if ($validator->fails()) {
@@ -47,7 +46,7 @@ $validator = Validator::make($request->all(), [
         ]);
 
         // Send OTP using otpSend
-        $response  = otpSend($user->phone_number, "Your OTP is: ", $otp, $user->id);
+        $response  = otpSend($user->phone_number, "Your OTP is: ", $otp);
 
 
         return response()->json([
@@ -59,35 +58,32 @@ $validator = Validator::make($request->all(), [
     // New login method that sends OTP
     public function login(Request $request)
     {
-        // Validate the phone number and OTP
         $validator = Validator::make($request->all(), [
-            'phone_number' => 'required|digits_between:1,14', // Adjust the digits to match your phone number format
-            'otp' => 'required|digits:4', // Assuming OTP is 6 digits
+            'phone_number' =>  'required|string|regex:/^\+251[0-9]{9}$/', // Adjust the digits as per your requirements
         ]);
 
         if ($validator->fails()) {
             return response()->json(['error' => $validator->errors()], 422);
         }
 
-        // Check if a user exists with the given phone number
+        // Find the driver by phone number
         $user = User::where('phone_number', $request->phone_number)->first();
 
         if (!$user) {
             return response()->json(['error' => 'User not found'], 404);
         }
 
-        // Verify OTP (assuming OTP is stored in the database for the user)
-        if ($user->otp !== $request->otp) {
-            return response()->json(['error' => 'Invalid OTP'], 401);
-        }
+        // Generate and send OTP
+        $otp = rand(1000, 9999); // 4-digit OTP
+        $user->otp = $otp;
+        $user->save();
 
-        // OTP is correct, so mark the user as authenticated
-        // (You can implement your session or token system here for logged-in users)
+        // Send OTP using the same otpSend function as for users
+        $response = otpSend($user->phone_number, "Your OTP is: ", $otp, $user->id);
 
-        // You can generate a token (if using Sanctum or Passport) or return a success response
         return response()->json([
-            'message' => 'Login successful',
-            'user' => $user, // Optionally return user details
+            'message' => 'OTP sent successfully!',
+            'otp_response' => $response,
         ], 200);
     }
 
@@ -97,7 +93,7 @@ $validator = Validator::make($request->all(), [
     {
         $validator = Validator::make($request->all(), [
             'phone_number' => 'required|exists:users,phone_number',
-            'otp' => 'required|digits:4',
+            'otp' => 'required|',
         ]);
 
         if ($validator->fails()) {

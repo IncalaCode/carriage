@@ -68,6 +68,8 @@ class _RegisterDriverState extends State<RegisterDriver> {
               firstName: firstName,
               lastName: lastName,
               password: password,
+              confirm_password: _passwordController.text,
+
               carType: carType,
               drivingLicensePhoto: drivingLicensePhotoBytes, // Updated field name
               carPlatePhoto: carPlatePhotoBytes, // Updated field name
