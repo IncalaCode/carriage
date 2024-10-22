@@ -23,7 +23,7 @@ class Driver extends Authenticatable
         'phone_number',
         'password',
         'verified',
-        'driver_id', // Include this as it's in your migration.
+        // 'driver_id', // Include this as it's in your migration.
         'id_card_image_path',
         'car_type',
         'driver_license_photo',
