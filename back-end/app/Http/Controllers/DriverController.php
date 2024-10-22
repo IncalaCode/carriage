@@ -20,7 +20,7 @@ class DriverController extends Controller
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'phone_number' => 'required|string|regex:/^\+251[0-9]{9}$/',
-            'driver_id' => 'required|string|max:255',
+            // 'driver_id' => 'required|string|max:255',
             'id_card_image' => 'required|image',
             'password' => 'required|string|min:8|confirmed',
             'car_type' => 'required|string|max:255',
