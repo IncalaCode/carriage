@@ -6,6 +6,7 @@ use App\Models\Admin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use App\Models\Driver;
 
 
 class AdminAuthController extends Controller
@@ -72,4 +73,34 @@ class AdminAuthController extends Controller
         return redirect()->back()->with('message', 'Admin updated successfully');
     }
 
+    public function showUnapprovedDrivers()
+    {
+        // Get drivers who are not approved
+        $unapprovedDrivers = Driver::where('approved', false)->get();
+
+        return view('admin.unapproved_drivers', compact('unapprovedDrivers'));
+    }
+
+    public function approveDriver($id)
+    {
+        $driver = Driver::findOrFail($id);
+        $driver->approved = true;
+        $driver->save();
+
+        return redirect()->route('admin.drivers')->with('success', 'Driver approved successfully!');
+    }
+
+
+    public function rejectDriver($id)
+    {
+        $driver = Driver::findOrFail($id);
+        $driver->delete(); // or handle rejection logic as you see fit
+
+        return redirect()->back()->with('message', 'Driver rejected successfully!');
+    }
+    public function showDriverDetails($id)
+    {
+        $driver = Driver::findOrFail($id);
+        return view('admin.driver_details', compact('driver'));
+    }
 }

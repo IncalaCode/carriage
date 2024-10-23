@@ -3,6 +3,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:My_truck/screens/RegisterUser.dart';
 import 'package:My_truck/screens/RegisterDriver.dart';
 import 'package:My_truck/screens/main_app_screen.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -10,8 +12,62 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // Track if the current mode is user or driver login
   bool isUserLogin = true;
+  String _email = '';
+  String _password = '';
+  String _errorMessage = '';
+
+  // Function to handle login and send data to the backend
+  Future<void> _login() async {
+    print('Email: $_email');
+    print('Password: $_password');
+
+    final url = Uri.parse('http://127.0.0.1:8000/api/login');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: json.encode({
+          'email': _email,
+          'password': _password,
+        }),
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        // Assuming the backend returns a success message in the body
+        var responseBody = json.decode(response.body);
+
+        if (responseBody['message'] == 'Login successful') {
+          // Navigate to the main app screen
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => MainAppScreen()),
+          );
+        } else {
+          // Show an error prompt if the login failed
+          setState(() {
+            _errorMessage = 'Login failed. Please check your credentials and try again.';
+          });
+        }
+      } else {
+        // Show an error prompt if the response status is not 200
+        setState(() {
+          _errorMessage = 'Login failed. Please check your credentials and try again.';
+        });
+      }
+    } catch (e) {
+      print('Error: $e');
+      setState(() {
+        _errorMessage = 'An error occurred. Please try again later.';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,15 +78,12 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Main logo at the top
-              Image.asset('assets/logo.png', height: 250), // Smaller logo as per request
+              Image.asset('assets/logo.png', height: 250),
               SizedBox(height: 50),
 
-              // Switch between User and Driver Login
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // User Login option
                   InkWell(
                     onTap: () {
                       setState(() {
@@ -53,8 +106,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   SizedBox(width: 30),
-                  
-                  // Driver Login option
                   InkWell(
                     onTap: () {
                       setState(() {
@@ -81,13 +132,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
               SizedBox(height: 50),
 
-              // Username and password fields
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 30.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("user name", style: TextStyle(color: Colors.white, fontSize: 20)),
+                    Text("User Name", style: TextStyle(color: Colors.white, fontSize: 20)),
                     TextFormField(
                       decoration: InputDecoration(
                         prefixIcon: Icon(FontAwesomeIcons.person),
@@ -95,9 +145,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         fillColor: Colors.white,
                         filled: true,
                       ),
+                      onChanged: (value) {
+                        _email = value;
+                      },
                     ),
                     SizedBox(height: 20),
-                    Text("password", style: TextStyle(color: Colors.white, fontSize: 20)),
+                    Text("Password", style: TextStyle(color: Colors.white, fontSize: 20)),
                     TextFormField(
                       obscureText: true,
                       decoration: InputDecoration(
@@ -106,6 +159,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         fillColor: Colors.white,
                         filled: true,
                       ),
+                      onChanged: (value) {
+                        _password = value;
+                      },
                     ),
                   ],
                 ),
@@ -113,29 +169,34 @@ class _LoginScreenState extends State<LoginScreen> {
 
               SizedBox(height: 20),
 
-              // Login button with blue border
+              // Show error message if login fails
+              if (_errorMessage.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 30.0),
+                  child: Text(
+                    _errorMessage,
+                    style: TextStyle(color: Colors.red, fontSize: 16),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+
+              SizedBox(height: 20),
+
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(vertical: 15.0),
                   backgroundColor: Colors.black87,
                   shape: RoundedRectangleBorder(
-                    side: BorderSide(color: Colors.blue, width: 2), // Blue border
+                    side: BorderSide(color: Colors.blue, width: 2),
                     borderRadius: BorderRadius.circular(10.0),
                   ),
                 ),
-                onPressed: () {
-                  // Redirect to main app screen
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => MainAppScreen()),
-                  );
-                },
+                onPressed: _login, // Call the login function
                 child: Text("Login", style: TextStyle(color: Colors.white)),
               ),
 
               SizedBox(height: 20),
 
-              // Register Button (changes based on login type)
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(vertical: 15.0),
@@ -146,13 +207,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 onPressed: () {
                   if (isUserLogin) {
-                    // Navigate to RegisterUser page
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => RegisterUser()),
                     );
                   } else {
-                    // Navigate to RegisterDriver page
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => RegisterDriver()),

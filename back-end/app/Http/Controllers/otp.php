@@ -3,8 +3,9 @@
 use Illuminate\Support\Facades\Http; // Use Laravel's Http facade if available
 
 // Function to send a security code (OTP)
-function otpSend( $to, $pre, $post, $sb = 0, $sa = 0, $ttl = 300, $len = 6, $t = 6, $callback = "") {
-    $token = env('SMS_TOKEN'); 
+function otpSend($to, $pre, $post, $sb = 0, $sa = 0, $ttl = 300, $len = 6, $t = 6, $callback = "")
+{
+    $token = env('SMS_TOKEN');
     $sender = env("SMS_SENDER") or "";
     $from =  env("SMS_FROM") or "otp";
 
@@ -51,7 +52,7 @@ function otpSend( $to, $pre, $post, $sb = 0, $sa = 0, $ttl = 300, $len = 6, $t =
                     return [
                         'status' => 'success',
                         'message' => 'otp  sended successfly',
-                        
+
                     ];
                 } else {
                     return [
@@ -69,7 +70,8 @@ function otpSend( $to, $pre, $post, $sb = 0, $sa = 0, $ttl = 300, $len = 6, $t =
 }
 
 // Function to verify a security code
-function verifySecurityCode($to, $verificationId, $code) {
+function verifySecurityCode($to, $verificationId, $code)
+{
     $token = env('SMS_TOKEN'); // Ensure the environment variable is defined in .env
 
     $ch = curl_init();
@@ -146,5 +148,3 @@ function verifySecurityCode($to, $verificationId, $code) {
 // $codeToVerify = ''; // Replace with actual code to verify
 // $verificationResponse = verifySecurityCode($to, $verificationId, $codeToVerify);
 // echo json_encode($verificationResponse);
-
-?>

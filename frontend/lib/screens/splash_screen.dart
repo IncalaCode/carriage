@@ -46,7 +46,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 aspectRatio: _controller.value.aspectRatio,
                 child: VideoPlayer(_controller),
               )
-            : CircularProgressIndicator(),  // Show loading indicator while video is being prepared
+            : CircularProgressIndicator(), // Show loading indicator while video is being prepared
       ),
     );
   }

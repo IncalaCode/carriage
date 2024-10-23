@@ -39,12 +39,6 @@ Route::post('/adminLogout', [AuthController::class, 'adminLogout']);
 Route::post('/updateAdmin', [AuthController::class, 'updateAdmin']);
 
 
-// for the sse 
-Route::get('/sse/driver/{driverId}', [SSEController::class, 'streamDriverRequests']);
-Route::get('/sse/client/{clientId}', [SSEController::class, 'streamClientUpdates']);
-
-Route::post('/ride/request', [RideRequestController::class, 'requestRide']);
-Route::post('/ride/respond', [RideRequestController::class, 'respondToRide']);
-Route::post('/ride-requests/lock', [RideRequestController::class, 'lockRideRequest']);
-Route::post('/ride/confirm', [RideRequestController::class, 'requestconfrim']);
-
+Route::middleware('auth:driver')->group(function () {
+    Route::get('/driver/requests', [DriverController::class, 'accessRequests']);
+});

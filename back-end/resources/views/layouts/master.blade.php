@@ -53,6 +53,13 @@
                              <p>Users</p>
                          </a>
                      </li>
+
+                     <li>
+                         <a href="{{ route('admin.unapproved_drivers') }}" class="nav-link">
+                             <i class="now-ui-icons users_single-02"></i>
+                             <p>approval</p>
+                         </a>
+                     </li>
                      <li>
                          <a href="">
                              <i class="now-ui-icons shopping_box"></i>
@@ -139,23 +146,23 @@
 
              </div>
 
-             <footer class="footer">
+             <!-- <footer class="footer">
                  <div class="container-fluid">
                      <nav>
                          <ul>
                              <li>
-                                 <a href="https://www.creative-tim.com">
-                                     My Truck
+
+                                 My Truck
                                  </a>
                              </li>
                              <li>
-                                 <a href="http://presentation.creative-tim.com">
-                                     About Us
+
+                                 About Us
                                  </a>
                              </li>
                              <li>
-                                 <a href="http://blog.creative-tim.com">
-                                     Blog
+
+                                 Blog
                                  </a>
                              </li>
                          </ul>
@@ -163,13 +170,13 @@
                      <div class="copyright">
                          &copy;
                          <script>
-                             document.write(new Date().getFullYear())
+                         document.write(new Date().getFullYear())
                          </script>, Designed by
                          <a href="" target="_blank">Robera</a>. Coded by
                          <a href="" target="_blank">Creative roba</a>.
                      </div>
                  </div>
-             </footer>
+             </footer> -->
          </div>
      </div>
 

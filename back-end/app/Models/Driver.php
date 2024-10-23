@@ -23,7 +23,7 @@ class Driver extends Authenticatable
         'phone_number',
         'password',
         'verified',
-        'driver_id', // Include this as it's in your migration.
+        // 'driver_id', // Include this as it's in your migration.
         'id_card_image_path',
         'car_type',
         'driver_license_photo',
@@ -77,4 +77,13 @@ class Driver extends Authenticatable
             $driver->uid = Str::uuid(); // Automatically generate a UUID for new drivers
         });
     }
+}
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class RequestModel extends Model
+{
+    protected $table = 'requests'; // Set the correct table name if it's different
 }

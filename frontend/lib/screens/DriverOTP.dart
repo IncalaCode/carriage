@@ -1,9 +1,38 @@
-import 'dart:async'; 
+import 'dart:async';
+import 'dart:convert'; // For encoding/decoding JSON
+import 'dart:typed_data'; // For handling image bytes
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:http/http.dart' as http; // Import the http package
+import 'package:http_parser/http_parser.dart'; // For setting content type of image
 import 'package:My_truck/screens/main_app_screen.dart';
+import 'config.dart'; // Ensure this points to your correct config file
 
 class DriverOTP extends StatefulWidget {
+  final String firstName;
+  final String lastName;
+  final String password;
+  final String confirm_password;
+  final String carType;
+  final Uint8List? drivingLicensePhoto;
+  final Uint8List? carPlatePhoto;
+  final Uint8List? idCardPhoto;
+  final Uint8List? driverPhoto;
+  // final String driverId; // Ensure this field exists
+
+  DriverOTP({
+    required this.firstName,
+    required this.lastName,
+    required this.password,
+    required this.confirm_password,
+    required this.carType,
+    // required this.driverId, // Driver ID is now required
+    this.drivingLicensePhoto,
+    this.carPlatePhoto,
+    this.idCardPhoto,
+    this.driverPhoto,
+  });
+
   @override
   _DriverOTPState createState() => _DriverOTPState();
 }
@@ -12,7 +41,7 @@ class _DriverOTPState extends State<DriverOTP> {
   final _formKey = GlobalKey<FormState>();
   String phoneNumber = '';
   String otp = '';
-  bool otpVisible = false; // OTP box visibility flag
+  bool otpVisible = false;
   Timer? countdownTimer;
   int countdownSeconds = 120; // 2 minutes countdown
 
@@ -40,6 +69,114 @@ class _DriverOTPState extends State<DriverOTP> {
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
+  // Function to send phone number and all collected data to backend and request OTP
+  Future<void> sendDriverDataAndRequestOtp() async {
+    final url = Uri.parse(Config.baseUrl + '/driver/register'); // Your Laravel API
+
+    try {
+      var request = http.MultipartRequest('POST', url);
+
+      // Add text fields, ensuring field names match Laravel's expectations
+      request.fields['first_name'] = widget.firstName;
+      request.fields['last_name'] = widget.lastName;
+      request.fields['password'] = widget.password;
+      request.fields['password_confirmation'] = widget.confirm_password;
+      request.fields['car_type'] = widget.carType;
+      request.fields['phone_number'] = phoneNumber;
+      // request.fields['driver_id'] = widget.driverId; // Driver ID is added
+
+      // Add image files if available and not null
+      if (widget.drivingLicensePhoto != null) {
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'driver_license_photo', // Use 'driver_license_photo' as expected in backend
+            widget.drivingLicensePhoto!,
+            filename: 'driving_license.jpg',
+            contentType: MediaType('image', 'jpeg'),
+          ),
+        );
+      }
+      if (widget.carPlatePhoto != null) {
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'car_plate_photo', // Corrected field name for car plate photo
+            widget.carPlatePhoto!,
+            filename: 'car_plate.jpg',
+            contentType: MediaType('image', 'jpeg'),
+          ),
+        );
+      }
+      if (widget.idCardPhoto != null) {
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'id_card_image', // Corrected field name for id card photo
+            widget.idCardPhoto!,
+            filename: 'id_card.jpg',
+            contentType: MediaType('image', 'jpeg'),
+          ),
+        );
+      }
+      if (widget.driverPhoto != null) {
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'user_photo', // Corrected field name for driver photo
+            widget.driverPhoto!,
+            filename: 'driver_photo.jpg',
+            contentType: MediaType('image', 'jpeg'),
+          ),
+        );
+      }
+
+      // Send request and handle the response
+      var response = await request.send();
+      var responseData = await response.stream.bytesToString();
+
+      print('Response status: ${response.statusCode}');
+      print('Response data: $responseData');
+
+      if (response.statusCode == 200) {
+        setState(() {
+          otpVisible = true;
+          countdownSeconds = 120;
+        });
+        startCountdown();
+      } else {
+        print('Failed to send data and request OTP. Status Code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error sending data and requesting OTP: $e');
+    }
+  }
+
+  // Function to verify OTP
+  Future<void> verifyOtp() async {
+    final url = Uri.parse(Config.baseUrl + "/driver/verify");
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: jsonEncode({
+          'phone_number': phoneNumber,
+          'otp': otp
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => MainAppScreen()),
+        );
+      } else {
+        print('OTP verification failed. Status Code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error verifying OTP: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -47,7 +184,7 @@ class _DriverOTPState extends State<DriverOTP> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         leading: IconButton(
-          icon: FaIcon(FontAwesomeIcons.arrowLeft, color: Colors.white), // Back icon
+          icon: FaIcon(FontAwesomeIcons.arrowLeft, color: Colors.white),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -72,12 +209,11 @@ class _DriverOTPState extends State<DriverOTP> {
                       labelText: 'Phone Number (Ethiopian)',
                       filled: true,
                       fillColor: Colors.white,
-                      border: OutlineInputBorder( // Add border color
+                      border: OutlineInputBorder(
                         borderSide: BorderSide(color: Colors.blue, width: 2),
                       ),
                     ),
                     validator: (value) {
-                      // Ethiopian number validation
                       if (value == null || !RegExp(r'^(\+251|0)[1-9]\d{8}$').hasMatch(value)) {
                         return 'Enter a valid Ethiopian phone number';
                       }
@@ -89,28 +225,29 @@ class _DriverOTPState extends State<DriverOTP> {
                   ),
                   SizedBox(height: 20),
 
-                  // Send OTP Button with blue border and FontAwesome icon
+                  // Send OTP Button
                   ElevatedButton.icon(
                     onPressed: () {
                       if (_formKey.currentState!.validate()) {
                         _formKey.currentState!.save();
-                        setState(() {
-                          otpVisible = true;
-                          countdownSeconds = 120;
-                        });
-                        startCountdown();
+                        // Ensure password meets minimum length requirement
+                        if (widget.password.length < 8) {
+                          print("Password must be at least 8 characters.");
+                          return;
+                        }
+                        sendDriverDataAndRequestOtp(); // Send data and request OTP
                       }
                     },
                     icon: FaIcon(FontAwesomeIcons.solidPaperPlane, color: Colors.blue),
                     label: Text('Send OTP', style: TextStyle(color: Colors.blue)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black,
-                      side: BorderSide(color: Colors.blue, width: 2), // Add blue border
+                      side: BorderSide(color: Colors.blue, width: 2),
                     ),
                   ),
                   SizedBox(height: 20),
 
-                  // Countdown Timer Box
+                  // Countdown Timer
                   if (otpVisible)
                     Text(
                       'Time left: ${formatCountdownTime()}',
@@ -118,7 +255,7 @@ class _DriverOTPState extends State<DriverOTP> {
                     ),
                   SizedBox(height: 20),
 
-                  // OTP Field (only visible after phone number is entered and OTP is sent)
+                  // OTP Field
                   if (otpVisible)
                     TextFormField(
                       keyboardType: TextInputType.number,
@@ -126,7 +263,7 @@ class _DriverOTPState extends State<DriverOTP> {
                         labelText: 'Enter OTP',
                         filled: true,
                         fillColor: Colors.white,
-                        border: OutlineInputBorder( // Add border color
+                        border: OutlineInputBorder(
                           borderSide: BorderSide(color: Colors.blue, width: 2),
                         ),
                       ),
@@ -142,24 +279,20 @@ class _DriverOTPState extends State<DriverOTP> {
                     ),
                   SizedBox(height: 20),
 
-                  // Confirm Button with blue border and FontAwesome icon
+                  // Confirm Button
                   if (otpVisible)
                     ElevatedButton.icon(
                       onPressed: () {
                         if (_formKey.currentState!.validate()) {
                           _formKey.currentState!.save();
-                          // Assuming OTP is validated here, handle the logic
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => MainAppScreen()),
-                          );
+                          verifyOtp(); // Verify OTP with backend
                         }
                       },
                       icon: FaIcon(FontAwesomeIcons.check, color: Colors.blue),
                       label: Text('Confirm', style: TextStyle(color: Colors.blue)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.black,
-                        side: BorderSide(color: Colors.blue, width: 2), // Add blue border
+                        side: BorderSide(color: Colors.blue, width: 2),
                       ),
                     ),
                 ],

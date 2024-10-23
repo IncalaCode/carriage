@@ -7,8 +7,10 @@ use App\Models\Driver;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
+use App\Models\RequestModel;
 
-require "otp.php";
+require_once "otp.php";
+
 
 
 class DriverController extends Controller
@@ -18,14 +20,14 @@ class DriverController extends Controller
         $validator = Validator::make($request->all(), [
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'phone_number' => 'required',
-            'driver_id' => 'required|string|max:255',
-            'id_card_image' => 'required|image|max:2048',
+            'phone_number' => 'required|string|regex:/^\+251[0-9]{9}$/',
+            // 'driver_id' => 'required|string|max:255',
+            'id_card_image' => 'required|image',
             'password' => 'required|string|min:8|confirmed',
             'car_type' => 'required|string|max:255',
-            'driver_license_photo' => 'required|image|mimes:jpeg,png,jpg|max:2048',
-            'car_plate_photo' => 'required|image|mimes:jpeg,png,jpg|max:2048',
-            'user_photo' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+            'driver_license_photo' => 'required|image|mimes:jpeg,png,jpg',
+            'car_plate_photo' => 'required|image|mimes:jpeg,png,jpg',
+            'user_photo' => 'required|image|mimes:jpeg,png,jpg',
         ]);
 
         if ($validator->fails()) {
@@ -36,16 +38,16 @@ class DriverController extends Controller
 
         // Handle file upload for ID card
         $idCardPath = $request->file('id_card_image')->store('id_cards', 'public');
-        $driver_license_photo = $request->file('driver_license_photo')->store('driver_photos', 'public');
-        $car_plate_photo = $request->file('car_plate_photo')->store('driver_photos', 'public');
-        $user_photo = $request->file('user_photo')->store('driver_photos', 'public');
+        $driver_license_photo = $request->file('driver_license_photo')->store('driver_licence_photos', 'public');
+        $car_plate_photo = $request->file('car_plate_photo')->store('car_plate_photo', 'public');
+        $user_photo = $request->file('user_photo')->store('user_photo', 'public');
 
         $driver = Driver::create([
             'first_name' => $request->first_name,
             'last_name' => $request->last_name,
             'email' => $request->email,
             'phone_number' => $request->phone_number,
-            'driver_id' => $request->driver_id,
+            // 'driver_id' => $request->driver_id,
             'password' => Hash::make($request->password),
             'id_card_image_path' => $idCardPath,
             'car_type' => $request->car_type,
@@ -53,16 +55,18 @@ class DriverController extends Controller
             'car_plate_photo' => $car_plate_photo,
             'user_photo' => $user_photo,
             'verified' => false, // Initially set verified to false
+            'approved' => false,
             'otp' => rand(1000, 9999), // Store the OTP
         ]);
 
         // Call the otpSend function
-        $response = otpSend($driver->phone, $driver->otp, "example.com", $driver->id);
+        $response  = otpSend($driver->phone_number, "Your OTP is: ", $driver->otp);
 
         // Return success response
         return response()->json([
             'message' => 'OTP sent successfully!',
             'otp_response' => json_decode($response, true),
+            "token" => $driver->uuid
         ], 200);
     }
 
@@ -72,33 +76,26 @@ class DriverController extends Controller
 
     public function login(Request $request)
     {
+        // Validate the incoming request
         $validator = Validator::make($request->all(), [
-            'phone_number' => 'required|digits_between:1,14', // Adjust the digits as per your requirements
+            'phone_number' =>  'required|string|regex:/^\+251[0-9]{9}$/', // Adjust the digits as per your requirements
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 422);
+            return response()->json($validator->errors(), 422);
         }
 
-        // Find the driver by phone number
-        $driver = Driver::where('phone_number', $request->phone_number)->first();
+        // Attempt to find the driver by first name
+        $driver = Driver::where('first_name', $request->first_name)->first();
 
-        if (!$driver) {
-            return response()->json(['error' => 'Driver not found'], 404);
+        // Check if the driver exists and if the password is correct
+        if (!$driver || !Hash::check($request->password, $driver->password)) {
+            return response()->json(['error' => 'Invalid first name or password'], 401);
         }
 
-        // Generate and send OTP
-        $otp = rand(1000, 9999); // 4-digit OTP
-        $driver->otp = $otp;
-        $driver->save();
-
-        // Send OTP using the same otpSend function as for users
-        $response = otpSend($driver->phone_number, "Your OTP is: ", $otp, $driver->id);
-
-        return response()->json([
-            'message' => 'OTP sent successfully!',
-            'otp_response' => $response,
-        ], 200);
+        // Generate token or session (if necessary)
+        // For API-based authentication, you can generate a token here using Passport or Sanctum
+        return response()->json(['message' => 'Login successful', 'driver' => $driver], 200);
     }
 
 
@@ -106,7 +103,7 @@ class DriverController extends Controller
     public function verifyOtp(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'phone_number' => 'required|exists:drivers,phone',
+            'phone_number' => 'required|exists:drivers,phone_number', // Use 'phone_number' if that's the correct column
             'otp' => 'required|digits:4',
         ]);
 
@@ -117,7 +114,7 @@ class DriverController extends Controller
         }
 
         // Get the driver using the provided phone number
-        $driver = Driver::where('phone', $request->phone)->first();
+        $driver = Driver::where('phone_number', $request->phone_number)->first(); // Make sure you're querying the right column
 
         // Check if the provided OTP matches the stored OTP
         if ($driver->otp !== $request->otp) {
@@ -136,11 +133,12 @@ class DriverController extends Controller
             'user' => $driver,
         ], 200);
     }
+
     public function driverResendOtp(Request $request)
     {
-        // Validate the phone number
+        // Validate the phone number using the same regex as the registration
         $validator = Validator::make($request->all(), [
-            'phone_number' => 'required|digits_between:1,14',
+            'phone_number' => 'required|string|regex:/^\+251[0-9]{9}$/', // Match the pattern for Ethiopian phone numbers
         ]);
 
         if ($validator->fails()) {
@@ -177,5 +175,23 @@ class DriverController extends Controller
             'message' => 'OTP resent successfully!',
             'otp_response' => $response,
         ], 200);
+    }
+
+    public function accessRequests(Request $request)
+    {
+        // Retrieve the authenticated driver using the 'driver' guard
+        $driver = auth('driver')->user();
+
+        // Check if the driver is approved by the admin
+        if (!$driver->approved) {
+            return response()->json([
+                'message' => 'Your account is not approved by the admin yet.',
+            ], 403); // Forbidden
+        }
+
+        // If the driver is approved, allow access to requests
+        $requests = RequestModel::where('driver_id', $driver->id)->get();
+
+        return response()->json($requests);
     }
 }
