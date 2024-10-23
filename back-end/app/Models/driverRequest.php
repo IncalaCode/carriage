@@ -5,11 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Driver extends Model
+class driverRequest extends Model
 {
     use HasFactory;
 
-    protected $table = 'drivers'; // Table name
+    protected $table = 'driverRequest'; // Table name
 
     // Mass assignable fields
     protected $fillable = [
@@ -30,19 +30,4 @@ class Driver extends Model
         'latitude' => 'float',
     ];
 
-    /**
-     * Get the user that was accepted by the driver.
-     */
-    public function acceptedUser()
-    {
-        return $this->belongsTo(User::class, 'accepted_user_id');
-    }
-
-    /**
-     * Get the user requests associated with the driver.
-     */
-    public function userRequests()
-    {
-        return $this->hasMany(UserRequest::class, 'accepted_driver_id');
-    }
 }
