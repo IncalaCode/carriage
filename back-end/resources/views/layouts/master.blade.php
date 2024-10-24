@@ -48,7 +48,7 @@
                          </a>
                      </li>
                      <li>
-                         <a href="{{ route('admin.user') }}">
+                         <a href="{{ route('admin.users') }}">
                              <i class="now-ui-icons users_single-02"></i>
                              <p>Users</p>
                          </a>

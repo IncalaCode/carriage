@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\admin_master_index;
+use App\Http\Controllers\DriverController;
 
 // Public Routes
 Route::get('', function () {
@@ -11,6 +12,9 @@ Route::get('', function () {
 
 Route::post('admin/login', [AdminAuthController::class, 'login'])->name('admin.login.submit');
 Route::post('admin/logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
+Route::get('/admin/drivers', [Admin_Master_Index::class, 'driverPage'])->name('admin.drivers');
+
+
 // Show unapproved drivers
 
 Route::get('/admin/unapproved-drivers', [AdminAuthController::class, 'showUnapprovedDrivers'])->name('admin.unapproved_drivers');
@@ -28,7 +32,12 @@ Route::get('/admin/dashboard', function () {
 })->name('admin.dashboard');
 
 Route::get('/admin/drivers', [admin_master_index::class, 'driverPage'])->name('admin.drivers');
+
 Route::get('/admin/settings', [admin_master_index::class, 'settingsPage'])->name('admin.settings');
 Route::get('/admin/users', [admin_master_index::class, 'userPage'])->name('admin.user');
 Route::post('/admin/update', [AdminAuthController::class, 'updateAdmin'])->name('admin.update');
 Route::post('/admin/drivers/{id}/toggle-status', [admin_master_index::class, 'toggleStatus']);
+Route::post('/admin/drivers/{id}/toggle-status', [admin_master_index::class, 'toggleStatus']);
+
+Route::get('/admin/users', [admin_master_index::class, 'userPage'])->name('admin.users');
+Route::post('/admin/users/{id}/toggle-status', [admin_master_index::class, 'toggleUserStatus']);
