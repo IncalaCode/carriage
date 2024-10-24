@@ -46,7 +46,7 @@ class AuthController extends Controller
         ]);
 
         // Send OTP using otpSend
-        $response  = otpSend($user->phone_number, "Your OTP is: ", $otp);
+        $response  = otpSend($user->phone_number, "Your OTP is: " .  $otp);
 
 
         return response()->json([
@@ -79,7 +79,7 @@ class AuthController extends Controller
         $user->save();
 
         // Send OTP using the same otpSend function as for users
-        $response = otpSend($user->phone_number, "Your OTP is: ", $otp, $user->id);
+        $response = otpSend($user->phone_number, "Your OTP is: " . $otp);
 
         return response()->json([
             'message' => 'OTP sent successfully!',
@@ -106,7 +106,7 @@ class AuthController extends Controller
 
         $user = User::where('phone_number', $request->phone_number)->first();
 
-        $otp = substr($request->otp, -4);
+        $otp = $request->otp;
 
         // Check if the provided OTP matches the stored OTP
         if ($user->otp !==  $otp) {
@@ -160,7 +160,7 @@ class AuthController extends Controller
         $user->save();
 
         // Send the new OTP
-        $response = otpSend($user->phone_number, "Your new OTP is: ", $otp, $user->id);
+        $response = otpSend($user->phone_number, "Your new OTP is: " .$otp);
 
         return response()->json([
             'message' => 'OTP resent successfully!',
