@@ -147,12 +147,12 @@ function otpSend($to, $message, $callback = '') {
 }
 
 
-$to = '+251925319177'; 
-$message = 'Hello, this is a test message!';
-$callback = '';
+// $to = '+251925319177'; 
+// $message = 'Hello, this is a test message!';
+// $callback = '';
 
-// Call the function to send SMS
-otpSend($to, $message, $callback);
+// // Call the function to send SMS
+// otpSend($to, $message, $callback);
 
 
 

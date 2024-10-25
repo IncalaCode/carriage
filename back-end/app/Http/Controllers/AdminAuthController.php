@@ -103,4 +103,13 @@ class AdminAuthController extends Controller
         $driver = Driver::findOrFail($id);
         return view('admin.driver_details', compact('driver'));
     }
+
+    public function getDashboardData()
+    {
+        // Count unapproved drivers
+        $unapprovedDriversCount = Driver::where('approved', 0)->count();
+
+        // Pass this count to the view
+        return view('admin.dashboard', compact('unapprovedDriversCount'));
+    }
 }
