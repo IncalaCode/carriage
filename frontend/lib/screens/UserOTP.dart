@@ -85,7 +85,7 @@ class _UserOTPState extends State<UserOTP> {
     });
 
     try {
-      String formattedPhoneNumber = phoneNumber.replaceAll(RegExp(r'[^0-9]'), '');
+      String formattedPhoneNumber = phoneNumber.replaceAll(RegExp(r'[^0-9+]'), '');
 
       final response = await http.post(
         url,
@@ -110,8 +110,15 @@ class _UserOTPState extends State<UserOTP> {
         });
         startCountdown(); // Start the countdown when OTP is sent
       } else {
+        // Decode the error response to check for specific error messages
+        final errorData = jsonDecode(response.body);
         setState(() {
-          _errorMessage = 'Failed to send OTP';
+          if (errorData['errors'] != null && errorData['errors']['phone_number'] != null) {
+            _errorMessage = 'Phone number already exists';
+          } else {
+            _errorMessage = 'Failed to send OTP';
+          }
+          print('Failed to send OTP: ${response.body}');
         });
       }
     } catch (e) {
@@ -205,7 +212,7 @@ class _UserOTPState extends State<UserOTP> {
                       return null;
                     },
                     onSaved: (value) {
-                      phoneNumber = value!.replaceAll(RegExp(r'[^0-9]'), '').trim();
+                      phoneNumber = value!.replaceAll(RegExp(r'[^0-9+]'), '').trim();
                     },
                   ),
                   const SizedBox(height: 20),

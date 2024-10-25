@@ -60,44 +60,47 @@ class DriverController extends Controller
         ]);
 
         // Call the otpSend function
-        $response  = otpSend($driver->phone_number, "Your OTP is: ", $driver->otp);
-
+        $response  = otpSend($driver->phone_number, "Your OTP is: " .$driver->otp);
 
         // Return success response
         return response()->json([
             'message' => 'OTP sent successfully!',
-            'otp_response' => "OTP sent successfully!" ,
+            'otp_response' => $response,
             "token" => $driver->uuid
         ], 200);
     }
 
-    // New login method that sends OTP
-    // use Illuminate\Support\Facades\Hash; // Make sure to import Hash facade
-    // use Illuminate\Http\Request;
-
     public function login(Request $request)
     {
-        // Validate the incoming request
         $validator = Validator::make($request->all(), [
             'phone_number' =>  'required|string|regex:/^\+251[0-9]{9}$/', // Adjust the digits as per your requirements
         ]);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
+            return response()->json(['error' => $validator->errors()], 422);
         }
 
-        // Attempt to find the driver by first name
-        $driver = Driver::where('first_name', $request->first_name)->first();
+        // Find the driver by phone number
+        $user = Driver::where('phone_number', $request->phone_number)->first();
 
-        // Check if the driver exists and if the password is correct
-        if (!$driver || !Hash::check($request->password, $driver->password)) {
-            return response()->json(['error' => 'Invalid first name or password'], 401);
+        if (!$user) {
+            return response()->json(['error' => 'User not found'], 404);
         }
 
-        // Generate token or session (if necessary)
-        // For API-based authentication, you can generate a token here using Passport or Sanctum
-        return response()->json(['message' => 'Login successful', 'driver' => $driver], 200);
+        // Generate and send OTP
+        $otp = rand(1000, 9999); // 4-digit OTP
+        $user->otp = $otp;
+        $user->save();
+
+        // Send OTP using the same otpSend function as for users
+        $response = otpSend($user->phone_number, "Your OTP is: " . $otp);
+
+        return response()->json([
+            'message' => 'OTP sent successfully!',
+            'otp_response' => $response,
+        ], 200);
     }
+
 
 
     // Verify OTP and update the driver's verified status
@@ -170,7 +173,7 @@ class DriverController extends Controller
         $driver->save();
 
         // Send the new OTP
-        $response = otpSend($driver->phone_number, "Your new OTP is: ", $otp, $driver->id);
+        $response = otpSend($driver->phone_number, "Your new OTP is: " .$otp);
 
         return response()->json([
             'message' => 'OTP resent successfully!',
@@ -187,7 +190,7 @@ class DriverController extends Controller
         if (!$driver->approved) {
             return response()->json([
                 'message' => 'Your account is not approved by the admin yet.',
-            ], 403); // Forbidden
+            ], 403); 
         }
 
         // If the driver is approved, allow access to requests
