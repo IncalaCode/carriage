@@ -2,18 +2,15 @@
 
 @section('title', 'Dashboard')
 
-
-
 @section('content')
 
 <div class="row">
     <div class="col-md-12">
         <div class="card"></div>
-        <div id="toast-container">
-        </div>
+        <div id="toast-container"></div>
 
         <div class="col-md-12">
-            <div class="card card-plain">
+            <div id="table" class="card card-plain">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <div>
                         <h4 class="card-title">Registered Drivers</h4>
@@ -53,18 +50,21 @@
                             <thead class="text-primary">
                                 <tr>
                                     <th>Name</th>
-                                    <th>Email</th>
                                     <th>Phone</th>
+                                    <th>verification</th>
                                     <th>Status</th>
                                     <th class="text-right">Action</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                @foreach($drivers as $driver)
-                                <tr id="driver-{{ $driver->id }}">
+                            <tbody id="driversTableBody">
+                                @foreach ($drivers as $driver)
+                                <tr>
                                     <td>{{ $driver->first_name }} {{ $driver->last_name }}</td>
-                                    <td>{{ $driver->email }}</td>
-                                    <td>{{ $driver->phone }}</td>
+                                    <td>{{ $driver->phone_number }}</td>
+                                    <td><span class="badge {{ $driver->verified ? 'bg-success' : 'bg-danger' }}">
+                                            {{ $driver->verified ? 'verified' : 'unverified' }}
+                                        </span>
+                                    </td>
                                     <td>
                                         <span class="badge {{ $driver->status ? 'bg-success' : 'bg-danger' }}">
                                             {{ $driver->status ? 'Active' : 'Inactive' }}
@@ -72,11 +72,8 @@
                                     </td>
                                     <td class="text-right">
                                         <button class="btn btn-sm {{ $driver->status ? 'btn-danger' : 'btn-success' }}"
-                                            onclick="toggleStatus(this, {{ $driver->id }}, {{ $driver->status ? 00 : 1 }})">
-                                            <span class="button-text">
-                                                {{ $driver->status ? 'Deactivate' : 'Activate' }}
-                                            </span>
-                                            <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                                            onclick="toggleStatus({{ $driver->id }}, {{ $driver->status ? 0 : 1 }})">
+                                            {{ $driver->status ? 'Deactivate' : 'Activate' }}
                                         </button>
                                     </td>
                                 </tr>
@@ -88,27 +85,138 @@
 
                 <!-- Pagination links -->
                 <div class="d-flex justify-content-center mt-3">
-                    {{ $drivers->links() }}
+                    @if ($drivers->hasPages())
+                    <nav id="paginationLinks" aria-label="Page navigation">
+                        <ul class="pagination">
+                            {{-- Previous Page Link --}}
+                            @if ($drivers->onFirstPage())
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
+                            </li>
+                            @else
+                            <li class="page-item">
+                                <a class="page-link" href="{{ $drivers->previousPageUrl() }}">Previous</a>
+                            </li>
+                            @endif
+
+                            {{-- Pagination Elements --}}
+                            @foreach ($drivers->links()->elements as $element)
+                            @if (is_string($element))
+                            <li class="page-item disabled"><a class="page-link" href="#">{{ $element }}</a></li>
+                            @endif
+
+                            @if (is_array($element))
+                            @foreach ($element as $page => $url)
+                            @if ($page == $drivers->currentPage())
+                            <li class="page-item active">
+                                <a class="page-link" href="#">{{ $page }}</a>
+                            </li>
+                            @else
+                            <li class="page-item">
+                                <a class="page-link" href="{{ $url }}">{{ $page }}</a>
+                            </li>
+                            @endif
+                            @endforeach
+                            @endif
+                            @endforeach
+
+                            {{-- Next Page Link --}}
+                            @if ($drivers->hasMorePages())
+                            <li class="page-item">
+                                <a class="page-link" href="{{ $drivers->nextPageUrl() }}">Next</a>
+                            </li>
+                            @else
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Next</a>
+                            </li>
+                            @endif
+                        </ul>
+                    </nav>
+                    @else
+                    <div>No results found.</div>
+                    @endif
                 </div>
+
             </div>
         </div>
     </div>
 </div>
 
-<!-- Toast Container -->
-
-
-
 @endsection
-
 @section('scripts')
 <script>
-function toggleStatus(button, driverId, newStatus) {
-    const spinner = button.querySelector('.spinner-border');
-    const buttonText = button.querySelector('.button-text');
+document.addEventListener('DOMContentLoaded', function() {
 
-    setLoadingState(button, buttonText, spinner, true);
 
+    // Search functionality
+    document.getElementById('searchInput').addEventListener('keyup', function() {
+        if (this.value == "") {
+            hidePentgation("block")
+        } else {
+            hidePentgation("none")
+        }
+
+        fetchDrivers(this.value);
+
+
+    });
+});
+
+function hidePentgation(value) {
+    document.getElementById("paginationLinks").style.display = value;
+}
+// Fetch drivers using fetch API
+function fetchDrivers(searchQuery = '') {
+    fetch(`/admin/drivers?search=${encodeURIComponent(searchQuery)}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Clear the table and pagination links
+            document.getElementById('driversTableBody').innerHTML = '';
+
+
+            // Loop through the drivers and populate the table
+            data.data.forEach(driver => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${driver.first_name} ${driver.last_name}</td>
+                    <td>${driver.phone}</td>
+                    <td>
+                        <span class="badge ${driver.verified ? 'bg-success' : 'bg-danger'}">
+                            ${driver.verified ? 'verified' : 'unverified'}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge ${driver.status ? 'bg-success' : 'bg-danger'}">
+                            ${driver.status ? 'Active' : 'Inactive'}
+                        </span>
+                    </td>
+                    <td class="text-right">
+                        <button class="btn btn-sm ${driver.status ? 'btn-danger' : 'btn-success'}"
+                            onclick="toggleStatus(${driver.id}, ${driver.status ? 0 : 1})">
+                            ${driver.status ? 'Deactivate' : 'Activate'}
+                        </button>
+                    </td>
+                `;
+                document.getElementById('driversTableBody').appendChild(row);
+            });
+
+        })
+        .catch(error => {
+            console.error('Error fetching drivers:', error);
+        });
+}
+
+// Function to toggle the driver's status
+function toggleStatus(driverId, newStatus) {
     fetch(`/admin/drivers/${driverId}/toggle-status`, {
             method: 'POST',
             headers: {
@@ -119,80 +227,39 @@ function toggleStatus(button, driverId, newStatus) {
                 status: newStatus
             })
         })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
             if (data.success) {
-                updateDriverUI(driverId, newStatus, button);
-                showToast(`Driver ${newStatus ? 'activated' : 'deactivated'} successfully!`,
-                    newStatus ? "#28a745" : "#dc3545");
+                fetchDrivers(); // Refresh the driver list after toggling status
+                showToast(`Driver ${newStatus ? 'activated' : 'deactivated'} successfully!`, newStatus ? "#28a745" :
+                    "#dc3545");
             } else {
                 throw new Error('Failed to update status');
             }
         })
         .catch(error => {
-            console.error('Error:', error);
+            console.error('Error toggling status:', error);
             showToast("An error occurred. Please try again.", "#ff4d4d");
-        })
-        .finally(() => {
-            // Reset button state
-            setLoadingState(button, buttonText, spinner, false);
         });
 }
 
-// Helper function: Update driver row in the UI
-function updateDriverUI(driverId, newStatus, button) {
-    const row = document.getElementById(`driver-${driverId}`);
-    const badge = row.querySelector('span.badge');
-    const buttonText = button.querySelector('.button-text');
-
-    // Update badge text and style
-    badge.className = newStatus ? 'badge bg-success' : 'badge bg-danger';
-    badge.textContent = newStatus ? 'Active' : 'Inactive';
-
-    // Update button class and text
-    button.className = newStatus ? 'btn btn-sm btn-danger' : 'btn btn-sm btn-success';
-    buttonText.textContent = newStatus ? 'Deactivate' : 'Activate';
-
-    // Adjust button's onclick behavior
-    button.setAttribute('onclick', `toggleStatus(this, ${driverId}, ${newStatus ? 0 : 1})`);
-}
-
-// Helper function: Show custom toast notification
 // Helper function: Show custom toast notification
 function showToast(message, bgColor) {
     const toast = document.createElement('div');
 
-    // Add necessary classes
+    // Set styles and properties
     toast.className = 'toast toast-slide-in';
+    toast.style.backgroundColor = bgColor;
+    toast.style.padding = '20px 30px';
+    toast.style.borderRadius = '10px';
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(-20px)';
+    toast.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+    toast.style.position = 'relative';
+    toast.style.marginTop = '10px';
+    toast.style.zIndex = '99999';
 
-    // Set the styles dynamically
-    toast.style.width = '100%'; // Full width of the parent container
-
-    toast.style.backgroundColor = bgColor; // Background color
-    toast.style.padding = '20px 30px'; // Padding
-    toast.style.borderRadius = '10px'; // Border radius
-    toast.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.5)'; // Box shadow
-    toast.style.opacity = '0'; // Initial opacity for animation
-    toast.style.transform = 'translateY(-20px)'; // Initial transform for animation
-    toast.style.transition = 'opacity 0.5s ease, transform 0.5s ease'; // Smooth transition
-    toast.style.position = 'relative'; // Set position
-    toast.style.marginTop = '10px'; // Spacing between multiple toasts
-    toast.style.zIndex = '99999'; // Make sure it appears above other elements
-
-    // Set height dynamically
-    toast.style.minHeight = '60px'; // Minimum height
-    toast.style.maxHeight = '300px'; // Maximum height
-    toast.style.overflowY = 'auto'; // Allow scrolling for long content
-
-    // Set responsive max-width
-    toast.style.maxWidth = '90%'; // Prevent overflow on smaller screens
-
-    // Handle text
+    // Set text
     toast.innerText = message;
 
     // Append toast to the container
@@ -202,43 +269,17 @@ function showToast(message, bgColor) {
     // Show the toast
     setTimeout(() => {
         toast.classList.add('show');
-        toast.style.opacity = '1'; // Fade-in
-        toast.style.transform = 'translateY(0)'; // Slide in
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0)';
     }, 100);
 
     // Hide the toast after 3 seconds
     setTimeout(() => {
         toast.classList.remove('show');
-        toast.classList.add('toast-fade-out'); // Fade-out animation
-        setTimeout(() => {
-            toastContainer.removeChild(toast); // Remove the toast after fading out
-        }, 500); // Wait for the fade-out transition
+        toastContainer.removeChild(toast);
     }, 3000);
 }
 
-// Helper function: Set button loading state
-function setLoadingState(button, buttonText, spinner, isLoading) {
-    button.disabled = isLoading;
-    buttonText.classList.toggle('d-none', isLoading);
-    spinner.classList.toggle('d-none', !isLoading);
-}
-
-// Search functionality
-document.getElementById('searchInput').addEventListener('keyup', function() {
-    const filter = this.value.toLowerCase();
-    const rows = document.querySelectorAll('#driversTable tbody tr');
-
-    rows.forEach(row => {
-        const name = row.cells[0].textContent.toLowerCase();
-        const email = row.cells[1].textContent.toLowerCase();
-        const phone = row.cells[2].textContent.toLowerCase();
-
-        if (name.includes(filter) || email.includes(filter) || phone.includes(filter)) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-        }
-    });
-});
+const restore = document.getElementById("driversTableBody").innerHTML;
 </script>
 @endsection
