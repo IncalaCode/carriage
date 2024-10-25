@@ -17,6 +17,18 @@
      <link href="../assets/css/now-ui-dashboard.css?v=1.0.0" rel="stylesheet" />
      <!-- CSS Just for demo purpose, don't include it in your project -->
      <link href="../assets/demo/demo.css" rel="stylesheet" />
+     <style>
+     .notification-dot {
+         position: absolute;
+         top: 5px;
+         right: 10px;
+         width: 8px;
+         height: 8px;
+         background-color: red;
+         border-radius: 50%;
+     }
+     </style>
+
  </head>
 
  <body class="">
@@ -107,22 +119,21 @@
                                  </a>
                              </li> -->
                              <li class="nav-item dropdown">
-                                 <a class="nav-link dropdown-toggle" href="http://example.com"
-                                     id="navbarDropdownMenuLink" data-toggle="dropdown" aria-haspopup="true"
-                                     aria-expanded="false">
+                                 <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink"
+                                     data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                      <i class="now-ui-icons ui-1_email-85"></i>
-
-                                     <p>
-                                         <span class="d-lg-none d-md-block">Some Actions</span>
-                                     </p>
+                                     @if($unapprovedDriversCount > 0)
+                                     <span class="badge badge-danger">{{ $unapprovedDriversCount }}</span>
+                                     @endif
                                  </a>
                                  <div class="dropdown-menu dropdown-menu-right"
                                      aria-labelledby="navbarDropdownMenuLink">
-                                     <a class="dropdown-item" href="#">Action</a>
-                                     <a class="dropdown-item" href="#">Another action</a>
-                                     <a class="dropdown-item" href="#">Something else here</a>
+                                     <a class="dropdown-item" href="{{ route('admin.unapproved_drivers') }}">Unapproved
+                                         Drivers: {{ $unapprovedDriversCount }}</a>
                                  </div>
                              </li>
+
+
                              <li class="nav-item">
                                  <a class="nav-link" href="#pablo">
                                      <i class="now-ui-icons users_single-02"></i>
