@@ -22,7 +22,7 @@ class DriverController extends Controller
         $validator = Validator::make($request->all(), [
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'phone_number' => 'required|string|regex:/^\+251[0-9]{9}$/',
+            'phone_number' => 'required|string|regex:/^\+251[0-9]{9}$/|unique:drivers,phone_number',
             // 'driver_id' => 'required|string|max:255',
             'id_card_image' => 'required|image',
             'password' => 'required|string|min:8|confirmed',
@@ -62,7 +62,7 @@ class DriverController extends Controller
         ]);
 
         // Call the otpSend function
-        $response  = otpSend($driver->phone_number, "Your OTP is: " .$driver->otp);
+        $response  = otpSend($driver->phone_number, "Your OTP is: " . $driver->otp);
 
         // Return success response
         return response()->json([
@@ -175,7 +175,7 @@ class DriverController extends Controller
         $driver->save();
 
         // Send the new OTP
-        $response = otpSend($driver->phone_number, "Your new OTP is: " .$otp);
+        $response = otpSend($driver->phone_number, "Your new OTP is: " . $otp);
 
         return response()->json([
             'message' => 'OTP resent successfully!',
@@ -192,7 +192,7 @@ class DriverController extends Controller
         if (!$driver->approved) {
             return response()->json([
                 'message' => 'Your account is not approved by the admin yet.',
-            ], 403); 
+            ], 403);
         }
 
         // If the driver is approved, allow access to requests
