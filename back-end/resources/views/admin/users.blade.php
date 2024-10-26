@@ -28,20 +28,20 @@
                 </div>
 
                 <style>
-                #searchInput::placeholder {
-                    color: black;
-                }
-
-                @media (max-width: 576px) {
-                    .input-group {
-                        width: 100%;
+                    #searchInput::placeholder {
+                        color: black;
                     }
 
-                    .d-flex {
-                        flex-direction: column;
-                        align-items: center;
+                    @media (max-width: 576px) {
+                        .input-group {
+                            width: 100%;
+                        }
+
+                        .d-flex {
+                            flex-direction: column;
+                            align-items: center;
+                        }
                     }
-                }
                 </style>
 
                 <div class="card-body">
@@ -145,48 +145,48 @@
 @endsection
 @section('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function() {
 
 
-    // Search functionality
-    document.getElementById('searchInput').addEventListener('keyup', function() {
-        if (this.value == "") {
-            hidePentgation("block")
-        } else {
-            hidePentgation("none")
-        }
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('keyup', function() {
+            if (this.value == "") {
+                hidePentgation("block")
+            } else {
+                hidePentgation("none")
+            }
 
-        fetchDrivers(this.value);
+            fetchDrivers(this.value);
 
 
+        });
     });
-});
 
-function hidePentgation(value) {
-    document.getElementById("paginationLinks").style.display = value;
-}
-// Fetch drivers using fetch API
-function fetchDrivers(searchQuery = '') {
-    fetch(`/admin/users?search=${encodeURIComponent(searchQuery)}`, {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            // Clear the table and pagination links
-            document.getElementById('driversTableBody').innerHTML = '';
+    function hidePentgation(value) {
+        document.getElementById("paginationLinks").style.display = value;
+    }
+    // Fetch drivers using fetch API
+    function fetchDrivers(searchQuery = '') {
+        fetch(`/admin/users?search=${encodeURIComponent(searchQuery)}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Clear the table and pagination links
+                document.getElementById('driversTableBody').innerHTML = '';
 
 
-            // Loop through the drivers and populate the table
-            data.data.forEach(user => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
+                // Loop through the drivers and populate the table
+                data.data.forEach(user => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
                     <td>${user.first_name} ${user.last_name}</td>
                     <td>${user.phone}</td>
                     <td>
@@ -206,80 +206,80 @@ function fetchDrivers(searchQuery = '') {
                         </button>
                     </td>
                 `;
-                document.getElementById('driversTableBody').appendChild(row);
-            });
+                    document.getElementById('driversTableBody').appendChild(row);
+                });
 
-        })
-        .catch(error => {
-            console.error('Error fetching drivers:', error);
-        });
-}
-
-// Function to toggle the driver's status
-function toggleStatus(driverId, newStatus) {
-    fetch(`/admin/drivers/${driverId}/toggle-status`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify({
-                status: newStatus
             })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                fetchDrivers(); // Refresh the driver list after toggling status
-                showToast(`Driver ${newStatus ? 'activated' : 'deactivated'} successfully!`, newStatus ? "#28a745" :
-                    "#dc3545");
-            } else {
-                throw new Error('Failed to update status');
-            }
-        })
-        .catch(error => {
-            console.error('Error toggling status:', error);
-            showToast("An error occurred. Please try again.", "#ff4d4d");
-        });
-}
+            .catch(error => {
+                console.error('Error fetching drivers:', error);
+            });
+    }
 
-// Helper function: Show custom toast notification
-function showToast(message, bgColor) {
-    const toast = document.createElement('div');
+    // Function to toggle the driver's status
+    function toggleStatus(driverId, newStatus) {
+        fetch(`/admin/users/${driverId}/toggle-status`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    status: newStatus
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    fetchDrivers(); // Refresh the driver list after toggling status
+                    showToast(`User ${newStatus ? 'activated' : 'deactivated'} successfully!`, newStatus ? "#28a745" :
+                        "#dc3545");
+                } else {
+                    throw new Error('Failed to update status');
+                }
+            })
+            .catch(error => {
+                console.error('Error toggling status:', error);
+                showToast("An error occurred. Please try again.", "#ff4d4d");
+            });
+    }
 
-    // Set styles and properties
-    toast.className = 'toast toast-slide-in';
-    toast.style.backgroundColor = bgColor;
-    toast.style.padding = '20px 30px';
-    toast.style.borderRadius = '10px';
-    toast.style.opacity = '0';
-    toast.style.transform = 'translateY(-20px)';
-    toast.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-    toast.style.position = 'relative';
-    toast.style.marginTop = '10px';
-    toast.style.zIndex = '99999';
+    // Helper function: Show custom toast notification
+    function showToast(message, bgColor) {
+        const toast = document.createElement('div');
 
-    // Set text
-    toast.innerText = message;
+        // Set styles and properties
+        toast.className = 'toast toast-slide-in';
+        toast.style.backgroundColor = bgColor;
+        toast.style.padding = '20px 30px';
+        toast.style.borderRadius = '10px';
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-20px)';
+        toast.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+        toast.style.position = 'relative';
+        toast.style.marginTop = '10px';
+        toast.style.zIndex = '99999';
 
-    // Append toast to the container
-    const toastContainer = document.getElementById('toast-container');
-    toastContainer.appendChild(toast);
+        // Set text
+        toast.innerText = message;
 
-    // Show the toast
-    setTimeout(() => {
-        toast.classList.add('show');
-        toast.style.opacity = '1';
-        toast.style.transform = 'translateY(0)';
-    }, 100);
+        // Append toast to the container
+        const toastContainer = document.getElementById('toast-container');
+        toastContainer.appendChild(toast);
 
-    // Hide the toast after 3 seconds
-    setTimeout(() => {
-        toast.classList.remove('show');
-        toastContainer.removeChild(toast);
-    }, 3000);
-}
+        // Show the toast
+        setTimeout(() => {
+            toast.classList.add('show');
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0)';
+        }, 100);
 
-const restore = document.getElementById("driversTableBody").innerHTML;
+        // Hide the toast after 3 seconds
+        setTimeout(() => {
+            toast.classList.remove('show');
+            toastContainer.removeChild(toast);
+        }, 3000);
+    }
+
+    const restore = document.getElementById("driversTableBody").innerHTML;
 </script>
 @endsection

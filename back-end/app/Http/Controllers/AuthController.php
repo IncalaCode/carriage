@@ -21,7 +21,7 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'phone_number' => 'required|string|regex:/^\+251[0-9]{9}$/|unique:drivers,phone_number',
+            'phone_number' => 'required|string|regex:/^\+251[0-9]{9}$/|unique:users,phone_number',
             'password' => 'required|string|min:8|confirmed', // password_confirmation field should be present
         ]);
 
