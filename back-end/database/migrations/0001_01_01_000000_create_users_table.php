@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('last_name');
             $table->string('phone_number')->unique();
             $table->string('password');
-            $table->string('otp')->default('0');
+            $table->string('otp')->nullable();
             $table->boolean('verified')->default(0);
             $table->boolean('Status')->default(0);
             $table->timestamps();
