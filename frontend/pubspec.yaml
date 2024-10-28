@@ -14,18 +14,39 @@ dependencies:
   video_player: ^2.4.5
   image_picker: ^0.8.7+3
   font_awesome_flutter: ^10.0.0
-  google_maps_flutter: ^2.1.7
+  permission_handler: ^10.2.0  # Add the latest version here
+  camera: ^0.10.0 
+  gebetamap: ^1.1.4
+  http: ^0.13.3
+  webview_flutter: ^3.0.4
+  # google_maps_flutter: ^2.1.7
   geolocator: ^9.0.2
   geocoding: ^2.0.5
   path_provider: ^2.0.11
+  
+  shared_preferences: ^2.0.15
+  flutter_map: ^4.0.0
+  latlong2: ^0.8.1
+  flutter_typeahead: ^4.0.0
+  flutter_svg: ^1.1.5
+  
+
   flutter_dotenv: ^5.0.2
   http: ^0.13.5
+
   
 
 flutter:
   assets:
     - assets/splash_video.mp4
     - assets/logo.png  # Your logo image
+    - assets/app_icon.png
+    - assets/Nave.png
+    - assets/truck.jpg
+    - assets/suv.jpg
+    - assets/sedan.jpg
+    - assets/van.jpg
+
   fonts:
     - family: NotoSans
       fonts:

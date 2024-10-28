@@ -1,12 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Modify this file to customize your launch splash screen -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@android:color/white" />
+    <!-- Background color -->
+    <item android:drawable="@android:color/black" />
 
-    <!-- You can insert your own image assets here -->
-    <!-- <item>
+    <!-- Curved rectangle -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/white" />
+            <corners android:radius="100dp" /> <!-- Adjust for curvature -->
+            <size android:width="300dp" android:height="300dp" /> <!-- Adjust size -->
+        </shape>
+    </item>
+
+    <!-- Icon inside the curved rectangle -->
+    <item>
         <bitmap
+            android:src="@drawable/my_truck"
             android:gravity="center"
-            android:src="@mipmap/launch_image" />
-    </item> -->
+            android:scaleType="fitXY" <!-- Ensures icon covers the entire area -->
+        />
+    </item>
 </layer-list>
+
+
