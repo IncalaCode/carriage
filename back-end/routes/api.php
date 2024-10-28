@@ -14,7 +14,7 @@ use App\Http\Controllers\client_request;
 // Route for user registration
 Route::post('/user/register', [AuthController::class, 'register']);
 Route::post('/user/login', [AuthController::class, 'login']);
-Route::post('user/send-otp', [AuthController::class, 'sendOtp']);
+// Route::post('user/send-otp', [AuthController::class, 'sendOtp']);
 Route::post('/user/verify', [AuthController::class, 'verifyOtp']);
 Route::post('/user/resend-otp', [AuthController::class, 'userResendOtp']);
 

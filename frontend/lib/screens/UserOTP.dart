@@ -85,7 +85,7 @@ class _UserOTPState extends State<UserOTP> {
     });
 
     try {
-      String formattedPhoneNumber = phoneNumber.replaceAll(RegExp(r'[^0-9]'), '');
+      String formattedPhoneNumber = phoneNumber.replaceAll(RegExp(r'[^0-9+]'), '');
 
       final response = await http.post(
         url,
@@ -107,11 +107,19 @@ class _UserOTPState extends State<UserOTP> {
           otpVisible = true;
           otpSent = true; // Show success message
           receivedOtp = data['otp']; // Assuming the OTP is returned here
+          startCountdown(); // Start the countdown when OTP is sent
         });
-        startCountdown(); // Start the countdown when OTP is sent
       } else {
+        // Decode the error response to check for specific error messages
+        final errorData = jsonDecode(response.body);
         setState(() {
-          _errorMessage = 'Failed to send OTP';
+          if (errorData['errors'] != null && errorData['errors']['phone_number'] != null) {
+            // Laravel's unique validation error message
+            _errorMessage = 'Phone number already exists contact admin @ +251 xxxxxxxxx';
+          } else {
+            _errorMessage = 'Failed to send OTP';
+          }
+          print('Failed to send OTP: ${response.body}');
         });
       }
     } catch (e) {
@@ -125,9 +133,9 @@ class _UserOTPState extends State<UserOTP> {
     }
   }
 
-  // Verify OTP
-  Future<void> verifyOtp() async {
-    final url = Uri.parse(Config.baseUrl + '/api/verifyOtp');
+  // Method to resend OTP
+  Future<void> resendOtp() async {
+    final url = Uri.parse(Config.baseUrl + '/user/resend-otp');
 
     try {
       final response = await http.post(
@@ -136,7 +144,43 @@ class _UserOTPState extends State<UserOTP> {
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
-          'phoneNumber': phoneNumber,
+          'phone_number': phoneNumber,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          _errorMessage = '';
+          otpSent = true;
+          startCountdown(); // Start countdown again after resending
+        });
+        print('OTP resent successfully');
+      } else {
+        final errorData = jsonDecode(response.body);
+        setState(() {
+          _errorMessage = errorData['message'] ?? 'Failed to resend OTP';
+        });
+        print('Failed to resend OTP: ${response.body}');
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error resending OTP: $e';
+      });
+    }
+  }
+
+  // Verify OTP
+  Future<void> verifyOtp() async {
+    final url = Uri.parse(Config.baseUrl + '/user/verify');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'phone_number': phoneNumber,
           'otp': otp,
         }),
       );
@@ -205,7 +249,7 @@ class _UserOTPState extends State<UserOTP> {
                       return null;
                     },
                     onSaved: (value) {
-                      phoneNumber = value!.replaceAll(RegExp(r'[^0-9]'), '').trim();
+                      phoneNumber = value!.replaceAll(RegExp(r'[^0-9+]'), '').trim();
                     },
                   ),
                   const SizedBox(height: 20),
@@ -240,11 +284,10 @@ class _UserOTPState extends State<UserOTP> {
                           style: const TextStyle(color: Colors.white, fontSize: 18),
                         ),
                         const SizedBox(height: 20),
-                        if (countdownSeconds == 0 && allowResendOtp)
+                        // Resend OTP Button
+                        if (allowResendOtp)
                           ElevatedButton(
-                            onPressed: () {
-                              sendPhoneNumber();
-                            },
+                            onPressed: resendOtp, // Call resendOtp method
                             child: const Text('Resend OTP'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.blue,
@@ -267,7 +310,7 @@ class _UserOTPState extends State<UserOTP> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter the OTP';
+                          return 'OTP is required';
                         }
                         return null;
                       },
@@ -275,33 +318,31 @@ class _UserOTPState extends State<UserOTP> {
                         otp = value!;
                       },
                     ),
+
                   const SizedBox(height: 20),
 
-                  // Confirm Button
+                  // Verify OTP Button
                   if (otpVisible)
-                    ElevatedButton.icon(
+                    ElevatedButton(
                       onPressed: () {
                         if (_formKey.currentState!.validate()) {
                           _formKey.currentState!.save();
                           verifyOtp();
                         }
                       },
-                      icon: const FaIcon(FontAwesomeIcons.check, color: Colors.blue),
-                      label: Text('Confirm', style: const TextStyle(color: Colors.blue)),
+                      child: const Text('Verify OTP'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        side: const BorderSide(color: Colors.blue, width: 2),
+                        backgroundColor: Colors.blue,
                       ),
                     ),
 
-                  // Error Message Display
+                  // Error Message
                   if (_errorMessage.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 30.0),
+                      padding: const EdgeInsets.only(top: 20),
                       child: Text(
                         _errorMessage,
                         style: const TextStyle(color: Colors.red, fontSize: 16),
-                        textAlign: TextAlign.center,
                       ),
                     ),
                 ],

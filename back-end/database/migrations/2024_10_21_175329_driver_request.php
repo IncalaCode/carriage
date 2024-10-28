@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Schema;
 class driverrequest extends Migration
 {
 
+
     public function up(): void
     {
         Schema::create('driverRequest', function (Blueprint $table) {

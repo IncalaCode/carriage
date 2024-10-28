@@ -30,7 +30,9 @@ class AuthController extends Controller
             return response()->json([
                 'errors' => $validator->errors(),
             ], 422);
+
         }
+      
 
 
         $otp = rand(1000, 9999); // Adjusted OTP to 4 digits
@@ -93,7 +95,7 @@ class AuthController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'phone_number' => 'required|exists:users,phone_number',
-            'otp' => 'required|',
+            'otp' => 'required|digits:4',
         ]);
 
         if ($validator->fails()) {
