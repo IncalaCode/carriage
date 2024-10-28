@@ -301,22 +301,45 @@ class _RegisterDriverState extends State<RegisterDriver> {
               }, isDriverPhotoTaken, 'DriverPhoto'),
               SizedBox(height: 16),
 
-              ElevatedButton.icon(
-                icon: Icon(FontAwesomeIcons.arrowRight, color: Colors.blue),
-                label: Text('Next', style: TextStyle(color: Colors.blue)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white, // Set background to white
-                ),
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    _formKey.currentState!.save();
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => DriverOTP()),
-                    );
-                  }
-                },
-              ),
+              ElevatedButton(
+  onPressed: () {
+    if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => DriverOTP()),
+      );
+    }
+  },
+  child: Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Text(
+        'Next',
+        style: TextStyle(color: Colors.white), // Text color
+      ),
+      SizedBox(width: 8),
+      FaIcon(
+        FontAwesomeIcons.arrowRight, // FontAwesome icon
+        color: Colors.white,
+      ),
+    ],
+  ),
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.black, // Button background color
+    padding: EdgeInsets.symmetric(vertical: 16), // Padding for the button
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(8), // Rounded corners
+      side: BorderSide(
+        color: Colors.blue, // Blue border color
+        width: 2, // Border width
+      ),
+    ),
+    elevation: 4, // Elevation for shadow effect
+  ),
+),
+
+
             ],
           ),
         ),

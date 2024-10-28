@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart'; 
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:io'; // For file handling (image upload)
 import 'package:image_picker/image_picker.dart'; // For image picking
 import 'sidebarProfileEdit.dart';
+import 'login_screen.dart'; 
 
- // Edit profile page
+// Edit profile page
 class ProfilePage extends StatefulWidget {
   @override
   _ProfilePageState createState() => _ProfilePageState();
@@ -24,6 +25,37 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  // Function to show logout confirmation dialog
+  void _showLogoutConfirmation() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Confirm Logout'),
+          content: Text('Are you sure you want to logout?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                // Navigate to Login page after logout
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => LoginScreen()),
+                );
+              },
+              child: Text('Logout'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -39,11 +71,11 @@ class _ProfilePageState extends State<ProfilePage> {
           IconButton(
             icon: FaIcon(FontAwesomeIcons.userEdit),
             onPressed: () {
-  Navigator.push(
-    context,
-    MaterialPageRoute(builder: (context) => EditProfilePage()),
-  );
-},
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => EditProfilePage()),
+              );
+            },
           ),
         ],
       ),
@@ -75,7 +107,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
             ),
             SizedBox(height: 20),
-            
+
             // Full Name
             Row(
               children: [
@@ -88,7 +120,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ],
             ),
             SizedBox(height: 8),
-            
+
             // Email
             Row(
               children: [
@@ -101,7 +133,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ],
             ),
             SizedBox(height: 8),
-            
+
             // Phone Number
             Row(
               children: [
@@ -114,15 +146,12 @@ class _ProfilePageState extends State<ProfilePage> {
               ],
             ),
             Spacer(),
-            
+
             // Logout Button
             ElevatedButton.icon(
               icon: FaIcon(FontAwesomeIcons.signOutAlt),
               label: Text('Logout'),
-              onPressed: () {
-                // Navigate to Login page after logout
-                Navigator.pushReplacementNamed(context, 'LoginScreen');
-              },
+              onPressed: _showLogoutConfirmation, // Show confirmation dialog
             ),
           ],
         ),
