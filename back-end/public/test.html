@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Gebeta Maps Direction Request</title>
+    </head>
+    <body>
+        <h1>Directions from Hawassa to Addis Ababa</h1>
+        <p id="directions"></p>
+
+        <script>
+            const apiKey =
+                "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55bmFtZSI6Ik15IHRydWNrIiwiZGVzY3JpcHRpb24iOiJmNjI5NzZlZS1hOGEwLTRlMzMtOGEzOS1jNDNkN2YyOThkZDMiLCJpZCI6ImZmMzJmN2ZkLTEzODItNDY1Ny1iZGFiLTg0NzA5Mzc4MzZmZCIsInVzZXJuYW1lIjoiUm9iZXJhIn0.n7NV42t9nHz4ZfuwqCTBqbKQJeSF8zpE_uU8WwzCLWY"; // Replace with your actual API key
+
+            const origin = "{8.51907, 39.27866}"; // Hawassa
+            const destination = "{9.00880, 38.76531}"; // Addis Ababa
+
+            const url = `https://mapapi.gebeta.app/api/route/direction/?origin=${origin}&destination=${destination}&apiKey=${apiKey}`;
+
+            fetch(url)
+                .then((response) => response.json())
+                .then((data) => {
+                    if (data.message === "ok") {
+                        const directions = data.data.instructions;
+                        document.getElementById("directions").innerHTML =
+                            directions;
+                    } else {
+                        console.error("Error:", data.message);
+                        document.getElementById("directions").innerHTML =
+                            "Error retrieving directions.";
+                    }
+                })
+                .catch((error) => {
+                    console.error("Error:", error);
+                    document.getElementById("directions").innerHTML =
+                        "An error occurred.";
+                });
+        </script>
+    </body>
+</html>

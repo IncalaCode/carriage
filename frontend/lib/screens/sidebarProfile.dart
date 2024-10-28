@@ -1,9 +1,8 @@
-import 'package:flutter/material.dart'; 
+import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:io'; // For file handling (image upload)
 import 'package:image_picker/image_picker.dart'; // For image picking
 import 'sidebarProfileEdit.dart';
-import 'login_screen.dart'; 
 
 // Edit profile page
 class ProfilePage extends StatefulWidget {
@@ -23,37 +22,6 @@ class _ProfilePageState extends State<ProfilePage> {
         _profileImage = File(pickedFile.path);
       });
     }
-  }
-
-  // Function to show logout confirmation dialog
-  void _showLogoutConfirmation() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Confirm Logout'),
-          content: Text('Are you sure you want to logout?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-              },
-              child: Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                // Navigate to Login page after logout
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => LoginScreen()),
-                );
-              },
-              child: Text('Logout'),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
@@ -151,7 +119,10 @@ class _ProfilePageState extends State<ProfilePage> {
             ElevatedButton.icon(
               icon: FaIcon(FontAwesomeIcons.signOutAlt),
               label: Text('Logout'),
-              onPressed: _showLogoutConfirmation, // Show confirmation dialog
+              onPressed: () {
+                // Navigate to Login page after logout
+                Navigator.pushReplacementNamed(context, 'LoginScreen');
+              },
             ),
           ],
         ),
