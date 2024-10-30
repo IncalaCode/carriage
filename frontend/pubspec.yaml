@@ -29,10 +29,11 @@ dependencies:
   latlong2: ^0.8.1
   flutter_typeahead: ^4.0.0
   flutter_svg: ^1.1.5
+
   
 
-  flutter_dotenv: ^5.0.2
-  http: ^0.13.5
+  flutter_dotenv: ^5.2.1
+  location: ^7.0.1
 
   
 

@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+
 import 'sidebarProfile.dart';
 import 'sidebarWallet.dart';
 import 'sidebarMylocation.dart';
 import 'sidebarMyOrder.dart';
 import 'sidebarSettings.dart';
+import './Driver_map/driver_map_component.dart';
 
 class DriverAppScreen extends StatefulWidget {
   @override
@@ -191,55 +191,34 @@ class _DriverAppScreenState extends State<DriverAppScreen> {
         ),
       ),
       body: Stack(
-        children: [
-          FlutterMap(
-            options: MapOptions(
-              center: LatLng(9.145, 40.4897),
-              zoom: 6.0,
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                subdomains: ['a', 'b', 'c'],
-              ),
-              MarkerLayer(
-                markers: [
-                  Marker(
-                    width: 80.0,
-                    height: 80.0,
-                    point: LatLng(9.145, 40.4897),
-                    builder: (ctx) => Icon(
-                      FontAwesomeIcons.mapMarkerAlt,
-                      color: Colors.blue,
-                      size: 40.0,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          Positioned(
-            bottom: 20,
-            right: 20,
-            child: FloatingActionButton.extended(
-              onPressed: _showOrdersList,
-              backgroundColor: Colors.transparent,
-              icon: Icon(FontAwesomeIcons.bell, color: Colors.white),
-              label: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.blueAccent, Colors.cyan],
-                  ),
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Text(
-                  'Requests',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-              ),
+  children: [
+    DriverMapComponent(),
+    Positioned(
+      bottom: 20,
+      left: 20,
+      right: 20,
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: _showOrdersList,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.black, // Background color (fixed key name)
+            padding: EdgeInsets.symmetric(vertical: 16), // Adjust padding for height
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10), // Rounded corners
             ),
           ),
+          child: Text(
+            'Requests',
+            style: TextStyle(
+              color: Colors.white, // Text color
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
+        ),
+      ),
+    ),
         ],
       ),
     );

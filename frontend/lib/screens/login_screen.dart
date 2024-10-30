@@ -4,6 +4,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:My_truck/screens/RegisterUser.dart';
 import 'package:My_truck/screens/RegisterDriver.dart';
 import 'package:My_truck/screens/main_app_screen.dart';
+import 'package:My_truck/screens/Driver_main_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'dart:convert';
@@ -86,6 +87,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // Function to handle login
   Future<void> _login() async {
+    // this is the back door so when it is finished remove this 
+              Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => DriverAppScreen()),
+          );
+
+    // ------------------------------------------------------------------
+
+
+
     if (_otp.length != 4) {
       setState(() {
         _errorMessage = 'Please enter a valid 4-digit OTP';
