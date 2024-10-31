@@ -12,14 +12,15 @@ dependencies:
   flutter:
     sdk: flutter
   video_player: ^2.4.5
-  image_picker: ^0.8.7+3
+  image_picker: ^1.1.2
   font_awesome_flutter: ^10.0.0
   google_maps_flutter: ^2.1.7
-  geolocator: ^9.0.2
-  geocoding: ^2.0.5
+  geolocator: ^13.0.1
+  geocoding: ^3.0.0
   path_provider: ^2.0.11
   flutter_dotenv: ^5.0.2
-  http: ^0.13.5
+  http: ^1.2.2
+  webview_flutter: ^4.10.0
   
 
 flutter:
@@ -35,7 +36,7 @@ flutter:
 
 
 dev_dependencies:
-  flutter_launcher_icons: ^0.11.0
+  flutter_launcher_icons: ^0.14.1
 
 flutter_icons:
   android: true

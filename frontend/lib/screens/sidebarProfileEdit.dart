@@ -11,7 +11,7 @@ class EditProfilePage extends StatefulWidget {
 class _EditProfilePageState extends State<EditProfilePage> {
   File? _profileImage;
   final _formKey = GlobalKey<FormState>();
-  
+
   // TextEditingControllers for the form fields
   TextEditingController _fullNameController = TextEditingController();
   TextEditingController _emailController = TextEditingController();
@@ -19,7 +19,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   // Function to pick an image from the gallery
   Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().getImage(source: ImageSource.gallery);
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _profileImage = File(pickedFile.path);
@@ -71,7 +71,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       ),
               ),
               SizedBox(height: 20),
-              
+
               // Full Name Input
               TextFormField(
                 controller: _fullNameController,
@@ -88,7 +88,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 },
               ),
               SizedBox(height: 16),
-              
+
               // Email Input
               TextFormField(
                 controller: _emailController,
@@ -108,7 +108,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 },
               ),
               SizedBox(height: 16),
-              
+
               // Phone Number Input
               TextFormField(
                 controller: _phoneController,
@@ -126,7 +126,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 },
               ),
               SizedBox(height: 16),
-              
+
               // Buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -138,10 +138,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     },
                     child: Text('Cancel'),
                     style: ElevatedButton.styleFrom(
-                      // primary: Colors.grey, // Grey color for cancel button
-                    ),
+                        // primary: Colors.grey, // Grey color for cancel button
+                        ),
                   ),
-                  
+
                   // Update Button
                   ElevatedButton(
                     onPressed: () {
