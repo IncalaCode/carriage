@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'Driver_map/driver_hock.dart';
 
 class OrderRequestsPage extends StatefulWidget {
   @override
@@ -7,24 +8,36 @@ class OrderRequestsPage extends StatefulWidget {
 }
 
 class _OrderRequestsPageState extends State<OrderRequestsPage> {
-  List<Map<String, dynamic>> orderRequests = [
-    {"name": "Jabez Hap", "initialAddress": "123 Agona St", "status": "unvisited"},
-    {"name": "Yabu Des", "initialAddress": "456 Estifanos St", "status": "unvisited"},
-    {"name": "Yabets Desalegn", "initialAddress": "789 B.MEdhanialem St", "status": "unvisited"},
-    {"name": "Yabets Desalegn", "initialAddress": "789 B.MEdhanialem St", "status": "unvisited"},
-    {"name": "Abdelrahman Desalegn", "initialAddress": "789 B.MEdhanialem St", "status": "unvisited"},
-    {"name": "Bassem Desalegn", "initialAddress": "789 B.MEdhanialem St", "status": "unvisited"},
-    {"name": "Hussein Desalegn", "initialAddress": "789 B.MEdhanialem St", "status": "unvisited"},
-    {"name": "Muse Desalegn", "initialAddress": "789 B.MEdhanialem St", "status": "unvisited"},
-    {"name": "Youssef Desalegn", "initialAddress": "789 B.MEdhanialem St", "status": "unvisited"},
-    {"name": "Begeta Desalegn", "initialAddress": "789 B.MEdhanialem St", "status": "unvisited"},
-  ];
+  String? _price;
+  String message = ''; // Store the message
+  final DriverHook driverHook = DriverHook();
+  List<Map<String, dynamic>> orderRequests = [];
+  bool loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchOrders(); // Fetch orders on init
+  }
+
+  void _fetchOrders() async {
+    setState(() => loading = true); // Start loading
+    driverHook.startPolling();
+    driverHook.ordersStream.listen((data) {
+      setState(() {
+        orderRequests = List<Map<String, dynamic>>.from(data['orders']);
+        message = data['message'];
+        loading = false; // Stop loading when orders are fetched
+      });
+    });
+  }
 
   void _setPrice(int index, String price) {
     setState(() {
       orderRequests[index]['status'] = 'waiting';
       orderRequests[index]['price'] = price;
     });
+    Navigator.of(context).pop();
   }
 
   void _markOrderAsVisited(int index) {
@@ -48,75 +61,95 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
           },
         ),
       ),
-      body: ListView.builder(
-        itemCount: orderRequests.length,
-        itemBuilder: (context, index) {
-          final order = orderRequests[index];
-          return Card(
-            margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: ListTile(
-              contentPadding: EdgeInsets.all(16),
-              title: Text(
-                order['name'],
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-              ),
-              subtitle: Text(
-                order['initialAddress'],
-                style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-              ),
-              trailing: _buildStatusChip(order['status']),
-              onTap: () {
-                _showOrderDetails(context, order, index);
+      body: loading
+          ? Center(child: CircularProgressIndicator()) // Show loading indicator
+          : ListView.builder(
+              itemCount: orderRequests.length,
+              itemBuilder: (context, index) {
+                final order = orderRequests[index];
+                return Card(
+                  margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: ListTile(
+                    contentPadding: EdgeInsets.all(16),
+                    leading: Icon(FontAwesomeIcons.person, color: const Color.fromARGB(255, 56, 158, 241)),
+                    title: Text(
+                      order['name'],
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    ),
+                    subtitle: Row(
+                      children: [
+                        Icon(FontAwesomeIcons.mapMarker, color: Colors.grey[700], size: 16),
+                        SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            order['initialAddress'],
+                            style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                          ),
+                        ),
+                      ],
+                    ),
+                    trailing: SizedBox(
+                      width: 100, // Ensures chip doesn't consume entire width
+                      child: _buildStatusChip(order['status']),
+                    ),
+                    onTap: () {
+                      _showOrderDetails(context, order, index);
+                    },
+                  ),
+                );
               },
             ),
-          );
-        },
-      ),
     );
   }
 
   Widget _buildStatusChip(String status) {
-    List<Color> gradientColors;
+    LinearGradient gradient;
+    IconData icon;
     String label;
 
     switch (status) {
       case 'waiting':
-        gradientColors = [Colors.orange, Colors.yellow]; // Gradient for waiting
+        gradient = LinearGradient(colors: [const Color.fromARGB(255, 247, 176, 83), const Color.fromARGB(255, 244, 96, 51)]);
+        icon = FontAwesomeIcons.circleNotch;
         label = 'Waiting';
         break;
       case 'visited':
-        gradientColors = [Colors.green, const Color.fromARGB(255, 152, 201, 95)]; // Gradient for visited
+        gradient = LinearGradient(colors: [Colors.greenAccent, const Color.fromARGB(255, 78, 167, 81)]);
+        icon = FontAwesomeIcons.checkCircle;
         label = 'Visited';
         break;
       default:
-        gradientColors = [Colors.red, const Color.fromARGB(255, 253, 144, 144)]; // Gradient for unvisited
+        gradient = LinearGradient(colors: [const Color.fromARGB(255, 255, 140, 140), const Color.fromARGB(255, 239, 78, 67)]);
+        icon = FontAwesomeIcons.warning;
         label = 'Unvisited';
     }
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: gradientColors,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: Text(
-        label,
-        style: TextStyle(color: Colors.white),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 16),
+          SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(color: Colors.white),
+          ),
+        ],
       ),
     );
   }
 
   void _showOrderDetails(BuildContext context, Map<String, dynamic> order, int index) {
     String? price;
-
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -126,10 +159,9 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Name: ${order['name']}'),
-              Text('Initial Address: ${order['initialAddress']}'),
-              Text('destination: ${order['destination']}'),
-              Text('materialType: ${order['materialType']}'),
+              Text('Name: ${order['name'] ?? 'Unknown'}'),
+              Text('Address: ${order['initialAddress'] ?? 'No Address'}'),
+              SizedBox(height: 20),
               TextField(
                 decoration: InputDecoration(labelText: 'Enter Price'),
                 keyboardType: TextInputType.number,
@@ -142,142 +174,26 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
           actions: [
             TextButton(
               onPressed: () {
-                if (price?.isNotEmpty ?? false) {
+                if (price != null && price!.isNotEmpty) {
                   _setPrice(index, price!);
-                  Navigator.pop(context);
+                  Navigator.of(context).pop();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Please enter a price')),
+                  );
                 }
               },
-              child: Text('Set Price'),
-            ),
-            TextButton(
-              onPressed: () {
-                _markOrderAsVisited(index);
-                Navigator.pop(context);
-              },
-              child: Text('Visited'),
+              child: Text('Submit'),
             ),
           ],
         );
       },
     );
   }
+
+  @override
+  void dispose() {
+    driverHook.dispose();
+    super.dispose();
+  }
 }
-
-
-
-
-//  String? _price;
-//   String message = ''; // Store the message
-//   final DriverHook driverHook = DriverHook();
-//   List<Map<String, dynamic>> orderRequests = [];
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     _fetchOrders(); // Fetch orders on init
-//   }
-
-//   void _fetchOrders() async {
-//     setState(() => loading = true); // Start loading
-//     driverHook.startPolling();
-//     driverHook.ordersStream.listen((data) {
-//       setState(() {
-//         orderRequests = List<Map<String, dynamic>>.from(data['orders']);
-//         message = data['message'];
-//         loading = false; // Stop loading when orders are fetched
-//       });
-//     });
-//   }
-
-// void _showOrdersList() {
-//   showModalBottomSheet(
-//     context: context,
-//     builder: (BuildContext context) {
-//       return OrdersList(
-//         orderRequests: orderRequests,
-//         onOrderTap: _setPrice,
-//         loading: loading,
-//         showOrderDetails: _showOrderDetails,
-//         message: message, // Pass the message
-//       );
-//     },
-//   );
-// }
-
-
-//   void _showOrderDetails(BuildContext context, Map<String, dynamic> order, int index) {
-//     String? price;
-//     showDialog(
-//       context: context,
-//       builder: (BuildContext context) {
-//         return AlertDialog(
-//           title: Text('Order Details'),
-//           content: Column(
-//             mainAxisSize: MainAxisSize.min,
-//             crossAxisAlignment: CrossAxisAlignment.start,
-//             children: [
-//               Text('Name: ${order['name'] ?? 'Unknown'}'),
-//               Text('Address: ${order['initialAddress'] ?? 'No Address'}'),
-//               SizedBox(height: 20),
-//               TextField(
-//                 decoration: InputDecoration(labelText: 'Enter Price'),
-//                 keyboardType: TextInputType.number,
-//                 onChanged: (value) {
-//                   price = value;
-//                 },
-//               ),
-//             ],
-//           ),
-//           actions: [
-//             TextButton(
-//               onPressed: () {
-//                 if (price != null && price!.isNotEmpty) {
-//                   _setPrice(index, price!);
-//                   Navigator.of(context).pop();
-//                 } else {
-//                   ScaffoldMessenger.of(context).showSnackBar(
-//                     SnackBar(content: Text('Please enter a price')),
-//                   );
-//                 }
-//               },
-//               child: Text('Submit'),
-//             ),
-//           ],
-//         );
-//       },
-//     );
-//   }
-
-//   @override
-//   void dispose() {
-//     driverHook.dispose();
-//     super.dispose();
-//   }
-
-//   Future<void> _pickImage() async {
-//     final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
-//     if (pickedFile != null) {
-//       setState(() {
-//         _profileImage = File(pickedFile.path);
-//       });
-//     }
-//   }
-
-//   void _setPrice(int index, String price) {
-//     setState(() {
-//       orderRequests[index]['status'] = 'waiting';
-//       _price = price;
-//     });
-//     Navigator.of(context).pop();
-//   }
-
-// =======
-
-//   Future<void> _pickImage() async {
-//     final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
-//     if (pickedFile != null) {
-//       setState(() {
-//         _profileImage = File(pickedFile.path);
-//       });
-//     }
-//   }

@@ -20,7 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   String _otp = '';
   String _errorMessage = '';
   bool _isOtpSent = false;
-  bool _isOtpValid = false;
+  // bool _isOtpValid = false;
   int _remainingTime = 60;
   Timer? _timer;
 

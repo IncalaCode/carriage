@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:async';
 
 class OrderForm extends StatefulWidget {
   @override
@@ -13,6 +16,7 @@ class _OrderFormState extends State<OrderForm> {
   final TextEditingController materialTypeController = TextEditingController();
   final TextEditingController carTypeController = TextEditingController();
   String? loadType;
+  Timer? _debounce;
 
   final List<Map<String, String>> carTypes = [
     {'name': 'Sedan', 'image': 'assets/sedan.jpg'},
@@ -21,6 +25,7 @@ class _OrderFormState extends State<OrderForm> {
     {'name': 'Van', 'image': 'assets/van.jpg'},
   ];
 
+  final Map<String, List<String>> _locationCache = {};
   String? selectedCarType;
 
   @override
@@ -29,13 +34,63 @@ class _OrderFormState extends State<OrderForm> {
     destinationController.dispose();
     materialTypeController.dispose();
     carTypeController.dispose();
+    _debounce?.cancel(); // Cancel debounce timer
     super.dispose();
   }
 
-  Future<List<String>> getSuggestions(String query) async {
-    return ["Addis Ababa", "Hawassa", "Bahir Dar", "Mekelle", "Gondar"]
-        .where((location) => location.toLowerCase().contains(query.toLowerCase()))
-        .toList();
+  Future<List<String>> fetchLocationSuggestions(String query) async {
+    if (query.isEmpty) return [];
+    if (_locationCache.containsKey(query)) return _locationCache[query]!;
+
+    return await Future.delayed(Duration(milliseconds: 300), () async {
+      final url =
+          'https://nominatim.openstreetmap.org/search?q=$query&format=json&addressdetails=1&limit=5&countrycodes=ET';
+
+      try {
+        final response = await http.get(Uri.parse(url));
+        if (response.statusCode == 200) {
+          final List<dynamic> data = json.decode(response.body);
+          final locations = data.map<String?>((item) {
+            final address = item['address'];
+            return [
+              address['residential'] ?? '',
+              address['state_district'] ?? '',
+              address['ISO3166-2-lvl4'] ?? '',
+              address['state'] ?? '',
+            ].where((element) => element.isNotEmpty).join(", ");
+          }).where((location) => location != null).map((location) => location!).toList();
+
+          _locationCache[query] = locations;
+          return locations;
+        } else {
+          _showErrorDialog("Failed to load location suggestions");
+          return ["places not found under ethiopia"];
+        }
+      } catch (e) {
+        _showErrorDialog("Error fetching location suggestions: $e");
+        return ["places not found under ethiopia"];
+      }
+    });
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Error'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _selectCarType() async {
@@ -84,10 +139,11 @@ class _OrderFormState extends State<OrderForm> {
                             ),
                             SizedBox(width: 10),
                             Expanded(
-                                child: Text(
-                              car['name']!,
-                              style: TextStyle(fontWeight: FontWeight.w500),
-                            )),
+                              child: Text(
+                                car['name']!,
+                                style: TextStyle(fontWeight: FontWeight.w500),
+                              ),
+                            ),
                             CircleAvatar(
                               radius: 15,
                               backgroundColor: isSelected ? Colors.black : Colors.grey.shade300,
@@ -168,13 +224,17 @@ class _OrderFormState extends State<OrderForm> {
                 textFieldConfiguration: TextFieldConfiguration(
                   controller: fromController,
                   decoration: InputDecoration(
-                    labelText: 'From (መነሻ)',
+                    labelText: 'From (ከ)',
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
-                suggestionsCallback: getSuggestions,
+                suggestionsCallback: (pattern) async {
+                  return await fetchLocationSuggestions(pattern);
+                },
                 itemBuilder: (context, suggestion) {
-                  return ListTile(title: Text(suggestion));
+                  return ListTile(
+                    title: Text(suggestion),
+                  );
                 },
                 onSuggestionSelected: (suggestion) {
                   fromController.text = suggestion;
@@ -189,9 +249,13 @@ class _OrderFormState extends State<OrderForm> {
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
-                suggestionsCallback: getSuggestions,
+                suggestionsCallback: (pattern) async {
+                  return await fetchLocationSuggestions(pattern);
+                },
                 itemBuilder: (context, suggestion) {
-                  return ListTile(title: Text(suggestion));
+                  return ListTile(
+                    title: Text(suggestion),
+                  );
                 },
                 onSuggestionSelected: (suggestion) {
                   destinationController.text = suggestion;

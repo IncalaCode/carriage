@@ -109,29 +109,20 @@ class _DriverMapComponentState extends State<DriverMapComponent> {
               ),
               if (_currentPosition != null)
                 MarkerLayer(
-                  markers: [
-                    Marker(
-                      width: 30.0,
-                      height: 30.0,
-                      point: _currentPosition!,
-                      builder: (ctx) => Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: const Color.fromARGB(255, 40, 197, 197)
-                              .withOpacity(0.9),
-                        ),
-                        child: Center(
-                          child: Icon(
-                            FontAwesomeIcons.mapMarkerAlt,
-                            color: Colors.white,
-                            size: 10.0,
+                        markers: [
+                          Marker(
+                            width: 80.0,
+                            height: 80.0,
+                            point: LatLng(9.005401, 38.763611),
+                            builder: (ctx) => Icon(
+                              FontAwesomeIcons.mapMarkerAlt,
+                              color: const Color.fromARGB(255, 0, 0, 0),
+                              size: 40.0,
+                            ),
                           ),
-                        ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
-            ],
+                    ],
           ),
           if (_isLoading)
             Center(

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
-import 'config.dart';
+import '../config.dart';
 
 class DriverHook {
   final StreamController<Map<String, dynamic>> _ordersStreamController =
@@ -15,7 +15,7 @@ class DriverHook {
     int token = getToken();
     print("token: $token");
 
-    Timer.periodic(AppConfig.pollingInterval, (timer) async {
+    Timer.periodic(Config.pollingInterval, (timer) async {
       if (isLocked) {
         timer.cancel(); // Stop polling if the ride is locked
         return;
@@ -34,7 +34,7 @@ class DriverHook {
         double longitude = position.longitude;
 
         final response = await http.post(
-          Uri.parse(AppConfig.baseUrl + "/driver/request"),
+          Uri.parse(Config.baseUrl + "/driver/request"),
           headers: {
             'Content-Type': 'application/json',
           },

@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+
+
 import 'sidebarProfile.dart';
 import 'sidebarWallet.dart';
 import 'sidebarMyOrder.dart';
 import 'sidebarSettings.dart';
 import 'Order_form_screen.dart';
+import 'user_map/user_map_component.dart';
 
 class MainAppScreen extends StatefulWidget {
   @override
@@ -160,32 +161,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       ),
       body: Stack(
         children: [
-          FlutterMap(
-            options: MapOptions(
-              center: LatLng(9.005401, 38.763611),
-              zoom: 6.0,
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                subdomains: ['a', 'b', 'c'],
-              ),
-              MarkerLayer(
-                markers: [
-                  Marker(
-                    width: 80.0,
-                    height: 80.0,
-                    point: LatLng(9.005401, 38.763611),
-                    builder: (ctx) => Icon(
-                      FontAwesomeIcons.mapMarkerAlt,
-                      color: const Color.fromARGB(255, 0, 0, 0),
-                      size: 40.0,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+         UserMapComponent (),
           Positioned(
             bottom: 20,
             right: 20,
