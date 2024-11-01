@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart'; // Importing FontAwesome
-import 'UserOTP.dart';
+import 'UserOTP.dart'; // Import the OTP screen
+// Importing HTTP package
+// For encoding data to JSON
 
 class RegisterUser extends StatefulWidget {
   @override
@@ -9,12 +11,34 @@ class RegisterUser extends StatefulWidget {
 
 class _RegisterUserState extends State<RegisterUser> {
   final _formKey = GlobalKey<FormState>();
-  String firstName = '';
-  String lastName = '';
-  String password = '';
-  String confirmPassword = '';
+  String firstName = 'cala';
+  String lastName = 'cala';
+  String password = '12345678';
+  String confirmPassword = '12345678';
   bool passwordVisible = false; // To toggle password visibility
   bool confirmPasswordVisible = false; // To toggle confirm password visibility
+  String _errorMessage = '';
+
+  // Function to handle registration and navigate to OTP page
+  void _registerUser() {
+    // Printing entered data to the terminal for debugging
+    print('First Name: $firstName');
+    print('Last Name: $lastName');
+    print('Password: $password');
+
+    // Navigate to OTP page with user data
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => UserOTP(
+          firstName: firstName,
+          lastName: lastName,
+          password: password,
+          confirmPassword: confirmPassword, // Correctly reference confirmPassword
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +89,7 @@ class _RegisterUserState extends State<RegisterUser> {
                       return null;
                     },
                     onSaved: (value) {
-                      firstName = value!;
+                      firstName = value!; // Save first name
                     },
                   ),
                   SizedBox(height: 16),
@@ -93,7 +117,7 @@ class _RegisterUserState extends State<RegisterUser> {
                       return null;
                     },
                     onSaved: (value) {
-                      lastName = value!;
+                      lastName = value!; // Save last name
                     },
                   ),
                   SizedBox(height: 16),
@@ -113,9 +137,7 @@ class _RegisterUserState extends State<RegisterUser> {
                       ),
                       suffixIcon: IconButton(
                         icon: FaIcon(
-                          passwordVisible
-                              ? FontAwesomeIcons.eye
-                              : FontAwesomeIcons.eyeSlash,
+                          passwordVisible ? FontAwesomeIcons.eye : FontAwesomeIcons.eyeSlash,
                         ), // FontAwesome icon for eye
                         onPressed: () {
                           setState(() {
@@ -153,9 +175,7 @@ class _RegisterUserState extends State<RegisterUser> {
                       ),
                       suffixIcon: IconButton(
                         icon: FaIcon(
-                          confirmPasswordVisible
-                              ? FontAwesomeIcons.eye
-                              : FontAwesomeIcons.eyeSlash,
+                          confirmPasswordVisible ? FontAwesomeIcons.eye : FontAwesomeIcons.eyeSlash,
                         ), // FontAwesome icon for confirm password
                         onPressed: () {
                           setState(() {
@@ -178,16 +198,24 @@ class _RegisterUserState extends State<RegisterUser> {
                   ),
                   SizedBox(height: 20),
 
+                  // Error Message Display
+                  if (_errorMessage.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 30.0),
+                      child: Text(
+                        _errorMessage,
+                        style: TextStyle(color: Colors.red, fontSize: 16),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  SizedBox(height: 20),
+
                   // Next Button with FontAwesome icon
                   ElevatedButton.icon(
                     onPressed: () {
                       if (_formKey.currentState!.validate()) {
                         _formKey.currentState!.save();
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => UserOTP()),
-                        );
+                        _registerUser(); // Call the registration function
                       }
                     },
                     icon: FaIcon(FontAwesomeIcons.arrowRight, color: Colors.white), // FontAwesome icon for the button

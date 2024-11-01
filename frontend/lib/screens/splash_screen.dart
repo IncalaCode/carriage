@@ -16,8 +16,8 @@ class _SplashScreenState extends State<SplashScreen> {
     // Initialize video player with the asset video
     _controller = VideoPlayerController.asset('assets/splash_video.mp4')
       ..initialize().then((_) {
-        setState(() {}); 
-        _controller.play(); 
+        setState(() {});
+        _controller.play();
       });
 
     // Listen to check when the video ends
@@ -40,20 +40,14 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _controller.value.isInitialized
-          ? SizedBox.expand(
-              child: FittedBox(
-                fit: BoxFit.cover,
-                child: SizedBox(
-                  width: _controller.value.size.width,
-                  height: _controller.value.size.height,
-                  child: VideoPlayer(_controller),
-                ),
-              ),
-            )
-          : Center(
-              child: CircularProgressIndicator(), // Show loading indicator while video is being prepared
-            ),
+      body: Center(
+        child: _controller.value.isInitialized
+            ? AspectRatio(
+                aspectRatio: _controller.value.aspectRatio,
+                child: VideoPlayer(_controller),
+              )
+            : CircularProgressIndicator(), // Show loading indicator while video is being prepared
+      ),
     );
   }
 }

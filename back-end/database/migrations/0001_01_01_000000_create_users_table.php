@@ -13,17 +13,20 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
+            $table->uuid('uid')->unique();
+            $table->string('first_name');
+            $table->string('last_name');
+            $table->string('phone_number')->unique();
             $table->string('password');
-            $table->rememberToken();
+            $table->string('otp')->nullable();
+            $table->boolean('verified')->default(0);
+            $table->boolean('Status')->default(0);
             $table->timestamps();
         });
 
-        Schema::create('password_reset_tokens', function (Blueprint $table) {
-            $table->string('email')->primary();
-            $table->string('token');
+        Schema::create('user_password_reset_tokens', function (Blueprint $table) {
+            $table->string('token')->primary();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->timestamp('created_at')->nullable();
         });
 
@@ -42,8 +45,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('users');
-        Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
+        Schema::dropIfExists('user_password_reset_tokens');
+        Schema::dropIfExists('users');  // Dropping the entire 'users' table, no need to drop 'uid' separately
     }
 };
