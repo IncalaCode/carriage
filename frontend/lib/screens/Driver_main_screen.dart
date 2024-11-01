@@ -7,7 +7,6 @@ import 'package:latlong2/latlong.dart';
 import 'OrderRequestsPage.dart';
 import 'sidebarProfile.dart';
 import 'sidebarWallet.dart';
-import 'sidebarMylocation.dart';
 import 'sidebarMyOrder.dart';
 import 'sidebarSettings.dart';
 
@@ -124,12 +123,6 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
                       MaterialPageRoute(builder: (context) => WalletPage()),
                     );
                   }),
-                  _buildDrawerItem(FontAwesomeIcons.mapMarkerAlt, 'My Location', context, () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => MyLocationPage()),
-                    );
-                  }),
                   _buildDrawerItem(FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
                     Navigator.push(
                       context,
@@ -191,7 +184,7 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
               label: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.black, Colors.grey.shade700],
+                    colors: [Color(0xFF000000), Color(0xFF9A839E)],
                   ),
                   borderRadius: BorderRadius.circular(30),
                 ),
