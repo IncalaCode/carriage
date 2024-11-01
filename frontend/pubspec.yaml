@@ -32,7 +32,7 @@ dependencies:
   
 
   flutter_dotenv: ^5.0.2
-  http: ^0.13.5
+  # http: ^0.13.5
 
   
 
