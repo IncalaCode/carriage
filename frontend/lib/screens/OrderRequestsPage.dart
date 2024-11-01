@@ -11,13 +11,7 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
     {"name": "Jabez Hap", "initialAddress": "123 Agona St", "status": "unvisited"},
     {"name": "Yabu Des", "initialAddress": "456 Estifanos St", "status": "unvisited"},
     {"name": "Yabets Desalegn", "initialAddress": "789 B.MEdhanialem St", "status": "unvisited"},
-    {"name": "Yabets Desalegn", "initialAddress": "789 B.MEdhanialem St", "status": "unvisited"},
-    {"name": "Abdelrahman Desalegn", "initialAddress": "789 B.MEdhanialem St", "status": "unvisited"},
-    {"name": "Bassem Desalegn", "initialAddress": "789 B.MEdhanialem St", "status": "unvisited"},
-    {"name": "Hussein Desalegn", "initialAddress": "789 B.MEdhanialem St", "status": "unvisited"},
-    {"name": "Muse Desalegn", "initialAddress": "789 B.MEdhanialem St", "status": "unvisited"},
-    {"name": "Youssef Desalegn", "initialAddress": "789 B.MEdhanialem St", "status": "unvisited"},
-    {"name": "Begeta Desalegn", "initialAddress": "789 B.MEdhanialem St", "status": "unvisited"},
+    // Additional entries here...
   ];
 
   void _setPrice(int index, String price) {
@@ -60,15 +54,27 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
             ),
             child: ListTile(
               contentPadding: EdgeInsets.all(16),
+              leading: Icon(FontAwesomeIcons.person, color: const Color.fromARGB(255, 56, 158, 241)),
               title: Text(
                 order['name'],
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
-              subtitle: Text(
-                order['initialAddress'],
-                style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+              subtitle: Row(
+                children: [
+                  Icon(FontAwesomeIcons.mapMarker, color: Colors.grey[700], size: 16),
+                  SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      order['initialAddress'],
+                      style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                    ),
+                  ),
+                ],
               ),
-              trailing: _buildStatusChip(order['status']),
+              trailing: SizedBox(
+                width: 100, // Ensures chip doesn't consume entire width
+                child: _buildStatusChip(order['status']),
+              ),
               onTap: () {
                 _showOrderDetails(context, order, index);
               },
@@ -80,36 +86,43 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
   }
 
   Widget _buildStatusChip(String status) {
-    List<Color> gradientColors;
+    LinearGradient gradient;
+    IconData icon;
     String label;
 
     switch (status) {
       case 'waiting':
-        gradientColors = [Colors.orange, Colors.yellow]; // Gradient for waiting
+        gradient = LinearGradient(colors: [const Color.fromARGB(255, 247, 176, 83), const Color.fromARGB(255, 244, 96, 51)]);
+        icon = FontAwesomeIcons.circleNotch;
         label = 'Waiting';
         break;
       case 'visited':
-        gradientColors = [Colors.green, const Color.fromARGB(255, 152, 201, 95)]; // Gradient for visited
+        gradient = LinearGradient(colors: [Colors.greenAccent, const Color.fromARGB(255, 78, 167, 81)]);
+        icon = FontAwesomeIcons.checkCircle;
         label = 'Visited';
         break;
       default:
-        gradientColors = [Colors.red, const Color.fromARGB(255, 253, 144, 144)]; // Gradient for unvisited
+        gradient = LinearGradient(colors: [const Color.fromARGB(255, 255, 140, 140), const Color.fromARGB(255, 239, 78, 67)]);
+        icon = FontAwesomeIcons.warning;
         label = 'Unvisited';
     }
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: gradientColors,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: Text(
-        label,
-        style: TextStyle(color: Colors.white),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 16),
+          SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(color: Colors.white),
+          ),
+        ],
       ),
     );
   }
@@ -117,48 +130,98 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
   void _showOrderDetails(BuildContext context, Map<String, dynamic> order, int index) {
     String? price;
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Order Details'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Name: ${order['name']}'),
-              Text('Initial Address: ${order['initialAddress']}'),
-              Text('destination: ${order['destination']}'),
-              Text('materialType: ${order['materialType']}'),
-              TextField(
-                decoration: InputDecoration(labelText: 'Enter Price'),
-                keyboardType: TextInputType.number,
-                onChanged: (value) {
-                  price = value;
-                },
-              ),
-            ],
+        return SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Order Details',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                Divider(thickness: 1),
+                _buildDetailTile(
+                  icon: FontAwesomeIcons.person,
+                  title: 'Name',
+                  subtitle: order['name'],
+                ),
+                _buildDetailTile(
+                  icon: FontAwesomeIcons.mapMarker,
+                  title: 'Initial Address',
+                  subtitle: order['initialAddress'],
+                ),
+                _buildDetailTile(
+                  icon: FontAwesomeIcons.mapMarker,
+                  title: 'Destination',
+                  subtitle: order['destination'] ?? 'N/A',
+                ),
+                _buildDetailTile(
+                  icon: FontAwesomeIcons.building,
+                  title: 'Material Type',
+                  subtitle: order['materialType'] ?? 'N/A',
+                ),
+                TextField(
+                  decoration: InputDecoration(
+                    labelText: 'Enter Price',
+                    prefixIcon: Icon(FontAwesomeIcons.dollarSign),
+                  ),
+                  keyboardType: TextInputType.number,
+                  onChanged: (value) {
+                    price = value;
+                  },
+                ),
+                SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    ElevatedButton.icon(
+                      icon: Icon(FontAwesomeIcons.check),
+                      label: Text('Set Price'),
+                      onPressed: () {
+                        if (price?.isNotEmpty ?? false) {
+                          _setPrice(index, price!);
+                          Navigator.pop(context);
+                        }
+                      },
+                    ),
+                    ElevatedButton.icon(
+                      icon: Icon(FontAwesomeIcons.checkCircle),
+                      label: Text('Visited'),
+                      onPressed: () {
+                        _markOrderAsVisited(index);
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                if (price?.isNotEmpty ?? false) {
-                  _setPrice(index, price!);
-                  Navigator.pop(context);
-                }
-              },
-              child: Text('Set Price'),
-            ),
-            TextButton(
-              onPressed: () {
-                _markOrderAsVisited(index);
-                Navigator.pop(context);
-              },
-              child: Text('Visited'),
-            ),
-          ],
         );
       },
+    );
+  }
+
+  Widget _buildDetailTile({required IconData icon, required String title, required String subtitle}) {
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.3), blurRadius: 5, offset: Offset(0, 3))],
+      ),
+      child: ListTile(
+        leading: Icon(icon, color: Colors.black54),
+        title: Text(title, style: TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text(subtitle),
+      ),
     );
   }
 }
