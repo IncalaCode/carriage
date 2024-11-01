@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:io';
@@ -11,7 +12,7 @@ class EditProfilePage extends StatefulWidget {
 class _EditProfilePageState extends State<EditProfilePage> {
   File? _profileImage;
   final _formKey = GlobalKey<FormState>();
-  
+
   // TextEditingControllers for the form fields
   TextEditingController _fullNameController = TextEditingController();
   TextEditingController _emailController = TextEditingController();
@@ -60,9 +61,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 child: _profileImage == null
                     ? CircleAvatar(
                         radius: 50,
+                        backgroundColor: Colors.grey.shade300,
                         child: Icon(
                           FontAwesomeIcons.user,
                           size: 50,
+                          color: Colors.grey.shade700,
                         ),
                       )
                     : CircleAvatar(
@@ -71,7 +74,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       ),
               ),
               SizedBox(height: 20),
-              
+
               // Full Name Input
               TextFormField(
                 controller: _fullNameController,
@@ -88,7 +91,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 },
               ),
               SizedBox(height: 16),
-              
+
               // Email Input
               TextFormField(
                 controller: _emailController,
@@ -108,7 +111,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 },
               ),
               SizedBox(height: 16),
-              
+
               // Phone Number Input
               TextFormField(
                 controller: _phoneController,
@@ -126,7 +129,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 },
               ),
               SizedBox(height: 16),
-              
+
               // Buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -136,13 +139,31 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     onPressed: () {
                       Navigator.pop(context); // Cancel and go back
                     },
-                    child: Text('Cancel'),
-                    style: ElevatedButton.styleFrom(
-                      // primary: Colors.grey, // Grey color for cancel button
+                    child : Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [const Color.fromARGB(255, 0, 0, 0), const Color.fromARGB(255, 154, 131, 158)],
+                        ),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                    
+                    child: Text(
+                      'Cancel',
+                    style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                     ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                    )
                   ),
-                  
-                  // Update Button
+
+                  // Update Button with Gradient
                   ElevatedButton(
                     onPressed: () {
                       if (_formKey.currentState!.validate()) {
@@ -153,7 +174,27 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         Navigator.pop(context);
                       }
                     },
-                    child: Text('Update'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [const Color.fromARGB(255, 0, 0, 0), const Color.fromARGB(255, 154, 131, 158)],
+                        ),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Text(
+                        'Update',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                    ),
                   ),
                 ],
               ),

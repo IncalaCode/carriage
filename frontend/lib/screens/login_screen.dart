@@ -90,7 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
     // this is the back door so when it is finished remove this 
               Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => DriverAppScreen()),
+            MaterialPageRoute(builder: (context) => DriverMainScreen()),
           );
 
     // ------------------------------------------------------------------
@@ -258,7 +258,21 @@ class _LoginScreenState extends State<LoginScreen> {
                     borderRadius: BorderRadius.circular(10.0),
                   ),
                 ),
-                onPressed: _login,
+                onPressed: () {
+                  if (isUserLogin) {
+                    // Redirect to main app screen for users
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => MainAppScreen()),
+                    );
+                  } else {
+                    // Redirect to the driver-specific screen
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => DriverMainScreen()), // Replace with the actual Driver screen
+                    );
+                  }
+                },
                 child: Text("Login", style: TextStyle(color: Colors.white)),
               ),
               SizedBox(height: 20),
