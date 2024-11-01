@@ -31,7 +31,7 @@ class MyOrdersPage extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [const Color.fromARGB(255, 27, 47, 65), const Color.fromARGB(255, 8, 36, 63)],
+          colors: [Color(0xFF000000), Color(0xFF9A839E)],
         ),
         borderRadius: BorderRadius.circular(10),
       ),

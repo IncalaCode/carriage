@@ -1,3 +1,4 @@
+import 'package:My_truck/screens/config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -179,6 +180,62 @@ class _OrderFormState extends State<OrderForm> {
     });
   }
 
+ 
+  Future<void> _submitOrder() async {
+    String from = fromController.text;
+    String destination = destinationController.text;
+    String materialType = materialTypeController.text;
+    String carType = carTypeController.text;
+
+
+    // Sending POST request
+    final url = '${Config.baseUrl }/client/request/send'; // Replace with your API endpoint
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+            "token": getToken(),
+            'from': from,
+            'destination': destination,
+            'material_type': materialType,
+            'car_type': carType,
+            
+          }),
+      );
+
+      if (response.statusCode == 200) {
+        // Handle successful response
+        _showSuccessDialog("Order submitted successfully!");
+      } else {
+        _showErrorDialog("Failed to submit order: ${response.body}");
+      }
+    } catch (e) {
+      _showErrorDialog("Order cant be Set");
+    }
+  }
+
+
+  void _showSuccessDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Success'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -286,18 +343,12 @@ class _OrderFormState extends State<OrderForm> {
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color.fromARGB(255, 0, 0, 0), Color.fromARGB(255, 75, 75, 75)],
+                    colors: [Color(0xFF000000), Color(0xFF9A839E)],
                   ),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: ElevatedButton(
-                  onPressed: () {
-                    String from = fromController.text;
-                    String destination = destinationController.text;
-                    String materialType = materialTypeController.text;
-                    String carType = carTypeController.text;
-                    print('Order submitted: From - $from, Destination - $destination, Material Type - $materialType, Load Type - $loadType, Car Type - $carType');
-                  },
+                  onPressed: _submitOrder, // Call the submit method
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
                     backgroundColor: Colors.transparent,
@@ -320,4 +371,10 @@ class _OrderFormState extends State<OrderForm> {
 
 void main() {
   runApp(MaterialApp(home: OrderForm()));
+}
+
+
+
+String getToken (){
+  return "1";
 }
