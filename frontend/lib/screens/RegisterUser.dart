@@ -68,6 +68,9 @@ class _RegisterUserState extends State<RegisterUser> {
 
                   // First Name Field
                   TextFormField(
+                    keyboardType: TextInputType.name,
+                    textCapitalization: TextCapitalization.words,
+                    autocorrect: false,
                     decoration: InputDecoration(
                       labelText: 'First Name',
                       filled: true,
@@ -93,6 +96,9 @@ class _RegisterUserState extends State<RegisterUser> {
 
                   // Last Name Field
                   TextFormField(
+                    keyboardType: TextInputType.name,
+                    textCapitalization: TextCapitalization.words,
+                    autocorrect: false,
                     decoration: InputDecoration(
                       labelText: 'Last Name',
                       filled: true,

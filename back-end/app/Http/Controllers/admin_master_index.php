@@ -105,4 +105,18 @@ class admin_master_index extends Controller
 
         return response()->json(['success' => false], 500);
     }
+
+
+    public function toggleUserStatus($id, Request $request)
+    {
+        $request->validate(['status' => 'required|boolean']);
+        $user = User::findOrFail($id);
+        $user->status = $request->status;
+
+        if ($user->save()) {
+            return response()->json(['success' => true]);
+        }
+
+        return response()->json(['success' => false], 500);
+    }
 }

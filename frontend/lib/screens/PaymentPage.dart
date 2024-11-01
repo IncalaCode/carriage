@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class PaymentPage extends StatefulWidget {
-  final String chapaPaymentUrl;
+  String chapaPaymentUrl = 'http://checkout.chapa.co/checkout/web/payment/PL-YL2U746UyzJE';
 
   PaymentPage({required this.chapaPaymentUrl});
 
@@ -16,8 +16,7 @@ class _PaymentPageState extends State<PaymentPage> {
   @override
   void initState() {
     super.initState();
-    // This is necessary to render WebView on Android devices
-    WebView.platform = SurfaceAndroidWebView();
+    WebView.platform = SurfaceAndroidWebView(); // For Android compatibility
   }
 
   @override
@@ -33,7 +32,6 @@ class _PaymentPageState extends State<PaymentPage> {
           _controller = controller;
         },
         navigationDelegate: (NavigationRequest request) {
-          // Check if payment is successful or failed
           if (request.url.contains("success")) {
             Navigator.pop(context, "Payment successful!");
           } else if (request.url.contains("failure")) {
