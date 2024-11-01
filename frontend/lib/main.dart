@@ -1,24 +1,53 @@
+import 'package:My_truck/screens/main_app_screen.dart';
 import 'package:flutter/material.dart';
 import 'screens/splash_screen.dart';
-// import 'screens/map_service.dart';
-// import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'screens/login_screen.dart';
+// import 'screens/login_screen.dart'; // Commented out for direct navigation
 import 'screens/PaymentPage.dart';
 
 void main() {
   runApp(MyApp());
 }
 
+Future<String?> getToken() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getString('authToken');
+}
+
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Carriage App',
+      title: 'My Truck',
       theme: ThemeData(
         primarySwatch: Colors.blue,
         fontFamily: 'NotoSans',
       ),
       debugShowCheckedModeBanner: false,
-      home: SplashScreen(), // Show the splash screen first
+      // Directly navigate to SplashScreen for testing; change back to LoginScreen() after testing
+      // home: SplashScreen(),
+
+      //   home: FutureBuilder<String?>(
+      //     future: getToken(),
+      //     builder: (context, snapshot) {
+      //       if (snapshot.connectionState == ConnectionState.waiting) {
+      //         // Display a loading screen while waiting for the token check
+      //         return SplashScreen();
+      //       } else if (snapshot.hasData && snapshot.data != null) {
+      //         // If a token exists, go to MainAppScreen
+      //         return MainAppScreen();
+      //       } else {
+      //         // If no token, go to LoginScreen
+      //         return LoginScreen();
+      //       }
+      //     },
+      //   ),
+      // );
+
+      home: MainAppScreen(),
+      //   // home: LoginScreen(), // Uncomment this line to restore login navigation
     );
   }
 }

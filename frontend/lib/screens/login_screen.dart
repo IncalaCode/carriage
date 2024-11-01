@@ -8,10 +8,18 @@ import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'dart:convert';
 import 'Driver_main_screen.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
   _LoginScreenState createState() => _LoginScreenState();
+}
+
+// code for the token storing
+Future<void> storeToken(String token) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString('authToken', token);
 }
 
 class _LoginScreenState extends State<LoginScreen> {
@@ -111,6 +119,9 @@ class _LoginScreenState extends State<LoginScreen> {
         var responseBody = json.decode(response.body);
         if (responseBody['message'] == 'OTP verified successfully') {
           // Navigate to the main app screen after successful verification
+          String token = responseBody['token']; // assuming token is received
+          await storeToken(token);
+
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => MainAppScreen()),

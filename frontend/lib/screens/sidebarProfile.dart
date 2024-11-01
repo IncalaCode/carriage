@@ -6,6 +6,8 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'sidebarProfileEdit.dart';
 import 'login_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ProfilePage extends StatefulWidget {
   @override
@@ -41,6 +43,12 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             TextButton(
               onPressed: () {
+                Future<void> logout() async {
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.remove('authToken');
+                  // After this, navigate to the login page
+                }
+
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => LoginScreen()),

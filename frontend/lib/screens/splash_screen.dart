@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'login_screen.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SplashScreen extends StatefulWidget {
   @override
   _SplashScreenState createState() => _SplashScreenState();
+}
+
+Future<String?> getToken() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getString('authToken');
 }
 
 class _SplashScreenState extends State<SplashScreen> {
