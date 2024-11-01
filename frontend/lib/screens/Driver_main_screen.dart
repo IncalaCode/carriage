@@ -9,6 +9,7 @@ import 'sidebarMylocation.dart';
 import 'sidebarMyOrder.dart';
 import 'sidebarSettings.dart';
 import './Driver_map/driver_map_component.dart';
+import './Driver_map/driver_hock.dart';
 
 class DriverAppScreen extends StatefulWidget {
   @override
@@ -17,58 +18,111 @@ class DriverAppScreen extends StatefulWidget {
 
 class _DriverAppScreenState extends State<DriverAppScreen> {
   bool isDrawerOpen = false;
+  bool loading = true; // Loading state
   File? _profileImage;
-
-  // A variable to hold the price entered by the driver
   String? _price;
+  String message = ''; // Store the message
+  final DriverHook driverHook = DriverHook();
+  List<Map<String, dynamic>> orderRequests = [];
 
-  // Updated orderRequests to include state for each order
-  List<Map<String, dynamic>> orderRequests = [
-    {"name": "Jabez Hap", "initialAddress": "123 Agona St", "status": "unvisited"},
-    {"name": "Yabu Des", "initialAddress": "456 Estifanos St", "status": "unvisited"},
-    {"name": "Yabets Desalegn", "initialAddress": "789 B.MEdhanialem St", "status": "unvisited"},
-    {"name": "Yabu Des", "initialAddress": "456 Estifanos St", "status": "unvisited"},
-    {"name": "Yabets Desalegn", "initialAddress": "789 B.MEdhanialem St", "status": "unvisited"},
-    {"name": "Jabez Hap", "initialAddress": "123 Agona St", "status": "unvisited"},
-    {"name": "Yabets Desalegn", "initialAddress": "789 B.MEdhanialem St", "status": "unvisited"},
-    {"name": "Jabez Hap", "initialAddress": "123 Agona St", "status": "unvisited"},
-    {"name": "Yabets Desalegn", "initialAddress": "789 B.MEdhanialem St", "status": "unvisited"},
-    {"name": "Yabu Des", "initialAddress": "456 Estifanos St", "status": "unvisited"},
-    {"name": "Yabets Desalegn", "initialAddress": "789 B.MEdhanialem St", "status": "unvisited"},
-  ];
-
-  // Function to pick an image from the gallery
-  Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        _profileImage = File(pickedFile.path); // Update profile image after picking
-      });
-    }
+  @override
+  void initState() {
+    super.initState();
+    _fetchOrders(); // Fetch orders on init
   }
 
-  // Function to show the orders list
-  void _showOrdersList() {
-    showModalBottomSheet(
+  void _fetchOrders() async {
+    setState(() => loading = true); // Start loading
+    driverHook.startPolling();
+    driverHook.ordersStream.listen((data) {
+      setState(() {
+        orderRequests = List<Map<String, dynamic>>.from(data['orders']);
+        message = data['message'];
+        loading = false; // Stop loading when orders are fetched
+      });
+    });
+  }
+
+void _showOrdersList() {
+  showModalBottomSheet(
+    context: context,
+    builder: (BuildContext context) {
+      return OrdersList(
+        orderRequests: orderRequests,
+        onOrderTap: _setPrice,
+        loading: loading,
+        showOrderDetails: _showOrderDetails,
+        message: message, // Pass the message
+      );
+    },
+  );
+}
+
+
+  void _showOrderDetails(BuildContext context, Map<String, dynamic> order, int index) {
+    String? price;
+    showDialog(
       context: context,
       builder: (BuildContext context) {
-        return OrdersList(orderRequests: orderRequests, onOrderTap: _setPrice);
+        return AlertDialog(
+          title: Text('Order Details'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Name: ${order['name'] ?? 'Unknown'}'),
+              Text('Address: ${order['initialAddress'] ?? 'No Address'}'),
+              SizedBox(height: 20),
+              TextField(
+                decoration: InputDecoration(labelText: 'Enter Price'),
+                keyboardType: TextInputType.number,
+                onChanged: (value) {
+                  price = value;
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                if (price != null && price!.isNotEmpty) {
+                  _setPrice(index, price!);
+                  Navigator.of(context).pop();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Please enter a price')),
+                  );
+                }
+              },
+              child: Text('Submit'),
+            ),
+          ],
+        );
       },
     );
   }
 
-  void _setPrice(int index, String price) {
-    setState(() {
-      orderRequests[index]['status'] = 'waithing'; // Update the status to watched
-      _price = price; // Store the price if needed for further logic
-    });
-    Navigator.of(context).pop(); // Close the dialog
+  @override
+  void dispose() {
+    driverHook.dispose();
+    super.dispose();
   }
 
-  void _markOrderAsVisited(int index) {
+  Future<void> _pickImage() async {
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _profileImage = File(pickedFile.path);
+      });
+    }
+  }
+
+  void _setPrice(int index, String price) {
     setState(() {
-      orderRequests[index]['status'] = 'visited'; // Update the status to visited
+      orderRequests[index]['status'] = 'waiting';
+      _price = price;
     });
+    Navigator.of(context).pop();
   }
 
   @override
@@ -99,9 +153,7 @@ class _DriverAppScreenState extends State<DriverAppScreen> {
               builder: (context) => IconButton(
                 icon: Icon(FontAwesomeIcons.bars, color: Colors.white),
                 onPressed: () {
-                  setState(() {
-                    isDrawerOpen = true;
-                  });
+                  setState(() => isDrawerOpen = true);
                   Scaffold.of(context).openDrawer();
                 },
               ),
@@ -155,34 +207,19 @@ class _DriverAppScreenState extends State<DriverAppScreen> {
               child: ListView(
                 children: [
                   _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context, () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => ProfilePage()),
-                    );
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePage()));
                   }),
                   _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context, () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => WalletPage()),
-                    );
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => WalletPage()));
                   }),
                   _buildDrawerItem(FontAwesomeIcons.mapMarkerAlt, 'My Location', context, () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => MyLocationPage()),
-                    );
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => MyLocationPage()));
                   }),
                   _buildDrawerItem(FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => MyOrdersPage()),
-                    );
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => MyOrdersPage()));
                   }),
                   _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context, () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => SettingsPage()),
-                    );
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsPage()));
                   }),
                 ],
               ),
@@ -191,34 +228,30 @@ class _DriverAppScreenState extends State<DriverAppScreen> {
         ),
       ),
       body: Stack(
-  children: [
-    DriverMapComponent(),
-    Positioned(
-      bottom: 20,
-      left: 20,
-      right: 20,
-      child: SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: _showOrdersList,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.black, // Background color (fixed key name)
-            padding: EdgeInsets.symmetric(vertical: 16), // Adjust padding for height
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10), // Rounded corners
+        children: [
+          DriverMapComponent(),
+          Positioned(
+            bottom: 20,
+            right: 20,
+            child: FloatingActionButton.extended(
+              onPressed: _showOrdersList,
+              backgroundColor: Colors.transparent,
+              icon: Icon(FontAwesomeIcons.bell, color: Colors.white),
+              label: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [const Color.fromARGB(255, 0, 0, 0), const Color.fromARGB(255, 75, 75, 75)],
+                  ),
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(
+                  'Requests',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
             ),
           ),
-          child: Text(
-            'Requests',
-            style: TextStyle(
-              color: Colors.white, // Text color
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
-          ),
-        ),
-      ),
-    ),
         ],
       ),
     );
@@ -240,100 +273,101 @@ class _DriverAppScreenState extends State<DriverAppScreen> {
     );
   }
 }
-
-// Orders List Widget
 class OrdersList extends StatelessWidget {
-  final List<Map<String, dynamic>> orderRequests; // Changed to dynamic to hold status
-  final Function(int, String) onOrderTap; // Added function to handle setting price
+  final List<Map<String, dynamic>> orderRequests;
+  final Function(int, String) onOrderTap;
+  final bool loading;
+  final Function(BuildContext, Map<String, dynamic>, int) showOrderDetails; // New parameter
+  final String message; // Message from the backend
 
-  OrdersList({required this.orderRequests, required this.onOrderTap});
+  OrdersList({
+    required this.orderRequests,
+    required this.onOrderTap,
+    required this.loading,
+    required this.showOrderDetails,
+    required this.message,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(16.0),
-      height: 600,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Order Requests',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+    // Container to hold loading indicator or message at the top
+    return Column(
+      children: [
+      if (loading) ...[
+  // Loading indicator when polling
+  Center(
+    child: Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          
+          children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              message.isNotEmpty ? message : 'Searching for Requests...',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
           ),
-          SizedBox(height: 20),
+
+            // Padding for the CircularProgressIndicator
+            Padding(
+                padding: const EdgeInsets.all(8.0), // Padding between text and loading indicator
+              child: SizedBox(
+                width: 20, // Width of the CircularProgressIndicator
+                height: 20, // Height of the CircularProgressIndicator
+                child: CircularProgressIndicator(strokeWidth: 2), // Reduced stroke width
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 10), // Space below the row
+        Divider(), // Line to separate loading/message from the order list
+      ],
+    ),
+  ),
+] else if (message.isNotEmpty) ...[
+          // If there's a message from the backend
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              message,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          Divider(), // Line to separate message from the order list
+        ],
+
+        // If there are orders
+        if (orderRequests.isNotEmpty) ...[
           Expanded(
             child: ListView.builder(
               itemCount: orderRequests.length,
               itemBuilder: (context, index) {
                 final order = orderRequests[index];
                 return ListTile(
-                  title: Text(order['name']!),
-                  subtitle: Text(order['initialAddress']!),
-                  trailing: Text(order['status']!), // Display the order status
+                  title: Text(order['name'] ?? 'Unknown'),
+                  subtitle: Text(order['initialAddress'] ?? 'No Address'),
+                  trailing: Text(order['status'] ?? 'Unknown'),
                   onTap: () {
-                    _showOrderDetails(context, order, index);
+                    showOrderDetails(context, order, index); // Use the callback
                   },
                 );
               },
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  void _showOrderDetails(BuildContext context, Map<String, dynamic> order, int index) {
-    String? price;
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Order Details'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Name: ${order['name']}'),
-              Text('Initial Address: ${order['initialAddress']}'),
-              Text('destination: ${order['destination']}'),
-              Text('Material Type: ${order['materialType']}'),
-              Text('Status: ${order['status']}'), // Show current status
-              SizedBox(height: 20),
-              TextField(
-                decoration: InputDecoration(labelText: 'Enter Price'),
-                keyboardType: TextInputType.number,
-                onChanged: (value) {
-                  price = value;
-                },
-              ),
-            ],
+        ] else ...[
+          // If no orders are available
+          Center(
+            child: Text(
+              'No Requests Available',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                if (price != null && price!.isNotEmpty) {
-                  onOrderTap(index, price!); // Call the function to set the price and update the order
-                  Navigator.of(context).pop();
-                } else {
-                  // Handle case when price is not entered
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Please enter a price')),
-                  );
-                }
-              },
-              child: Text('Submit'),
-            ),
-            TextButton(
-              onPressed: () {
-                // Mark order as visited
-                Navigator.of(context).pop();
-              },
-              child: Text('Mark as Visited'),
-            ),
-          ],
-        );
-      },
+        ],
+      ],
     );
   }
 }

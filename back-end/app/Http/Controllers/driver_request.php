@@ -47,7 +47,7 @@ class driver_request extends Controller
             driverRequest::create([
                 'driver_id' => $this->user->id,
                 'longitude' => $validated['longitude'],
-                'latitude'  => $validated['longitude'],
+                'latitude'  => $validated['latitude'],
                 'car_type'  => $this->user->car_type,
                 'status'    => 'pending',
             ]);

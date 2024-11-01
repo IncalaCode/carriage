@@ -133,25 +133,6 @@ class _DriverMapComponentState extends State<DriverMapComponent> {
                 ),
             ],
           ),
-          Positioned(
-            right: 10,
-            bottom: 100,
-            child: Column(
-              children: [
-                FloatingActionButton(
-                  heroTag: "zoomIn",
-                  onPressed: _zoomIn,
-                  child: Icon(FontAwesomeIcons.plus),
-                ),
-                SizedBox(height: 10),
-                FloatingActionButton(
-                  heroTag: "zoomOut",
-                  onPressed: _zoomOut,
-                  child: Icon(FontAwesomeIcons.minus),
-                ),
-              ],
-            ),
-          ),
           if (_isLoading)
             Center(
               child: Container(
