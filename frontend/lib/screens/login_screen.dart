@@ -135,7 +135,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     // Redirect to the driver-specific screen
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (context) => DriverAppScreen()), // Replace with the actual Driver screen
+                      MaterialPageRoute(builder: (context) => DriverMainScreen()), // Replace with the actual Driver screen
                     );
                   }
                 },

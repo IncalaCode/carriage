@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class OrderForm extends StatefulWidget {
   @override
@@ -32,7 +33,6 @@ class _OrderFormState extends State<OrderForm> {
   }
 
   Future<List<String>> getSuggestions(String query) async {
-    // Replace this with a real location API.
     return ["Addis Ababa", "Hawassa", "Bahir Dar", "Mekelle", "Gondar"]
         .where((location) => location.toLowerCase().contains(query.toLowerCase()))
         .toList();
@@ -45,7 +45,7 @@ class _OrderFormState extends State<OrderForm> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text('Select Car Type'),
+              title: Text('Select Car Type', style: TextStyle(fontWeight: FontWeight.bold)),
               content: Container(
                 height: 300,
                 width: double.maxFinite,
@@ -62,7 +62,18 @@ class _OrderFormState extends State<OrderForm> {
                         });
                       },
                       child: Container(
-                        padding: EdgeInsets.symmetric(vertical: 10),
+                        padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          color: isSelected ? Colors.grey.shade300 : Colors.white,
+                          boxShadow: [
+                            if (isSelected)
+                              BoxShadow(
+                                color: Colors.grey.shade600,
+                                blurRadius: 5,
+                              )
+                          ],
+                        ),
                         child: Row(
                           children: [
                             Image.asset(
@@ -72,15 +83,17 @@ class _OrderFormState extends State<OrderForm> {
                               fit: BoxFit.cover,
                             ),
                             SizedBox(width: 10),
-                            Expanded(child: Text(car['name']!)),
-                            SizedBox(width: 10),
+                            Expanded(
+                                child: Text(
+                              car['name']!,
+                              style: TextStyle(fontWeight: FontWeight.w500),
+                            )),
                             CircleAvatar(
                               radius: 15,
-                              backgroundColor: Colors.transparent,
-                              child: CircleAvatar(
-                                radius: 10,
-                                backgroundColor: isSelected ? Colors.blue : Colors.transparent,
-                              ),
+                              backgroundColor: isSelected ? Colors.black : Colors.grey.shade300,
+                              child: isSelected
+                                  ? Icon(FontAwesomeIcons.check, size: 14, color: Colors.white)
+                                  : null,
                             ),
                           ],
                         ),
@@ -94,7 +107,7 @@ class _OrderFormState extends State<OrderForm> {
                   onPressed: () {
                     Navigator.of(context).pop(selectedCarType);
                   },
-                  child: Text('Select'),
+                  child: Text('Select', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ],
             );
@@ -114,7 +127,6 @@ class _OrderFormState extends State<OrderForm> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Order Form'),
         backgroundColor: Colors.transparent,
         flexibleSpace: Container(
           decoration: BoxDecoration(
@@ -129,71 +141,110 @@ class _OrderFormState extends State<OrderForm> {
         centerTitle: true,
       ),
       body: Container(
-        padding: EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(20.0),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.white, Colors.grey.shade200],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'Order Form',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
+              Center(
+                child: Text(
+                  'Order Form',
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey.shade800,
+                  ),
+                ),
               ),
               SizedBox(height: 20),
               TypeAheadFormField(
                 textFieldConfiguration: TextFieldConfiguration(
                   controller: fromController,
-                  decoration: InputDecoration(labelText: 'From (መነሻ)'),
+                  decoration: InputDecoration(
+                    labelText: 'From (መነሻ)',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
                 ),
                 suggestionsCallback: getSuggestions,
                 itemBuilder: (context, suggestion) {
-                  return ListTile(
-                    title: Text(suggestion),
-                  );
+                  return ListTile(title: Text(suggestion));
                 },
                 onSuggestionSelected: (suggestion) {
                   fromController.text = suggestion;
                 },
               ),
+              SizedBox(height: 10),
               TypeAheadFormField(
                 textFieldConfiguration: TextFieldConfiguration(
                   controller: destinationController,
-                  decoration: InputDecoration(labelText: 'Destination (መድረሻ)'),
+                  decoration: InputDecoration(
+                    labelText: 'Destination (መድረሻ)',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
                 ),
                 suggestionsCallback: getSuggestions,
                 itemBuilder: (context, suggestion) {
-                  return ListTile(
-                    title: Text(suggestion),
-                  );
+                  return ListTile(title: Text(suggestion));
                 },
                 onSuggestionSelected: (suggestion) {
                   destinationController.text = suggestion;
                 },
               ),
+              SizedBox(height: 10),
               TextField(
                 controller: materialTypeController,
-                decoration: InputDecoration(labelText: 'Material Type (የሚጓጓዘው እቃ አይነት)'),
+                decoration: InputDecoration(
+                  labelText: 'Material Type (የሚጓጓዘው እቃ አይነት)',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                ),
               ),
+              SizedBox(height: 10),
               GestureDetector(
                 onTap: _selectCarType,
                 child: AbsorbPointer(
                   child: TextField(
                     controller: carTypeController,
-                    decoration: InputDecoration(labelText: 'Car Type'),
+                    decoration: InputDecoration(
+                      labelText: 'Car Type',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
                   ),
                 ),
               ),
               SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  String from = fromController.text;
-                  String destination = destinationController.text;
-                  String materialType = materialTypeController.text;
-                  String carType = carTypeController.text;
-                  print(
-                      'Order submitted: From - $from, Destination - $destination, Material Type - $materialType, Load Type - $loadType, Car Type - $carType');
-                },
-                child: Text('Request'),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color.fromARGB(255, 0, 0, 0), Color.fromARGB(255, 75, 75, 75)],
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: ElevatedButton(
+                  onPressed: () {
+                    String from = fromController.text;
+                    String destination = destinationController.text;
+                    String materialType = materialTypeController.text;
+                    String carType = carTypeController.text;
+                    print('Order submitted: From - $from, Destination - $destination, Material Type - $materialType, Load Type - $loadType, Car Type - $carType');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: Text(
+                    'Request',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                ),
               ),
             ],
           ),
@@ -204,7 +255,5 @@ class _OrderFormState extends State<OrderForm> {
 }
 
 void main() {
-  runApp(MaterialApp(
-    home: OrderForm(),
-  ));
+  runApp(MaterialApp(home: OrderForm()));
 }
