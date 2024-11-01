@@ -7,7 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Wallet extends Model
 {
-    protected $fillable = ['user_id', 'balance'];
+    protected $table = 'wallets';
+    protected $fillable = ['user_id', 'balance', 'driver_id'];
 
     public function user()
     {
@@ -17,5 +18,9 @@ class Wallet extends Model
     public function transactions()
     {
         return $this->hasMany(Transaction::class);
+    }
+    public function driver()
+    {
+        return $this->belongsTo(Driver::class);
     }
 }

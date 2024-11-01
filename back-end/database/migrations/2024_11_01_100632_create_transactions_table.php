@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('wallet_id')->constrained()->onDelete('cascade'); // Foreign key to Wallet
+            $table->foreignId('wallet_id')->default(0)->constrained()->onDelete('cascade'); // Default to 0
             $table->enum('type', ['pending', 'deposit', 'withdrawal'])->default('pending'); // Type of transaction
             $table->decimal('amount', 10, 2);
             $table->text('description')->nullable();

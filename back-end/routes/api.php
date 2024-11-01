@@ -71,7 +71,7 @@ Route::post('/client/request/track', [client_request::class, 'trackDriverLocatio
 Route::post('/client/request/complete', [client_request::class, 'completeRide']); // Mark the ride as completed
 
 Route::post('/payment/initiate', [PaymentController::class, 'initiatePayment']);
-Route::get('/payment/callback', [PaymentController::class, 'paymentCallback']);
+Route::get('/payment/callback', [PaymentController::class, 'paymentCallback'])->name('payment.callback');
 Route::post('/driver/withdraw', [PaymentController::class, 'withdrawFunds']);
 
 Route::post('/client/order/initiate-payment', [ClientOrderController::class, 'initiateOrderPayment']);

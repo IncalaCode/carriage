@@ -27,7 +27,7 @@ class ClientOrderController extends Controller
     {
         $amount = 1500; // ETB
         $txRef = uniqid('order_');
-        $userId = $request->user()->id;
+        $userId = $this->user->id;
 
         $data = [
             'amount' => $amount,
@@ -64,7 +64,7 @@ class ClientOrderController extends Controller
     {
         $txRef = $request->query('tx_ref');
 
-        $response = Http::withToken(env('CHAPA_API_KEY'))
+        $response = Http::withToken(env('CHAPA_SECRET_KEY'))
             ->get("https://api.chapa.co/v1/transaction/verify/$txRef");
 
         if ($response->successful() && $response['data']['status'] === 'success') {

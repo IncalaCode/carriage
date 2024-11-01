@@ -77,6 +77,19 @@ class Driver extends Authenticatable
             $driver->uid = Str::uuid(); // Automatically generate a UUID for new drivers
         });
     }
+    protected static function booted()
+    {
+        static::created(function ($driver) {
+            Wallet::create([
+                'driver_id' => $driver->id,
+                'balance' => 0, // Initialize balance
+            ]);
+        });
+    }
+    public function wallet()
+    {
+        return $this->hasOne(Wallet::class); // Adjust this if your wallet relation is different
+    }
 }
 
 namespace App\Models;

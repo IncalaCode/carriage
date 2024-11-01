@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('wallets', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade'); // Foreign key to User or Driver
-            $table->decimal('balance', 10, 2)->default(0); // Wallet balance
+            $table->foreignId('driver_id')->constrained()->onDelete('cascade'); // Foreign key linking to the drivers table
+            $table->decimal('balance', 10, 2)->default(0);
             $table->timestamps();
         });
     }
