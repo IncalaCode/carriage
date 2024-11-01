@@ -7,6 +7,11 @@ use App\Http\Controllers\DriverController;
 
 use App\Http\Controllers\driver_request;
 use App\Http\Controllers\client_request;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\ClientOrderController;
+use App\Http\Controllers\DriverRequestController;
+use App\Http\Controllers\WalletController;
+
 
 
 
@@ -64,3 +69,21 @@ Route::post('/client/request/cancel', [client_request::class, 'cancelRequest']);
 Route::post('/client/request/cancel-locked', [client_request::class, 'cancelLockedRequest']); // Cancel locked ride request
 Route::post('/client/request/track', [client_request::class, 'trackDriverLocation']); // Track driver's location
 Route::post('/client/request/complete', [client_request::class, 'completeRide']); // Mark the ride as completed
+
+Route::post('/payment/initiate', [PaymentController::class, 'initiatePayment']);
+Route::get('/payment/callback', [PaymentController::class, 'paymentCallback']);
+Route::post('/driver/withdraw', [PaymentController::class, 'withdrawFunds']);
+
+Route::post('/client/order/initiate-payment', [ClientOrderController::class, 'initiateOrderPayment']);
+Route::get('/client/order/confirm-payment', [ClientOrderController::class, 'confirmOrderPayment']);
+
+Route::post('/driver/request/initiate-payment', [DriverRequestController::class, 'initiateRequestPayment']);
+Route::get('/driver/request/confirm-payment', [DriverRequestController::class, 'confirmRequestPayment']);
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/wallet/balance', [WalletController::class, 'getBalance']);
+    Route::post('/wallet/deposit', [WalletController::class, 'deposit']);
+    Route::post('/wallet/withdraw', [WalletController::class, 'withdraw']);
+    Route::get('/wallet/transactions', [WalletController::class, 'transactionHistory']);
+});
