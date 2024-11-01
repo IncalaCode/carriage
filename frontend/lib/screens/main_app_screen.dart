@@ -162,7 +162,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
         children: [
           FlutterMap(
             options: MapOptions(
-              center: LatLng(9.145, 40.4897),
+              center: LatLng(9.005401, 38.763611),
               zoom: 6.0,
             ),
             children: [
@@ -175,10 +175,10 @@ class _MainAppScreenState extends State<MainAppScreen> {
                   Marker(
                     width: 80.0,
                     height: 80.0,
-                    point: LatLng(9.145, 40.4897),
+                    point: LatLng(9.005401, 38.763611),
                     builder: (ctx) => Icon(
                       FontAwesomeIcons.mapMarkerAlt,
-                      color: Colors.blue,
+                      color: const Color.fromARGB(255, 0, 0, 0),
                       size: 40.0,
                     ),
                   ),
@@ -196,7 +196,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
               label: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.blueAccent, Colors.cyan],
+                    colors: [const Color.fromARGB(255, 0, 0, 0), const Color.fromARGB(255, 75, 75, 75)],
                   ),
                   borderRadius: BorderRadius.circular(30),
                 ),
