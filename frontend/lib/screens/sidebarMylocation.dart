@@ -22,17 +22,26 @@ class MyLocationPage extends StatelessWidget {
             SizedBox(height: 20),
             Text(
               'Your Current Location',
-              style: TextStyle(fontSize: 18),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 10),
             Text(
               'Latitude: 9.145, Longitude: 40.4897', // Example coordinates, replace with dynamic data
-              style: TextStyle(fontSize: 16),
+              style: TextStyle(fontSize: 16, color: Colors.grey[700]),
             ),
             Spacer(),
             ElevatedButton.icon(
-              icon: FaIcon(FontAwesomeIcons.sync),
+              icon: FaIcon(FontAwesomeIcons.sync, color: Colors.white),
               label: Text('Update Location'),
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                backgroundColor: const Color.fromARGB(255, 0, 0, 0), // Background color (single color)
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                foregroundColor: Colors.white, // Text and icon color
+              ),
               onPressed: () {
                 // Call to get new location
               },

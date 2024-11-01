@@ -7,6 +7,7 @@ import 'package:My_truck/screens/main_app_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'dart:convert';
+import 'Driver_main_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -247,7 +248,21 @@ class _LoginScreenState extends State<LoginScreen> {
                     borderRadius: BorderRadius.circular(10.0),
                   ),
                 ),
-                onPressed: _login,
+                onPressed: () {
+                  if (isUserLogin) {
+                    // Redirect to main app screen for users
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => MainAppScreen()),
+                    );
+                  } else {
+                    // Redirect to the driver-specific screen
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => DriverMainScreen()), // Replace with the actual Driver screen
+                    );
+                  }
+                },
                 child: Text("Login", style: TextStyle(color: Colors.white)),
               ),
               SizedBox(height: 20),

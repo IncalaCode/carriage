@@ -60,9 +60,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 child: _profileImage == null
                     ? CircleAvatar(
                         radius: 50,
+                        backgroundColor: Colors.grey.shade300,
                         child: Icon(
                           FontAwesomeIcons.user,
                           size: 50,
+                          color: Colors.grey.shade700,
                         ),
                       )
                     : CircleAvatar(
@@ -133,16 +135,35 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 children: [
                   // Cancel Button
                   ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context); // Cancel and go back
-                    },
-                    child: Text('Cancel'),
-                    style: ElevatedButton.styleFrom(
-                        // primary: Colors.grey, // Grey color for cancel button
+                      onPressed: () {
+                        Navigator.pop(context); // Cancel and go back
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              const Color.fromARGB(255, 0, 0, 0),
+                              const Color.fromARGB(255, 154, 131, 158)
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(5),
                         ),
-                  ),
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                      )),
 
-                  // Update Button
+                  // Update Button with Gradient
                   ElevatedButton(
                     onPressed: () {
                       if (_formKey.currentState!.validate()) {
@@ -153,7 +174,30 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         Navigator.pop(context);
                       }
                     },
-                    child: Text('Update'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            const Color.fromARGB(255, 0, 0, 0),
+                            const Color.fromARGB(255, 154, 131, 158)
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Text(
+                        'Update',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                    ),
                   ),
                 ],
               ),

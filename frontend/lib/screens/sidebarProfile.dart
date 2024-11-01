@@ -1,10 +1,12 @@
+// Import relevant packages
+
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'dart:io'; // For file handling (image upload)
-import 'package:image_picker/image_picker.dart'; // For image picking
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'sidebarProfileEdit.dart';
+import 'login_screen.dart';
 
-// Edit profile page
 class ProfilePage extends StatefulWidget {
   @override
   _ProfilePageState createState() => _ProfilePageState();
@@ -13,15 +15,67 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   File? _profileImage;
 
-  // Function to pick an image from the gallery
   Future<void> _pickImage() async {
     final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
 
+    final pickedFile = await ImagePicker().getImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _profileImage = File(pickedFile.path);
       });
     }
+  }
+
+  void _showLogoutConfirmation() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Confirm Logout'),
+          content: Text('Are you sure you want to logout?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => LoginScreen()),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Color(0xFF000000),
+                      Color(0xFF9A839E)
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: Text(
+                  'Logout',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.zero,
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -31,7 +85,7 @@ class _ProfilePageState extends State<ProfilePage> {
         leading: IconButton(
           icon: FaIcon(FontAwesomeIcons.arrowLeft),
           onPressed: () {
-            Navigator.pop(context); // Back functionality
+            Navigator.pop(context);
           },
         ),
         title: Text('Profile'),
@@ -52,77 +106,99 @@ class _ProfilePageState extends State<ProfilePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            // Profile Image
             GestureDetector(
-              onTap: _pickImage, // Tap to upload image
+              onTap: _pickImage,
               child: _profileImage == null
                   ? CircleAvatar(
                       radius: 50,
                       child: Icon(
                         FontAwesomeIcons.user,
                         size: 50,
+                        color: const Color.fromARGB(255, 52, 52, 52),
                       ),
                     )
                   : Container(
-                      width: double.infinity, // Full width of the screen
-                      height: MediaQuery.of(context).size.height * 0.4, // Half of the screen height
+                      width: double.infinity,
+                      height: MediaQuery.of(context).size.height * 0.4,
                       decoration: BoxDecoration(
                         image: DecorationImage(
                           image: FileImage(_profileImage!),
-                          fit: BoxFit.cover, // Make image cover the entire half-screen
+                          fit: BoxFit.cover,
                         ),
                       ),
                     ),
             ),
             SizedBox(height: 20),
-
-            // Full Name
-            Row(
-              children: [
-                FaIcon(FontAwesomeIcons.user, size: 20, color: Colors.grey),
-                SizedBox(width: 10),
-                Text(
-                  'Jabez Hap',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            SizedBox(height: 8),
-
-            // Email
-            Row(
-              children: [
-                FaIcon(FontAwesomeIcons.envelope, size: 20, color: Colors.grey),
-                SizedBox(width: 10),
-                Text(
-                  'Jabez@gmail.com',
-                  style: TextStyle(fontSize: 18, color: Colors.grey),
-                ),
-              ],
-            ),
-            SizedBox(height: 8),
-
-            // Phone Number
-            Row(
-              children: [
-                FaIcon(FontAwesomeIcons.phone, size: 20, color: Colors.grey),
-                SizedBox(width: 10),
-                Text(
-                  '+251 963 488 972',
-                  style: TextStyle(fontSize: 18, color: Colors.grey),
-                ),
-              ],
+            Center(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      FaIcon(FontAwesomeIcons.user, size: 20, color: Colors.grey),
+                      SizedBox(width: 10),
+                      Text(
+                        'Jabez Hap',
+                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      FaIcon(FontAwesomeIcons.envelope, size: 20, color: Colors.grey),
+                      SizedBox(width: 10),
+                      Text(
+                        'Jabez@gmail.com',
+                        style: TextStyle(fontSize: 18, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      FaIcon(FontAwesomeIcons.phone, size: 20, color: Colors.grey),
+                      SizedBox(width: 10),
+                      Text(
+                        '+251 963 488 972',
+                        style: TextStyle(fontSize: 18, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
             Spacer(),
-
-            // Logout Button
-            ElevatedButton.icon(
-              icon: FaIcon(FontAwesomeIcons.signOutAlt),
-              label: Text('Logout'),
-              onPressed: () {
-                // Navigate to Login page after logout
-                Navigator.pushReplacementNamed(context, 'LoginScreen');
-              },
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color(0xFF000000),
+                    Color(0xFF9A839E)
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: ElevatedButton.icon(
+                icon: FaIcon(FontAwesomeIcons.signOutAlt, color: Colors.white),
+                label: Text(
+                  'Logout',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                onPressed: _showLogoutConfirmation,
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 30),
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                ),
+              ),
             ),
           ],
         ),
