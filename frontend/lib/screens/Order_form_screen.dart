@@ -222,7 +222,7 @@ class _OrderFormState extends State<OrderForm> {
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color.fromARGB(255, 0, 0, 0), Color.fromARGB(255, 75, 75, 75)],
+                    colors: [Color(0xFF000000), Color(0xFF9A839E)],
                   ),
                   borderRadius: BorderRadius.circular(10),
                 ),

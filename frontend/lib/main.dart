@@ -29,57 +29,58 @@ class MyApp extends StatelessWidget {
       // Directly navigate to SplashScreen for testing; change back to LoginScreen() after testing
       // home: SplashScreen(),
 
-      //   home: FutureBuilder<String?>(
-      //     future: getToken(),
-      //     builder: (context, snapshot) {
-      //       if (snapshot.connectionState == ConnectionState.waiting) {
-      //         // Display a loading screen while waiting for the token check
-      //         return SplashScreen();
-      //       } else if (snapshot.hasData && snapshot.data != null) {
-      //         // If a token exists, go to MainAppScreen
-      //         return MainAppScreen();
-      //       } else {
-      //         // If no token, go to LoginScreen
-      //         return LoginScreen();
-      //       }
-      //     },
-      //   ),
-      // );
-
-      home: MainAppScreen(),
-      //   // home: LoginScreen(), // Uncomment this line to restore login navigation
+      home: FutureBuilder<String?>(
+        future: getToken(),
+        builder: (context, tokenSnapshot) {
+          if (tokenSnapshot.connectionState == ConnectionState.waiting) {
+            // Display a loading indicator while waiting for the future to complete
+            return Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          } else if (tokenSnapshot.hasData && tokenSnapshot.data != null) {
+            // If a token exists, go to MainAppScreen
+            return MainAppScreen();
+          } else {
+            // If no token, go to LoginScreen
+            return LoginScreen();
+          }
+        },
+      ),
     );
+
+    //      home: MainAppScreen(),
+    //      home: LoginScreen(), // Uncomment this line to restore login navigation
   }
 }
 
 // Function to initiate user payment
-void initiateUserPayment(BuildContext context) {
-  final chapaUserPaymentUrl = 'https://api.chapa.co/v1/user-payment-url'; // Replace with actual Chapa URL
+// void initiateUserPayment(BuildContext context) {
+//   final chapaUserPaymentUrl = 'https://api.chapa.co/v1/user-payment-url'; // Replace with actual Chapa URL
 
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => PaymentPage(chapaPaymentUrl: chapaUserPaymentUrl),
-    ),
-  ).then((result) {
-    if (result != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result)));
-    }
-  });
-}
+//   Navigator.push(
+//     context,
+//     MaterialPageRoute(
+//       builder: (context) => PaymentPage(chapaPaymentUrl: chapaUserPaymentUrl),
+//     ),
+//   ).then((result) {
+//     if (result != null) {
+//       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result)));
+//     }
+//   });
+// }
 
-// Function to initiate driver payment
-void initiateDriverPayment(BuildContext context) {
-  final chapaDriverPaymentUrl = 'https://api.chapa.co/v1/driver-payment-url'; // Replace with actual Chapa URL
+// // Function to initiate driver payment
+// void initiateDriverPayment(BuildContext context) {
+//   final chapaDriverPaymentUrl = 'https://api.chapa.co/v1/driver-payment-url'; // Replace with actual Chapa URL
 
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => PaymentPage(chapaPaymentUrl: chapaDriverPaymentUrl),
-    ),
-  ).then((result) {
-    if (result != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result)));
-    }
-  });
-}
+//   Navigator.push(
+//     context,
+//     MaterialPageRoute(
+//       builder: (context) => PaymentPage(chapaPaymentUrl: chapaDriverPaymentUrl),
+//     ),
+//   ).then((result) {
+//     if (result != null) {
+//       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result)));
+//     }
+//   });
+// }
