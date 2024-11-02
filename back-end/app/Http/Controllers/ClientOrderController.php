@@ -23,6 +23,7 @@ class ClientOrderController extends Controller
         }
     }
 
+
     public function initiateOrderPayment(Request $request)
     {
         $amount = 1500; // ETB
@@ -39,7 +40,8 @@ class ClientOrderController extends Controller
             ],
         ];
 
-        $response = Http::withToken(env('CHAPA_API_KEY'))
+        $response = Http::withToken(env('CHAPA_SECRET_KEY'))
+            ->timeout(60)
             ->post('https://api.chapa.co/v1/transaction/initialize', $data);
 
         if ($response->successful()) {
