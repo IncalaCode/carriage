@@ -9,7 +9,8 @@ class DriverHook {
       StreamController.broadcast();
   bool isLocked = false;
 
-  Stream<Map<String, dynamic>> get ordersStream => _ordersStreamController.stream;
+  Stream<Map<String, dynamic>> get ordersStream =>
+      _ordersStreamController.stream;
 
   void startPolling() {
     int token = getToken();
@@ -24,10 +25,6 @@ class DriverHook {
       try {
         // Get location or wait until available
         Position position = await _getCurrentLocation();
-        if (position == null) {
-          print("Waiting for location...");
-          return; // Skip request if location is not found
-        }
 
         // Prepare latitude and longitude for request
         double latitude = position.latitude;
@@ -48,7 +45,8 @@ class DriverHook {
         if (response.statusCode == 200) {
           Map<String, dynamic> responseData = jsonDecode(response.body);
 
-          if (responseData.containsKey("message") && responseData.containsKey("0")) {
+          if (responseData.containsKey("message") &&
+              responseData.containsKey("0")) {
             List<Map<String, dynamic>> orders = [];
 
             responseData.forEach((key, value) {
@@ -101,7 +99,7 @@ class DriverHook {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
         return Future.error('Location permissions are denied.');
-      } 
+      }
     }
 
     if (permission == LocationPermission.deniedForever) {
