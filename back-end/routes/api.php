@@ -1,33 +1,66 @@
 <?php
 
+
 use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DriverController;
+
 use App\Http\Controllers\driver_request;
 use App\Http\Controllers\client_request;
 
-// Authentication Routes
-Route::prefix('auth')->group(function () {
-    // User Authentication
-    Route::post('/user/register', [AuthController::class, 'register']);
-    Route::post('/user/login', [AuthController::class, 'login']);
-    Route::post('/user/verify', [AuthController::class, 'verifyOtp']);
-    Route::post('/user/resend-otp', [AuthController::class, 'userResendOtp'])
-        ->middleware('throttle:3,1');
 
-    // Driver Authentication
-    Route::post('/driver/register', [DriverController::class, 'register']);
-    Route::post('/driver/login', [DriverController::class, 'login']);
-    Route::post('/driver/verify', [DriverController::class, 'verifyOtp']);
-    Route::post('/driver/resend-otp', [AuthController::class, 'driverResendOtp'])
-        ->middleware('throttle:3,1');
+
+
+// Route for user registration
+Route::post('/user/register', [AuthController::class, 'register']);
+Route::post('/user/login', [AuthController::class, 'login']);
+// Route::post('user/send-otp', [AuthController::class, 'sendOtp']);
+Route::post('/user/verify', [AuthController::class, 'verifyOtp']);
+Route::post('/user/resend-otp', [AuthController::class, 'userResendOtp']);
+
+
+// Example route to test if it's working
+// Route::get('/user/register', function () {
+//     return "wow";
+// });
+
+// Route for driver registration and login only for dirivers
+Route::post('/driver/register', [DriverController::class, 'register']);
+Route::post('/driver/login', [DriverController::class, 'login']);
+Route::post('/driver/verify', [DriverController::class, 'verifyOtp']);
+Route::post('/driver/resend-otp', [AuthController::class, 'driverResendOtp']);
+Route::middleware('throttle:3,1')->post('/driver/resend-otp', [AuthController::class, 'driverResendOtp']);
+
+
+// Route for admin registration and login only for admin
+
+
+Route::post('/adminLogin', [AuthController::class, 'adminLogin']);
+Route::post('/adminLogout', [AuthController::class, 'adminLogout']);
+Route::post('/updateAdmin', [AuthController::class, 'updateAdmin']);
+
+
+Route::middleware('auth:driver')->group(function () {
+    Route::get('/driver/requests', [DriverController::class, 'accessRequests']);
 });
 
-// Main Application Routes
-Route::group(['middleware' => ['auth']], function () {
-    // Single endpoint for all driver operations
-    Route::post('/driver/handle-request', [driver_request::class, 'handleRequest']);
 
-    // Single endpoint for all client operations
-    Route::post('/client/handle-request', [client_request::class, 'handleRequest']);
-});
+
+// Driver Routes
+
+Route::post('/driver/request', [driver_request::class, 'getRequest']); // Long polling for new ride requests
+Route::post('/driver/request/accept', [driver_request::class, 'acceptRequest']); // Accept a ride request
+Route::post('/driver/request/send-tracking', [driver_request::class, 'sendTracking']); // Send tracking updates
+Route::post('/driver/request/cancel-acceptance', [driver_request::class, 'cancelAcceptance']); // Cancel acceptance
+Route::post('/driver/request/confirmation', [driver_request::class, 'getConfirmation']); // Get confirmation updates
+
+
+// Client (User) Routes
+
+Route::post('/client/request/send', [client_request::class, 'sendRequest']); // Send a ride request
+Route::post('/client/request/drivers', [client_request::class, 'getDriverResponses']); // View driver responses
+Route::post('/client/request/confirm', [client_request::class, 'confirmDriver']); // Confirm driver selection
+Route::post('/client/request/cancel', [client_request::class, 'cancelRequest']); // Cancel pending ride request
+Route::post('/client/request/cancel-locked', [client_request::class, 'cancelLockedRequest']); // Cancel locked ride request
+Route::post('/client/request/track', [client_request::class, 'trackDriverLocation']); // Track driver's location
+Route::post('/client/request/complete', [client_request::class, 'completeRide']); // Mark the ride as completed

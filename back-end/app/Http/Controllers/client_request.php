@@ -2,18 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use App\Models\user_Request;
 use App\Models\Driver;
+use App\Models\User;
 use App\Models\driverRequest;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class client_request extends Controller
 {
     protected $user;
 
+    // Authenticate the client (user) via token from the request
     public function __construct(Request $request)
     {
         $token = $request->input('token');
@@ -24,119 +25,8 @@ class client_request extends Controller
         }
     }
 
-    // Single endpoint to handle all request operations
-    public function handleRequest(Request $request)
-    {
-        try {
-            $action = $request->input('action');
-            $rideRequest = user_Request::where('user_id', $this->user->id)->first();
-
-            if (!$rideRequest && $action !== 'create') {
-                return $this->errorResponse('No ride request found', Response::HTTP_NOT_FOUND);
-            }
-
-            // Handle explicit actions
-            if ($action) {
-                return match ($action) {
-                    'cancel' => $this->cancelRequest($rideRequest),
-                    'update' => $this->updateRequest($request, $rideRequest),
-                    'create' => $this->createRequest($request),
-                    default => $this->errorResponse('Invalid action'),
-                };
-            }
-
-            // Handle status-based responses
-            return match ($rideRequest->status) {
-                'pending' => $this->getPendingResponse($rideRequest),
-                'locked' => $this->getDriverLocation($rideRequest),
-                'completed' => $this->successResponse(
-                    [
-                        'request_status' => 'completed',
-                        'request_id' => $rideRequest->id,
-                        'ride_details' => $this->getRideDetails($rideRequest),
-                        'completion_time' => $rideRequest->updated_at
-                    ],
-                    'Ride completed successfully'
-                ),
-                'cancelled' => $this->successResponse(
-                    [
-                        'request_status' => 'cancelled',
-                        'request_id' => $rideRequest->id,
-                        'cancellation_time' => $rideRequest->updated_at
-                    ],
-                    'Ride was cancelled'
-                ),
-                default => $this->errorResponse('Invalid status'),
-            };
-
-        } catch (\Exception $e) {
-            Log::error('Request handling error: ' . $e->getMessage());
-            return $this->errorResponse('An error occurred', Response::HTTP_INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    private function cancelRequest($rideRequest)
-    {
-        if (!in_array($rideRequest->status, ['pending', 'locked'])) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Cannot cancel this ride',
-                'error_code' => 'INVALID_CANCELLATION',
-                'current_status' => $rideRequest->status
-            ], Response::HTTP_BAD_REQUEST);
-        }
-
-        $rideRequest->update([
-            'status' => 'cancelled',
-            'cancelled_at' => now()
-        ]);
-        
-        if ($rideRequest->accepted_driver_ids) {
-            foreach (json_decode($rideRequest->accepted_driver_ids) as $driverId) {
-                $this->removeUserFromDriverRequest($driverId, $this->user->id);
-            }
-        }
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Ride cancelled successfully',
-            'request_id' => $rideRequest->id,
-            'timestamp' => now(),
-            'cancellation_details' => [
-                'cancelled_at' => $rideRequest->cancelled_at,
-                'original_status' => $rideRequest->getOriginal('status'),
-                'refund_eligible' => $this->isRefundEligible($rideRequest)
-            ]
-        ]);
-    }
-
-    private function updateRequest(Request $request, $rideRequest)
-    {
-        $validated = $request->validate([
-            'from' => 'sometimes|required|string',
-            'destination' => 'sometimes|required|string',
-            'material_type' => 'sometimes|required|string',
-            'car_type' => 'sometimes|required|string',
-            'latitude' => 'sometimes|required|string',
-            'longitude' => 'sometimes|required|string',
-        ]);
-
-        if ($rideRequest->status !== 'pending') {
-            return $this->errorResponse('Can only update pending requests', Response::HTTP_BAD_REQUEST);
-        }
-
-        $rideRequest->update(array_filter($validated));
-        return $this->successResponse(
-            [
-                'message' => 'Request updated',
-                'ride_details' => $this->getRideDetails($rideRequest)
-            ],
-            'Request updated successfully',
-            Response::HTTP_OK
-        );
-    }
-
-    private function createRequest(Request $request)
+    // Send a ride request
+    public function sendRequest(Request $request)
     {
         $validated = $request->validate([
             'from' => 'required|string',
@@ -145,20 +35,24 @@ class client_request extends Controller
             'car_type' => 'required|string',
             'latitude' => 'required|string',
             'longitude' => 'required|string',
-            'scheduled_time' => 'sometimes|date|after:now', // For scheduled rides
-            'special_instructions' => 'sometimes|string',
-            'preferred_driver_id' => 'sometimes|exists:drivers,id'
         ]);
 
-        // Check for existing active request
-        $existingRequest = $this->checkExistingRequest();
+        // Check for existing pending requests
+        $existingRequest = user_Request::where('user_id', $this->user->id)
+            ->where('status', 'pending')
+            ->where('from', $validated['from'])
+            ->where('destination', $validated['destination'])
+            ->where('material_type', $validated['material_type'])
+            ->where('car_type', $validated['car_type'])
+            ->first();
+
         if ($existingRequest) {
-            return $this->errorResponse('Active request exists', Response::HTTP_BAD_REQUEST, [
-                'existing_request' => $this->getRideDetails($existingRequest)
-            ]);
+            return response()->json([
+                'message' => 'You already have a pending request with the same details.'
+            ], Response::HTTP_BAD_REQUEST);
         }
 
-        // Create new request with additional features
+        // Create new ride request
         $rideRequest = user_Request::create([
             'user_id' => $this->user->id,
             'from' => $validated['from'],
@@ -166,322 +60,310 @@ class client_request extends Controller
             'material_type' => $validated['material_type'],
             'car_type' => $validated['car_type'],
             'status' => 'pending',
-            'accepted_driver_ids' => json_encode([]),
-            'scheduled_time' => $validated['scheduled_time'] ?? null,
-            'special_instructions' => $validated['special_instructions'] ?? null,
-            'preferred_driver_id' => $validated['preferred_driver_id'] ?? null,
-            'created_at' => now(),
-            'expires_at' => now()->addMinutes(5)
+            'accepted_driver_ids' => json_encode([]) 
         ]);
 
-        // If it's a scheduled ride, handle differently
-        if (isset($validated['scheduled_time'])) {
-            return $this->handleScheduledRide($rideRequest, $validated);
+        // Fetch matching drivers
+        $matchingDrivers = driverRequest::where('car_type', $validated['car_type'])
+            ->where('status', 'pending')
+            ->get();
+
+        if ($matchingDrivers->isEmpty()) {
+            return response()->json([
+                'message' => 'No matching drivers found. Please wait for a response.'
+            ], Response::HTTP_CREATED);
         }
 
-        // Match with drivers
-        $this->matchWithDrivers($rideRequest, $validated);
+        // Process accepted drivers
+        $acceptedDriverDetails =  $this->processAcceptedDrivers($matchingDrivers, $validated);
 
-        return $this->successResponse([
-            'request_id' => $rideRequest->id,
-            'timestamp' => $rideRequest->created_at,
-            'request_details' => $this->getRideDetails($rideRequest),
-            'matching_drivers' => $this->getMatchingDriversInfo($rideRequest),
-            'expires_at' => $rideRequest->expires_at,
-            'next_steps' => [
-                'message' => 'Waiting for driver acceptance',
-                'estimated_wait_time' => '3-5 minutes'
-            ]
-        ], 'Request created successfully', Response::HTTP_CREATED);
+        // Update the ride request with accepted driver details
+        if ($acceptedDriverDetails) {
+            $rideRequest->update([
+                'accepted_driver_ids' => json_encode(array_merge($acceptedDriverDetails,$rideRequest->accepted_user_ids ?? [] ))
+            ]);
+        }
+
+
+        return response()->json([
+            'ride_request' => $rideRequest,
+            'message' => 'Please wait for drivers to respond'
+        ], Response::HTTP_CREATED);
     }
 
-    private function getDriverLocation($rideRequest)
+    // Process accepted drivers and handle duplicates
+  private function processAcceptedDrivers($matchingDrivers, $validated)
+{
+    $acceptedDriverDetails = [];
+
+    foreach ($matchingDrivers as $driverRequest) {
+        // Decode accepted users from driver request
+        $existingAcceptedUsers = json_decode($driverRequest->accepted_user_ids ?? '[]', true);
+
+        // Check if the user is already accepted by this driver
+        $userAlreadyAccepted = array_filter($existingAcceptedUsers, function ($user) {
+            return $user['user_id'] === $this->user->id;
+        });
+
+        if (empty($userAlreadyAccepted)) {
+            // Add driver details to the accepted list (using driver_id as key)
+            $acceptedDriverDetails[$driverRequest->driver_id] = [
+                'driver_id' => $driverRequest->driver_id,
+                'longitude' => $driverRequest->longitude,
+                'latitude' => $driverRequest->latitude,
+                'car_type' => $driverRequest->car_type,
+                'status' => $driverRequest->status,
+                'price' => null
+            ];
+
+            // Add user details to the driver's accepted user list
+            $existingAcceptedUsers[] = [
+                'user_id' => $this->user->id,
+                'longitude' => $validated['longitude'],
+                'latitude' => $validated['latitude'],
+                'status' => 'pending'
+            ];
+
+
+            // Update the driver request with new accepted users
+            $driverRequest->update([
+                'accepted_user_ids' => json_encode($existingAcceptedUsers)
+            ]);
+        } else{
+            
+        }
+    }
+
+
+
+    return $acceptedDriverDetails;
+}
+
+    // Long polling to view driver responses
+    public function getDriverResponses()
     {
-        if (!$rideRequest->locked_driver_id) {
-            return response()->json([
-                'status' => 'locked',
-                'error' => true,
-                'message' => 'No driver assigned',
-                'request_id' => $rideRequest->id
-            ], Response::HTTP_BAD_REQUEST);
+        $timeout =  env("Timeout"); 
+    
+        $rideRequest = user_Request::where('user_id', $this->user->id)
+            ->where('status', 'pending')
+            ->first();
+    
+        if (!$rideRequest) {
+            return response()->json(['message' => 'No pending ride request found'], Response::HTTP_NOT_FOUND);
+        }
+    
+        $matchingDrivers = driverRequest::where('car_type', $rideRequest->car_type)
+            ->where('status', 'pending')
+            ->get();
+    
+        // Process accepted drivers again to check for any late responses
+        $acceptedDriverDetails = $this->processAcceptedDrivers($matchingDrivers, $rideRequest);
+    
+        if ($acceptedDriverDetails) {
+            $rideRequest->update([
+                'accepted_driver_ids' => json_encode(array_merge($acceptedDriverDetails,$rideRequest->accepted_user_ids ?? [] ))
+            ]);
+        }
+    
+        while ($timeout) {
+            $acceptedDrivers = json_decode($rideRequest->accepted_driver_ids, true) ?? [];
+    
+            $driversWithPrice = array_filter($acceptedDrivers, fn($driver) => isset($driver['price']));
+    
+            if (!empty($driversWithPrice)) {
+                return response()->json([
+                    'accepted_drivers' => $driversWithPrice,
+                    'message' => 'You have received responses from drivers.'
+                ]);
+            }
+
+            $timeout --;
+            usleep(500000); // Sleep for 0.5 seconds to reduce CPU usage
+        }
+    
+        return response()->json(['message' => 'No responses yet from the drivers'], 201);
+    }
+    
+    // Confirm driver selection and lock the driver
+    public function confirmDriver(Request $request)
+{
+    $validated = $request->validate([
+        'driver_id' => 'required|integer'
+    ]);
+
+    // Fetch the ride request for the current user
+    $rideRequest = user_Request::where('user_id', $this->user->id)
+        ->where('status', 'pending')
+        ->first();
+
+    if (!$rideRequest) {
+        return response()->json(['error' => 'No pending request found'], 400);
+    }
+
+    // Fetch the driver's request entry
+    $driverRequest = driverRequest::where('driver_id', $validated['driver_id'])
+        ->where('status', 'pending')
+        ->first();
+
+    if (!$driverRequest) {
+        return response()->json(['error' => 'No matching driver found'], Response::HTTP_NOT_FOUND);
+    }
+
+    // Update the status to 'locked' in user's accepted_driver_ids
+    $acceptedDrivers = json_decode($rideRequest->accepted_driver_ids, true) ?? [];
+    foreach ($acceptedDrivers as &$driver) {
+        if ($driver['driver_id'] == $validated['driver_id']) {
+            $driver['status'] = 'locked';
+        }
+    }
+
+    $rideRequest->update([
+        'locked_driver_id' => $validated['driver_id'],
+        'status' => 'locked',
+        'accepted_driver_ids' => json_encode($acceptedDrivers)
+    ]);
+
+    // Update the status to 'locked' in driver's accepted_user_ids
+    $acceptedUsers = json_decode($driverRequest->accepted_user_ids, true) ?? [];
+    foreach ($acceptedUsers as &$user) {
+        if ($user['user_id'] == $this->user->id) {
+            $user['status'] = 'locked';
+        }
+    }
+
+    $driverRequest->update([
+        'accepted_user_ids' => json_encode($acceptedUsers)
+    ]);
+
+    return response()->json(['message' => 'Driver confirmed and status locked successfully']);
+}
+
+
+    // Track driver's location
+    public function trackDriverLocation()
+    {
+        $rideRequest = user_Request::where('user_id', $this->user->id)
+            ->where('status', 'locked')
+            ->first();
+
+        if (!$rideRequest) {
+            return response()->json(['message' => 'No locked ride found'], Response::HTTP_NOT_FOUND);
         }
 
         $driverRequest = driverRequest::where('driver_id', $rideRequest->locked_driver_id)->first();
-        $driver = Driver::find($rideRequest->locked_driver_id);
-        
-        return response()->json([
-            'status' => 'locked',
-            'request_id' => $rideRequest->id,
-            'timestamp' => now(),
-            'driver_details' => [
-                'driver_id' => $driver->id,
-                'name' => $driver->name,
-                'car_type' => $driver->car_type,
-                'rating' => $driver->rating,
-                'location' => [
-                    'latitude' => $driverRequest->latitude ?? null,
-                    'longitude' => $driverRequest->longitude ?? null,
-                    'last_updated' => $driverRequest->updated_at
-                ],
-                'estimated_arrival' => $this->calculateEstimatedArrival($driverRequest)
-            ],
-            'ride_status' => [
-                'started_at' => $rideRequest->locked_at,
-                'current_status' => 'en_route'
-            ]
+
+        if ($driverRequest && $driverRequest->longitude && $driverRequest->latitude) {
+            return response()->json([
+                'latitude' => $driverRequest->latitude,
+                'longitude' => $driverRequest->longitude
+            ]);
+        }
+
+        return response()->json(["status" => false],200);
+    }
+
+    // Mark the ride as completed
+    public function completeRide()
+    {
+        $rideRequest = user_Request::where('user_id', $this->user->id)
+            ->where('status', 'locked')
+            ->first();
+
+        if (!$rideRequest) {
+            return response()->json(['message' => 'No locked ride found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $rideRequest->update(['status' => 'completed']);
+
+        return response()->json(['message' => 'Ride completed successfully']);
+    }
+
+
+
+    // canleation place 
+    public function cancelRequest()
+    {
+        $rideRequest = user_Request::where('user_id', $this->user->id)
+            ->where('status', 'pending')
+            ->first();
+    
+        if (!$rideRequest) {
+            return response()->json(['message' => 'No pending ride request found'], Response::HTTP_NOT_FOUND);
+        }
+    
+        // Mark ride request as cancelled
+        $rideRequest->update(['status' => 'cancelled']);
+    
+        // Update status in accepted_driver_ids to 'cancelled'
+        $this->updateDriverStatusInUserRequest($rideRequest, 'cancelled');
+    
+        return response()->json(['message' => 'Ride request cancelled successfully']);
+    }
+    
+    public function cancelLockedRequest()
+    {
+        $rideRequest = user_Request::where('user_id', $this->user->id)
+            ->where('status', 'locked')
+            ->first();
+    
+        if (!$rideRequest) {
+            return response()->json(['message' => 'No locked ride found'], Response::HTTP_NOT_FOUND);
+        }
+    
+        // Mark ride request as cancelled
+        $rideRequest->update(['status' => 'cancelled']);
+    
+        // Update status in accepted_driver_ids to 'cancelled'
+        $this->updateDriverStatusInUserRequest($rideRequest, 'cancelled');
+    
+        return response()->json(['message' => 'Locked ride cancelled successfully']);
+    }
+    
+    // Helper function to update driver status in user request
+    private function updateDriverStatusInUserRequest($rideRequest, $newStatus)
+    {
+        $acceptedDrivers = json_decode($rideRequest->accepted_driver_ids ?? '[]', true);
+    
+        // Update the status of all accepted drivers to the new status
+        foreach ($acceptedDrivers as &$driver) {
+            $driver['status'] = $newStatus;
+    
+            // Also update the driver's request status if it exists
+            $this->updateUserStatusInDriverRequest($driver['driver_id'], $this->user->id, $newStatus);
+        }
+    
+        $rideRequest->update([
+            'accepted_driver_ids' => json_encode($acceptedDrivers)
         ]);
     }
-
-    private function calculateEstimatedArrival($driverRequest)
+    
+    // Helper function to update user status in driver's request
+    private function updateUserStatusInDriverRequest($driverId, $userId, $newStatus)
     {
-        // Implement your ETA calculation logic here
-        // For now, returning a placeholder
-        return now()->addMinutes(15)->toDateTimeString();
-    }
-
-    private function getRideDetails($rideRequest)
-    {
-        $details = $rideRequest->toArray();
-        
-        if ($rideRequest->accepted_driver_ids) {
-            $driverIds = json_decode($rideRequest->accepted_driver_ids);
-            $details['available_drivers'] = Driver::whereIn('id', $driverIds)
-                ->select('id', 'name', 'car_type', 'rating')
-                ->get();
-        }
-
-        return $details;
-    }
-
-    private function matchWithDrivers($rideRequest, $validated)
-    {
-        // Get online drivers first
-        $matchingDrivers = driverRequest::where('car_type', $validated['car_type'])
+        $driverRequest = driverRequest::where('driver_id', $driverId)
             ->where('status', 'pending')
-            ->where('is_online', true)
-            ->where('is_available', true)
-            ->where('last_active', '>=', now()->subMinutes(5)) // Only drivers active in last 5 minutes
-            ->get();
-
-        // If no online drivers, check offline drivers within service area
-        if ($matchingDrivers->isEmpty()) {
-            $matchingDrivers = $this->findOfflineDriversInArea($validated);
-        }
-
-        $driverIds = [];
-        foreach ($matchingDrivers as $driverRequest) {
-            if ($this->isDriverEligible($driverRequest, $validated)) {
-                $driverIds[] = $driverRequest->driver_id;
-                $this->addUserToDriverRequest($driverRequest, $this->user->id, $validated);
-                
-                // Notify offline drivers via push notification
-                if (!$driverRequest->is_online) {
-                    $this->notifyOfflineDriver($driverRequest->driver_id, $rideRequest);
+            ->first();
+    
+        if ($driverRequest) {
+            $acceptedUsers = json_decode($driverRequest->accepted_user_ids ?? '[]', true);
+    
+            // Update the status of the specific user
+            foreach ($acceptedUsers as &$user) {
+                if ($user['user_id'] === $userId) {
+                    $user['status'] = $newStatus;
                 }
             }
-        }
-
-        if (!empty($driverIds)) {
-            $rideRequest->update([
-                'accepted_driver_ids' => json_encode($driverIds),
-                'matching_timestamp' => now()
+    
+            $driverRequest->update([
+                'accepted_user_ids' => json_encode($acceptedUsers)
             ]);
         }
-
-        // Set up request expiration
-        $this->scheduleRequestExpiration($rideRequest);
     }
+    
 
-    private function findOfflineDriversInArea($validated)
-    {
-        return driverRequest::where('car_type', $validated['car_type'])
-            ->where('status', 'pending')
-            ->where('is_available', true)
-            ->where(function ($query) use ($validated) {
-                // Check if driver's service area includes the pickup location
-                $query->whereRaw("JSON_CONTAINS(service_area, ?)", [
-                    json_encode([
-                        'lat' => $validated['latitude'],
-                        'lng' => $validated['longitude']
-                    ])
-                ]);
-            })
-            ->get();
-    }
 
-    private function isDriverEligible($driverRequest, $validated)
-    {
-        // Check driver's current request count
-        $activeRequests = user_Request::where('locked_driver_id', $driverRequest->driver_id)
-            ->whereIn('status', ['pending', 'locked'])
-            ->count();
 
-        if ($activeRequests >= $driverRequest->max_requests) {
-            return false;
-        }
-
-        // Check driver preferences
-        $preferences = json_decode($driverRequest->preferences, true) ?? [];
-        if (!empty($preferences)) {
-            if (isset($preferences['material_types']) && 
-                !in_array($validated['material_type'], $preferences['material_types'])) {
-                return false;
-            }
-            
-            if (isset($preferences['max_distance']) && 
-                $this->calculateDistance($driverRequest, $validated) > $preferences['max_distance']) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private function calculateDistance($driverRequest, $validated)
-    {
-        // Implement distance calculation between driver and pickup location
-        // Using Haversine formula or Google Distance Matrix API
-        return 0; // Placeholder
-    }
-
-    private function notifyOfflineDriver($driverId, $rideRequest)
-    {
-        // Implement push notification logic here
-        // Could use Firebase Cloud Messaging or similar service
-        Log::info("Notifying offline driver: $driverId about request: {$rideRequest->id}");
-    }
-
-    private function scheduleRequestExpiration($rideRequest)
-    {
-        // Schedule request expiration after 5 minutes if no driver accepts
-        // Implementation depends on your queue/job system
-        // Example using Laravel's built-in scheduling:
-        \Illuminate\Support\Facades\Schedule::call(function () use ($rideRequest) {
-            $this->handleRequestExpiration($rideRequest);
-        })->delay(now()->addMinutes(5));
-    }
-
-    private function handleRequestExpiration($rideRequest)
-    {
-        if ($rideRequest->status === 'pending') {
-            $rideRequest->update([
-                'status' => 'expired',
-                'expired_at' => now()
-            ]);
-
-            // Notify user about request expiration
-            // Implement notification logic here
-        }
-    }
-
-    private function addUserToDriverRequest($driverRequest, $userId, $location)
-    {
-        $acceptedUserIds = json_decode($driverRequest->accepted_user_ids ?? '[]');
-        if (!in_array($userId, $acceptedUserIds)) {
-            $acceptedUserIds[] = $userId;
-            $driverRequest->update(['accepted_user_ids' => json_encode($acceptedUserIds)]);
-        }
-    }
-
-    private function removeUserFromDriverRequest($driverId, $userId)
-    {
-        $driverRequest = driverRequest::where('driver_id', $driverId)->first();
-        if ($driverRequest) {
-            $acceptedUserIds = array_diff(
-                json_decode($driverRequest->accepted_user_ids ?? '[]'),
-                [$userId]
-            );
-            $driverRequest->update(['accepted_user_ids' => json_encode(array_values($acceptedUserIds))]);
-        }
-    }
-
-    private function getPendingResponse($rideRequest)
-    {
-        $response = [
-            'status' => 'pending',
-            'request_id' => $rideRequest->id,
-            'timestamp' => $rideRequest->created_at,
-            'ride_details' => [
-                'from' => $rideRequest->from,
-                'destination' => $rideRequest->destination,
-                'material_type' => $rideRequest->material_type,
-                'car_type' => $rideRequest->car_type,
-            ],
-            'matching_drivers' => $this->getMatchingDriversInfo($rideRequest),
-            'message' => 'Waiting for driver acceptance'
-        ];
-
-        return response()->json($response);
-    }
-
-    private function getMatchingDriversInfo($rideRequest)
-    {
-        if (!$rideRequest->accepted_driver_ids) {
-            return [];
-        }
-
-        $driverIds = json_decode($rideRequest->accepted_driver_ids);
-        return Driver::whereIn('id', $driverIds)
-            ->select('id', 'name', 'car_type', 'rating', 'total_rides')
-            ->get()
-            ->map(function ($driver) {
-                return [
-                    'driver_id' => $driver->id,
-                    'name' => $driver->name,
-                    'car_type' => $driver->car_type,
-                    'rating' => $driver->rating,
-                    'experience' => [
-                        'total_rides' => $driver->total_rides,
-                        'rating' => $driver->rating
-                    ]
-                ];
-            });
-    }
-
-    private function errorResponse($message, $code = Response::HTTP_BAD_REQUEST)
-    {
-        return response()->json([
-            'status' => 'error',
-            'code' => $code,
-            'message' => $message,
-            'data' => null
-        ], $code);
-    }
-
-    private function successResponse($data, $message, $code = Response::HTTP_OK)
-    {
-        return response()->json([
-            'status' => 'success',
-            'code' => $code,
-            'data' => $data,
-            'message' => $message
-        ], $code);
-    }
-
-    private function isRefundEligible($rideRequest)
-    {
-        // Implement your refund eligibility logic here
-        return $rideRequest->status === 'pending';
-    }
-
-    private function checkExistingRequest()
-    {
-        return user_Request::where('user_id', $this->user->id)
-            ->whereIn('status', ['pending', 'locked'])
-            ->first();
-    }
-
-    private function handleScheduledRide($rideRequest, $validated)
-    {
-        $rideRequest->update([
-            'status' => 'scheduled',
-            'scheduled_time' => $validated['scheduled_time']
-        ]);
-
-        return $this->successResponse([
-            'request_id' => $rideRequest->id,
-            'scheduled_time' => $validated['scheduled_time'],
-            'request_details' => $this->getRideDetails($rideRequest)
-        ], 'Ride scheduled successfully', Response::HTTP_CREATED);
-    }
 }
+
+
+// canleation place 

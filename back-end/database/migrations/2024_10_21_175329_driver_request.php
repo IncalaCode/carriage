@@ -20,12 +20,6 @@ class driverrequest extends Migration
             $table->enum('status', ['pending', 'locked', 'completed',"cancelled"])->default('pending');  // Status of the driver
             $table->json('accepted_user_ids')->nullable();  // User who was accepted by the driver
             $table->string('locked_user_id')->nullable();
-            $table->boolean('is_online')->default(false);
-            $table->timestamp('last_active')->nullable();
-            $table->json('service_area')->nullable(); // For geofencing
-            $table->boolean('is_available')->default(true);
-            $table->integer('max_requests')->default(1);
-            $table->json('preferences')->nullable(); // Driver preferences
             $table->timestamps();
         });
     }
