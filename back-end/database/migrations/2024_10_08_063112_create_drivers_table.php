@@ -31,6 +31,7 @@ return new class extends Migration
             $table->string('otp')->nullable();
             $table->timestamps();
             $table->timestamp('last_active')->nullable();
+            $table->boolean('is_online')->default(false); 
         });
 
         // Create the password_reset_tokens table
