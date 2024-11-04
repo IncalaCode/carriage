@@ -4,6 +4,9 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\admin_master_index;
 use App\Http\Controllers\DriverController;
+use App\Http\Controllers\ClientOrderController;
+use App\Http\Controllers\DriverRequestController;
+
 
 // Public Routes
 Route::get('', function () {
@@ -41,3 +44,9 @@ Route::post('/admin/drivers/{id}/toggle-status', [admin_master_index::class, 'to
 
 Route::get('/admin/users', [admin_master_index::class, 'userPage'])->name('admin.users');
 Route::post('/admin/users/{id}/toggle-status', [admin_master_index::class, 'toggleUserStatus']);
+
+Route::post('/order/deposit', [ClientOrderController::class, 'makeOrderDeposit'])->name('order.deposit');
+Route::get('/order/deposit/callback/{id}', [ClientOrderController::class, 'handleDepositCallback'])->name('order.deposit.callback');
+
+Route::post('/request/deposit', [DriverRequestController::class, 'acceptRequestDeposit'])->name('request.deposit');
+Route::get('/request/deposit/callback/{id}', [DriverRequestController::class, 'handleDriverDepositCallback'])->name('request.deposit.callback');
