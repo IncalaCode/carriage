@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'Driver_map/driver_hock.dart';
 
 class OrderRequestsPage extends StatefulWidget {
@@ -9,41 +10,57 @@ class OrderRequestsPage extends StatefulWidget {
 
 class _OrderRequestsPageState extends State<OrderRequestsPage> {
   String? _price;
-  String message = ''; // Store the message
-  final DriverHook driverHook = DriverHook();
+  String message = '';
+  late DriverHook driverHook;
   List<Map<String, dynamic>> orderRequests = [];
   bool loading = false;
 
   @override
   void initState() {
     super.initState();
-    _fetchOrders(); // Fetch orders on init
+    _initializeHook();
   }
 
-  void _fetchOrders() async {
-    setState(() => loading = true); // Start loading
+  Future<void> _initializeHook() async {
+    final prefs = await SharedPreferences.getInstance();
+    driverHook = DriverHook(prefs, 'YOUR_GEBETA_API_KEY');
+    _fetchOrders();
+  }
+
+  void _fetchOrders() {
+    setState(() => loading = true);
     driverHook.startPolling();
     driverHook.ordersStream.listen((data) {
       setState(() {
-        orderRequests = List<Map<String, dynamic>>.from(data['orders']);
-        message = data['message'];
-        loading = false; // Stop loading when orders are fetched
+        if (data['orders'] != null) {
+          orderRequests = List<Map<String, dynamic>>.from(data['orders']);
+        }
+        if (data['message'] != null) {
+          message = data['message'];
+        }
+        loading = false;
       });
     });
   }
 
-  void _setPrice(int index, String price) {
-    setState(() {
-      orderRequests[index]['status'] = 'waiting';
-      orderRequests[index]['price'] = price;
-    });
-    Navigator.of(context).pop();
-  }
+  Future<void> _acceptOrder(int index, String price) async {
+    try {
+      setState(() => loading = true);
 
-  void _markOrderAsVisited(int index) {
-    setState(() {
-      orderRequests[index]['status'] = 'visited';
-    });
+      // Update UI immediately
+      setState(() {
+        orderRequests[index]['status'] = 'waiting';
+        orderRequests[index]['price'] = price;
+      });
+
+      // Close price input dialog
+      Navigator.of(context).pop();
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Failed to accept order: $e')));
+    } finally {
+      setState(() => loading = false);
+    }
   }
 
   @override
@@ -75,19 +92,23 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
                   ),
                   child: ListTile(
                     contentPadding: EdgeInsets.all(16),
-                    leading: Icon(FontAwesomeIcons.person, color: const Color.fromARGB(255, 56, 158, 241)),
+                    leading: Icon(FontAwesomeIcons.person,
+                        color: const Color.fromARGB(255, 56, 158, 241)),
                     title: Text(
                       order['name'],
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                     ),
                     subtitle: Row(
                       children: [
-                        Icon(FontAwesomeIcons.mapMarker, color: Colors.grey[700], size: 16),
+                        Icon(FontAwesomeIcons.mapMarker,
+                            color: Colors.grey[700], size: 16),
                         SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             order['initialAddress'],
-                            style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                            style: TextStyle(
+                                fontSize: 13, color: Colors.grey[700]),
                           ),
                         ),
                       ],
@@ -113,17 +134,26 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
 
     switch (status) {
       case 'waiting':
-        gradient = LinearGradient(colors: [const Color.fromARGB(255, 247, 176, 83), const Color.fromARGB(255, 244, 96, 51)]);
+        gradient = LinearGradient(colors: [
+          const Color.fromARGB(255, 247, 176, 83),
+          const Color.fromARGB(255, 244, 96, 51)
+        ]);
         icon = FontAwesomeIcons.circleNotch;
         label = 'Waiting';
         break;
       case 'visited':
-        gradient = LinearGradient(colors: [Colors.greenAccent, const Color.fromARGB(255, 78, 167, 81)]);
+        gradient = LinearGradient(colors: [
+          Colors.greenAccent,
+          const Color.fromARGB(255, 78, 167, 81)
+        ]);
         icon = FontAwesomeIcons.checkCircle;
         label = 'Visited';
         break;
       default:
-        gradient = LinearGradient(colors: [const Color.fromARGB(255, 255, 140, 140), const Color.fromARGB(255, 239, 78, 67)]);
+        gradient = LinearGradient(colors: [
+          const Color.fromARGB(255, 255, 140, 140),
+          const Color.fromARGB(255, 239, 78, 67)
+        ]);
         icon = FontAwesomeIcons.warning;
         label = 'Unvisited';
     }
@@ -148,7 +178,8 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
     );
   }
 
-  void _showOrderDetails(BuildContext context, Map<String, dynamic> order, int index) {
+  void _showOrderDetails(
+      BuildContext context, Map<String, dynamic> order, int index) {
     String? price;
     showDialog(
       context: context,
@@ -175,7 +206,7 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
             TextButton(
               onPressed: () {
                 if (price != null && price!.isNotEmpty) {
-                  _setPrice(index, price!);
+                  _acceptOrder(index, price!);
                   Navigator.of(context).pop();
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(

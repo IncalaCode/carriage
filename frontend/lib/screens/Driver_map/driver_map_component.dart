@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:geolocator/geolocator.dart';
+import './driver_hock.dart';
 
 class DriverMapComponent extends StatefulWidget {
   @override
@@ -14,11 +15,96 @@ class _DriverMapComponentState extends State<DriverMapComponent> {
   LatLng? _currentPosition;
   double _currentZoom = 9.0;
   bool _isLoading = true;
+  late DriverHook _driverHook;
+  List<Polyline> _routeLines = [];
+  List<Marker> _requestMarkers = [];
+  bool _isOnline = true;
+  int _retryCount = 0;
+  static const int MAX_RETRIES = 3;
+  // Example placeholder values. Replace with actual initialization.
+  late final dynamic _localStorage; // Adjust type as needed
+  late final String gebetaApiKey = "YOUR_API_KEY_HERE";
 
   @override
   void initState() {
     super.initState();
+    _initializeHook();
     _initializeLocation();
+  }
+
+  Future<void> _initializeHook() async {
+    _driverHook = DriverHook(this._localStorage, this.gebetaApiKey);
+    _driverHook.ordersStream.listen((data) {
+      setState(() {
+        if (data['orders'] != null) {
+          _updateRequestMarkers(data['orders']);
+        }
+        if (data['route'] != null) {
+          _updateRoute(data['route']);
+        }
+      });
+    });
+    _driverHook.startPolling();
+  }
+
+  void _updateRequestMarkers(List<dynamic> orders) {
+    _requestMarkers = orders.map((order) {
+      return Marker(
+        width: 40.0,
+        height: 40.0,
+        point: LatLng(
+            double.parse(order['latitude']), double.parse(order['longitude'])),
+        builder: (ctx) => GestureDetector(
+          onTap: () => _showOrderDetails(order),
+          child: Icon(
+            Icons.location_on,
+            color: Colors.red,
+            size: 40.0,
+          ),
+        ),
+      );
+    }).toList();
+  }
+
+  void _showOrderDetails(Map<String, dynamic> order) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Order Details',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            ListTile(
+              leading: Icon(Icons.location_on),
+              title: Text('From: ${order['from']}'),
+            ),
+            ListTile(
+              leading: Icon(Icons.location_on),
+              title: Text('To: ${order['destination']}'),
+            ),
+            ListTile(
+              leading: Icon(Icons.category),
+              title: Text('Material: ${order['material_type']}'),
+            ),
+            ElevatedButton(
+              onPressed: () => _acceptOrder(order['id']),
+              child: Text('Accept Order'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _acceptOrder(String orderId) async {
+    try {
+      // Implementation of order acceptance
+      Navigator.pop(context); // Close bottom sheet
+    } catch (e) {
+      _showError('Failed to accept order');
+    }
   }
 
   Future<void> _initializeLocation() async {
@@ -42,7 +128,9 @@ class _DriverMapComponentState extends State<DriverMapComponent> {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Location services are disabled. Please enable them.')),
+        SnackBar(
+            content:
+                Text('Location services are disabled. Please enable them.')),
       );
       return false;
     }
@@ -88,6 +176,22 @@ class _DriverMapComponentState extends State<DriverMapComponent> {
     });
   }
 
+  void _updateRoute(List<dynamic> route) {
+    // Clear existing route lines
+    _routeLines.clear();
+
+    // Create new polylines based on the route data
+    _routeLines = [
+      Polyline(
+        points: route
+            .map((point) => LatLng(point['latitude'], point['longitude']))
+            .toList(),
+        strokeWidth: 4.0,
+        color: Colors.blue,
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -98,48 +202,129 @@ class _DriverMapComponentState extends State<DriverMapComponent> {
             options: MapOptions(
               center: _currentPosition,
               zoom: _currentZoom,
-              onTap: (tapPosition, latLng) {
-                _updatePosition(latLng);
-              },
             ),
             children: [
               TileLayer(
-                urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                urlTemplate:
+                    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
                 subdomains: ['a', 'b', 'c'],
               ),
-              if (_currentPosition != null)
-                MarkerLayer(
-                        markers: [
-                          Marker(
-                            width: 80.0,
-                            height: 80.0,
-                            point: LatLng(9.005401, 38.763611),
-                            builder: (ctx) => Icon(
-                              FontAwesomeIcons.mapMarkerAlt,
-                              color: const Color.fromARGB(255, 0, 0, 0),
-                              size: 40.0,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+              PolylineLayer(polylines: _routeLines),
+              MarkerLayer(markers: [
+                if (_currentPosition != null)
+                  Marker(
+                    point: _currentPosition!,
+                    builder: (ctx) => Icon(
+                      Icons.local_taxi,
+                      color: _isOnline ? Colors.green : Colors.grey,
+                      size: 40.0,
+                    ),
+                  ),
+                ..._requestMarkers,
+              ]),
+            ],
           ),
-          if (_isLoading)
-            Center(
-              child: Container(
-                height: MediaQuery.of(context).size.height * 0.1,
-                width: MediaQuery.of(context).size.width * 0.2,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.8),
-                  borderRadius: BorderRadius.circular(10),
+          Positioned(
+            right: 16,
+            bottom: 100,
+            child: Column(
+              children: [
+                FloatingActionButton(
+                  heroTag: "zoomIn",
+                  mini: true,
+                  onPressed: _zoomIn,
+                  child: Icon(Icons.add),
                 ),
-                child: Center(
-                  child: CircularProgressIndicator(),
+                SizedBox(height: 8),
+                FloatingActionButton(
+                  heroTag: "zoomOut",
+                  mini: true,
+                  onPressed: _zoomOut,
+                  child: Icon(Icons.remove),
                 ),
+              ],
+            ),
+          ),
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: FloatingActionButton(
+              heroTag: "currentLocation",
+              onPressed: _goToCurrentLocation,
+              child: Icon(Icons.my_location),
+            ),
+          ),
+          Positioned(
+            left: 16,
+            top: 50,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [BoxShadow(blurRadius: 4, color: Colors.black26)],
+              ),
+              child: Switch(
+                value: _isOnline,
+                onChanged: _toggleOnlineStatus,
               ),
             ),
+          ),
         ],
       ),
     );
+  }
+
+  void _toggleOnlineStatus(bool value) {
+    setState(() {
+      _isOnline = value;
+      if (_isOnline) {
+        _driverHook.startPolling();
+      } else {
+        _driverHook.stopPolling();
+      }
+    });
+  }
+
+  Future<void> _goToCurrentLocation() async {
+    try {
+      Position position = await Geolocator.getCurrentPosition();
+      _updatePosition(LatLng(position.latitude, position.longitude));
+    } catch (e) {
+      _showError('Could not get current location');
+    }
+  }
+
+  void _retryConnection() async {
+    if (_retryCount < MAX_RETRIES) {
+      setState(() => _retryCount++);
+      try {
+        await _initializeLocation();
+        setState(() => _retryCount = 0);
+      } catch (e) {
+        _showError('Connection failed');
+      }
+    } else {
+      _showError('Max retries reached. Please try again later.');
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        action: SnackBarAction(
+          label: 'Retry',
+          onPressed: _retryConnection,
+          textColor: Colors.white,
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _driverHook.dispose();
+    super.dispose();
   }
 }

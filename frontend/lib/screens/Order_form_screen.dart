@@ -5,6 +5,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'user_map/user_hook.dart';
 
 class OrderForm extends StatefulWidget {
   @override
@@ -29,6 +31,20 @@ class _OrderFormState extends State<OrderForm> {
   final Map<String, List<String>> _locationCache = {};
   String? selectedCarType;
 
+  late UserHook _userHook;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeHook();
+  }
+
+  Future<void> _initializeHook() async {
+    final prefs = await SharedPreferences.getInstance();
+    _userHook = UserHook(prefs, 'YOUR_GEBETA_API_KEY');
+  }
+
   @override
   void dispose() {
     fromController.dispose();
@@ -36,6 +52,7 @@ class _OrderFormState extends State<OrderForm> {
     materialTypeController.dispose();
     carTypeController.dispose();
     _debounce?.cancel(); // Cancel debounce timer
+    _userHook.dispose();
     super.dispose();
   }
 
@@ -51,15 +68,19 @@ class _OrderFormState extends State<OrderForm> {
         final response = await http.get(Uri.parse(url));
         if (response.statusCode == 200) {
           final List<dynamic> data = json.decode(response.body);
-          final locations = data.map<String?>((item) {
-            final address = item['address'];
-            return [
-              address['residential'] ?? '',
-              address['state_district'] ?? '',
-              address['ISO3166-2-lvl4'] ?? '',
-              address['state'] ?? '',
-            ].where((element) => element.isNotEmpty).join(", ");
-          }).where((location) => location != null).map((location) => location!).toList();
+          final locations = data
+              .map<String?>((item) {
+                final address = item['address'];
+                return [
+                  address['residential'] ?? '',
+                  address['state_district'] ?? '',
+                  address['ISO3166-2-lvl4'] ?? '',
+                  address['state'] ?? '',
+                ].where((element) => element.isNotEmpty).join(", ");
+              })
+              .where((location) => location != null)
+              .map((location) => location!)
+              .toList();
 
           _locationCache[query] = locations;
           return locations;
@@ -101,7 +122,8 @@ class _OrderFormState extends State<OrderForm> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text('Select Car Type', style: TextStyle(fontWeight: FontWeight.bold)),
+              title: Text('Select Car Type',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               content: Container(
                 height: 300,
                 width: double.maxFinite,
@@ -118,10 +140,12 @@ class _OrderFormState extends State<OrderForm> {
                         });
                       },
                       child: Container(
-                        padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                        padding:
+                            EdgeInsets.symmetric(vertical: 10, horizontal: 10),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(10),
-                          color: isSelected ? Colors.grey.shade300 : Colors.white,
+                          color:
+                              isSelected ? Colors.grey.shade300 : Colors.white,
                           boxShadow: [
                             if (isSelected)
                               BoxShadow(
@@ -147,9 +171,12 @@ class _OrderFormState extends State<OrderForm> {
                             ),
                             CircleAvatar(
                               radius: 15,
-                              backgroundColor: isSelected ? Colors.black : Colors.grey.shade300,
+                              backgroundColor: isSelected
+                                  ? Colors.black
+                                  : Colors.grey.shade300,
                               child: isSelected
-                                  ? Icon(FontAwesomeIcons.check, size: 14, color: Colors.white)
+                                  ? Icon(FontAwesomeIcons.check,
+                                      size: 14, color: Colors.white)
                                   : null,
                             ),
                           ],
@@ -164,7 +191,8 @@ class _OrderFormState extends State<OrderForm> {
                   onPressed: () {
                     Navigator.of(context).pop(selectedCarType);
                   },
-                  child: Text('Select', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: Text('Select',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ],
             );
@@ -180,41 +208,57 @@ class _OrderFormState extends State<OrderForm> {
     });
   }
 
- 
   Future<void> _submitOrder() async {
+    if (_isSubmitting) return;
+
     String from = fromController.text;
     String destination = destinationController.text;
     String materialType = materialTypeController.text;
     String carType = carTypeController.text;
 
+    if (from.isEmpty ||
+        destination.isEmpty ||
+        materialType.isEmpty ||
+        carType.isEmpty) {
+      _showError("Please fill all fields");
+      return;
+    }
 
-    // Sending POST request
-    final url = '${Config.baseUrl }/client/request/send'; // Replace with your API endpoint
+    setState(() => _isSubmitting = true);
+
     try {
       final response = await http.post(
-        Uri.parse(url),
+        Uri.parse('${Config.baseUrl}/client/handle-request'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
-            "token": getToken(),
-            'from': from,
-            'destination': destination,
-            'material_type': materialType,
-            'car_type': carType,
-            
-          }),
+          "token": getToken(),
+          'from': from,
+          'destination': destination,
+          'material_type': materialType,
+          'car_type': carType,
+        }),
       );
 
       if (response.statusCode == 200) {
-        // Handle successful response
         _showSuccessDialog("Order submitted successfully!");
+        // Start tracking after successful submission
+        final data = json.decode(response.body);
+        if (data['request_id'] != null) {
+          _userHook.startTracking(data['request_id']);
+        }
+      } else if (response.statusCode == 303) {
+        // Handle existing active request
+        final data = json.decode(response.body);
+        _showActiveRequestDialog(data);
       } else {
-        _showErrorDialog("Failed to submit order: ${response.body}");
+        _showError("Failed to submit order: ${response.body}");
       }
     } catch (e) {
-      _showErrorDialog("Order cant be Set");
+      _showError("Network error: $e");
+    } finally {
+      setState(() => _isSubmitting = false);
     }
   }
-
 
   void _showSuccessDialog(String message) {
     showDialog(
@@ -222,6 +266,50 @@ class _OrderFormState extends State<OrderForm> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Success'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showActiveRequestDialog(Map<String, dynamic> data) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Active Request Exists'),
+          content: Text(
+              'You have an active request from: ${data['current_request']['from']}\n'
+              'To: ${data['current_request']['destination']}'),
+          actions: [
+            TextButton(
+              child: Text('View Status'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                // Navigate to tracking screen
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showError(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Error'),
           content: Text(message),
           actions: [
             TextButton(
@@ -282,7 +370,8 @@ class _OrderFormState extends State<OrderForm> {
                   controller: fromController,
                   decoration: InputDecoration(
                     labelText: 'From (ከ)',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
                 suggestionsCallback: (pattern) async {
@@ -303,7 +392,8 @@ class _OrderFormState extends State<OrderForm> {
                   controller: destinationController,
                   decoration: InputDecoration(
                     labelText: 'Destination (መድረሻ)',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
                 suggestionsCallback: (pattern) async {
@@ -323,7 +413,8 @@ class _OrderFormState extends State<OrderForm> {
                 controller: materialTypeController,
                 decoration: InputDecoration(
                   labelText: 'Material Type (የሚጓጓዘው እቃ አይነት)',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
                 ),
               ),
               SizedBox(height: 10),
@@ -334,7 +425,8 @@ class _OrderFormState extends State<OrderForm> {
                     controller: carTypeController,
                     decoration: InputDecoration(
                       labelText: 'Car Type',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
                 ),
@@ -350,14 +442,17 @@ class _OrderFormState extends State<OrderForm> {
                 child: ElevatedButton(
                   onPressed: _submitOrder, // Call the submit method
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 16, horizontal: 24),
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
                   ),
                   child: Text(
                     'Request',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -373,8 +468,6 @@ void main() {
   runApp(MaterialApp(home: OrderForm()));
 }
 
-
-
-String getToken (){
+String getToken() {
   return "1";
 }

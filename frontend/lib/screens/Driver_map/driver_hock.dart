@@ -2,123 +2,238 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart' as prefs;
 import '../config.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:flutter_map/flutter_map.dart';
 
 class DriverHook {
   final StreamController<Map<String, dynamic>> _ordersStreamController =
       StreamController.broadcast();
+  final prefs.SharedPreferences _localStorage;
   bool isLocked = false;
+  Timer? _locationTimer;
+  Timer? _retryTimer;
+  int _retryAttempts = 0;
+  static const int MAX_RETRIES = 3;
+  static const Duration RETRY_INTERVAL = Duration(seconds: 5);
+  final String gebetaApiKey;
 
-  Stream<Map<String, dynamic>> get ordersStream => _ordersStreamController.stream;
+  Stream<Map<String, dynamic>> get ordersStream =>
+      _ordersStreamController.stream;
+
+  DriverHook(this._localStorage, this.gebetaApiKey);
+
+  // Initialize with offline data if available
+  Future<void> initialize() async {
+    final cachedData = await _getCachedData();
+    if (cachedData != null) {
+      _ordersStreamController.add({
+        'orders': cachedData['orders'],
+        'source': 'cache',
+        'message': 'Loading from cache'
+      });
+    }
+  }
 
   void startPolling() {
-    int token = getToken();
-    print("token: $token");
+    _locationTimer?.cancel();
+    _retryTimer?.cancel();
+    _retryAttempts = 0;
 
-    Timer.periodic(Config.pollingInterval, (timer) async {
-      if (isLocked) {
-        timer.cancel(); // Stop polling if the ride is locked
-        return;
+    _pollLocation();
+  }
+
+  Future<void> _pollLocation() async {
+    try {
+      Position position = await _getCurrentLocation();
+
+      if (position == null) {
+        throw Exception('Location not available');
       }
 
-      try {
-        // Get location or wait until available
-        Position position = await _getCurrentLocation();
-        if (position == null) {
-          print("Waiting for location...");
-          return; // Skip request if location is not found
+      await _sendLocationUpdate(position);
+      _startRegularPolling();
+    } catch (e) {
+      _handleError('Failed to start polling: $e');
+    }
+  }
+
+  Future<void> _sendLocationUpdate(Position position) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${Config.baseUrl}/driver/handle-request'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'token': getToken(),
+          'latitude': position.latitude.toString(),
+          'longitude': position.longitude.toString(),
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        await _processResponse(responseData, position);
+      } else {
+        throw Exception('Server error: ${response.statusCode}');
+      }
+    } catch (e) {
+      _handleError('Location update failed: $e');
+    }
+  }
+
+  Future<void> _processResponse(
+      Map<String, dynamic> data, Position position) async {
+    // Cache the latest data
+    await _cacheData(data);
+
+    // Process route if available
+    if (data['route'] != null) {
+      await _processRoute(data['route'], position);
+    }
+
+    // Update orders
+    if (data['orders'] != null) {
+      _ordersStreamController.add({
+        'orders': data['orders'],
+        'source': 'api',
+        'location': {
+          'latitude': position.latitude,
+          'longitude': position.longitude
         }
+      });
+    }
 
-        // Prepare latitude and longitude for request
-        double latitude = position.latitude;
-        double longitude = position.longitude;
+    // Check if request is locked
+    if (data['status'] == 'locked') {
+      isLocked = true;
+      _startRouteTracking(data['request_id']);
+    }
+  }
 
-        final response = await http.post(
-          Uri.parse(Config.baseUrl + "/driver/request"),
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: json.encode({
-            "token": token,
-            "latitude": latitude.toString(),
-            "longitude": longitude.toString(),
-          }),
-        );
+  Future<void> _processRoute(
+      Map<String, dynamic> routeData, Position position) async {
+    try {
+      final routeResponse = await http.get(Uri.parse(
+          'https://api.gebeta.app/route/v1/driving/'
+          '${position.longitude},${position.latitude};'
+          '${routeData['destination_longitude']},${routeData['destination_latitude']}'
+          '?access_token=$gebetaApiKey'));
 
-        if (response.statusCode == 200) {
-          Map<String, dynamic> responseData = jsonDecode(response.body);
+      if (routeResponse.statusCode == 200) {
+        final routeDetails = json.decode(routeResponse.body);
+        _ordersStreamController
+            .add({'route': routeDetails, 'source': 'gebeta'});
+      } else {
+        _useOpenStreetMapFallback(position, routeData);
+      }
+    } catch (e) {
+      _handleError('Route processing failed: $e');
+      _useOpenStreetMapFallback(position, routeData);
+    }
+  }
 
-          if (responseData.containsKey("message") && responseData.containsKey("0")) {
-            List<Map<String, dynamic>> orders = [];
-
-            responseData.forEach((key, value) {
-              if (key != "message" && value is Map<String, dynamic>) {
-                if (value['locked_user_id'] != null) {
-                  isLocked = true;
-                  _ordersStreamController.add({
-                    "orders": [value],
-                    "message": responseData["message"],
-                  });
-                } else {
-                  orders.add(value);
-                }
-              }
-            });
-
-            // Add available orders to the stream if they are not locked
-            if (!isLocked) {
-              _ordersStreamController.add({
-                "orders": orders,
-                "message": responseData["message"],
-              });
-            }
-          } else {
-            print('Unexpected response format: ${response.body}');
-          }
-        } else {
-          print('Failed to fetch orders: ${response.statusCode}');
-        }
-      } catch (e) {
-        print('Error during polling: $e');
+  void _useOpenStreetMapFallback(
+      Position position, Map<String, dynamic> routeData) {
+    _ordersStreamController.add({
+      'route': {
+        'points': [
+          [position.longitude, position.latitude],
+          [
+            routeData['destination_longitude'],
+            routeData['destination_latitude']
+          ]
+        ],
+        'source': 'osm'
       }
     });
   }
 
-  Future<Position> _getCurrentLocation() async {
-    bool serviceEnabled;
-    LocationPermission permission;
+  Future<void> _cacheData(Map<String, dynamic> data) async {
+    await _localStorage.setString(
+        'driver_cache',
+        json.encode(
+            {'timestamp': DateTime.now().toIso8601String(), 'data': data}));
+  }
 
-    // Check if location services are enabled
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+  Future<Map<String, dynamic>?> _getCachedData() async {
+    final cached = _localStorage.getString('driver_cache');
+    if (cached != null) {
+      final data = json.decode(cached);
+      final timestamp = DateTime.parse(data['timestamp']);
+      if (DateTime.now().difference(timestamp) < Duration(hours: 1)) {
+        return data['data'];
+      }
+    }
+    return null;
+  }
+
+  void _handleError(String error) {
+    print(error);
+    if (_retryAttempts < MAX_RETRIES) {
+      _retryAttempts++;
+      _retryTimer = Timer(RETRY_INTERVAL, _pollLocation);
+
+      _ordersStreamController.add({
+        'error': error,
+        'retry_attempt': _retryAttempts,
+        'max_retries': MAX_RETRIES
+      });
+    } else {
+      _ordersStreamController.add({
+        'error': 'Max retries reached',
+        'message': 'Please check your connection and try again'
+      });
+    }
+  }
+
+  Future<Position> _getCurrentLocation() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      await Geolocator.openLocationSettings();
-      return Future.error('Location services are disabled.');
+      throw Exception('Location services are disabled');
     }
 
-    // Check for location permissions
-    permission = await Geolocator.checkPermission();
+    LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        return Future.error('Location permissions are denied.');
-      } 
+        throw Exception('Location permissions are denied');
+      }
     }
 
     if (permission == LocationPermission.deniedForever) {
-      return Future.error('Location permissions are permanently denied.');
+      throw Exception('Location permissions are permanently denied');
     }
 
-    // Get the current location
     return await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
+        desiredAccuracy: LocationAccuracy.high);
+  }
+
+  void _startRegularPolling() {
+    _locationTimer = Timer.periodic(Duration(seconds: 30), (timer) async {
+      if (!isLocked) {
+        await _pollLocation();
+      }
+    });
+  }
+
+  void _startRouteTracking(String requestId) {
+    // Implement route tracking for locked requests
+    // This could include more frequent updates and route recalculation
+  }
+
+  void stopPolling() {
+    _locationTimer?.cancel();
+    _retryTimer?.cancel();
+    isLocked = false;
+  }
+
+  String getToken() {
+    return "1"; // Replace with actual token logic
   }
 
   void dispose() {
+    stopPolling();
     _ordersStreamController.close();
-  }
-
-  int getToken() {
-    return 1; // Replace with your actual token retrieval logic
   }
 }

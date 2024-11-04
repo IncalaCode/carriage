@@ -48,19 +48,8 @@ Route::middleware('auth:driver')->group(function () {
 
 // Driver Routes
 
-Route::post('/driver/request', [driver_request::class, 'getRequest']); // Long polling for new ride requests
-Route::post('/driver/request/accept', [driver_request::class, 'acceptRequest']); // Accept a ride request
-Route::post('/driver/request/send-tracking', [driver_request::class, 'sendTracking']); // Send tracking updates
-Route::post('/driver/request/cancel-acceptance', [driver_request::class, 'cancelAcceptance']); // Cancel acceptance
-Route::post('/driver/request/confirmation', [driver_request::class, 'getConfirmation']); // Get confirmation updates
-
+Route::post('/driver/handle-request', [driver_request::class, 'handleRequest']);
 
 // Client (User) Routes
 
-Route::post('/client/request/send', [client_request::class, 'sendRequest']); // Send a ride request
-Route::post('/client/request/drivers', [client_request::class, 'getDriverResponses']); // View driver responses
-Route::post('/client/request/confirm', [client_request::class, 'confirmDriver']); // Confirm driver selection
-Route::post('/client/request/cancel', [client_request::class, 'cancelRequest']); // Cancel pending ride request
-Route::post('/client/request/cancel-locked', [client_request::class, 'cancelLockedRequest']); // Cancel locked ride request
-Route::post('/client/request/track', [client_request::class, 'trackDriverLocation']); // Track driver's location
-Route::post('/client/request/complete', [client_request::class, 'completeRide']); // Mark the ride as completed
+Route::post('/client/handle-request', [client_request::class, 'handleRequest']);
