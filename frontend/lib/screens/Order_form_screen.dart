@@ -1,6 +1,12 @@
+import 'package:My_truck/screens/config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'user_map/user_hook.dart';
 
 class OrderForm extends StatefulWidget {
   @override
@@ -13,6 +19,7 @@ class _OrderFormState extends State<OrderForm> {
   final TextEditingController materialTypeController = TextEditingController();
   final TextEditingController carTypeController = TextEditingController();
   String? loadType;
+  Timer? _debounce;
 
   final List<Map<String, String>> carTypes = [
     {'name': 'Sedan', 'image': 'assets/sedan.jpg'},
@@ -21,7 +28,22 @@ class _OrderFormState extends State<OrderForm> {
     {'name': 'Van', 'image': 'assets/van.jpg'},
   ];
 
+  final Map<String, List<String>> _locationCache = {};
   String? selectedCarType;
+
+  late UserHook _userHook;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeHook();
+  }
+
+  Future<void> _initializeHook() async {
+    final prefs = await SharedPreferences.getInstance();
+    _userHook = UserHook(prefs, 'YOUR_GEBETA_API_KEY');
+  }
 
   @override
   void dispose() {
@@ -29,13 +51,68 @@ class _OrderFormState extends State<OrderForm> {
     destinationController.dispose();
     materialTypeController.dispose();
     carTypeController.dispose();
+    _debounce?.cancel(); // Cancel debounce timer
+    _userHook.dispose();
     super.dispose();
   }
 
-  Future<List<String>> getSuggestions(String query) async {
-    return ["Addis Ababa", "Hawassa", "Bahir Dar", "Mekelle", "Gondar"]
-        .where((location) => location.toLowerCase().contains(query.toLowerCase()))
-        .toList();
+  Future<List<String>> fetchLocationSuggestions(String query) async {
+    if (query.isEmpty) return [];
+    if (_locationCache.containsKey(query)) return _locationCache[query]!;
+
+    return await Future.delayed(Duration(milliseconds: 300), () async {
+      final url =
+          'https://nominatim.openstreetmap.org/search?q=$query&format=json&addressdetails=1&limit=5&countrycodes=ET';
+
+      try {
+        final response = await http.get(Uri.parse(url));
+        if (response.statusCode == 200) {
+          final List<dynamic> data = json.decode(response.body);
+          final locations = data
+              .map<String?>((item) {
+                final address = item['address'];
+                return [
+                  address['residential'] ?? '',
+                  address['state_district'] ?? '',
+                  address['ISO3166-2-lvl4'] ?? '',
+                  address['state'] ?? '',
+                ].where((element) => element.isNotEmpty).join(", ");
+              })
+              .where((location) => location != null)
+              .map((location) => location!)
+              .toList();
+
+          _locationCache[query] = locations;
+          return locations;
+        } else {
+          _showErrorDialog("Failed to load location suggestions");
+          return ["places not found under ethiopia"];
+        }
+      } catch (e) {
+        _showErrorDialog("Error fetching location suggestions: $e");
+        return ["places not found under ethiopia"];
+      }
+    });
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Error'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _selectCarType() async {
@@ -45,7 +122,8 @@ class _OrderFormState extends State<OrderForm> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text('Select Car Type', style: TextStyle(fontWeight: FontWeight.bold)),
+              title: Text('Select Car Type',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               content: Container(
                 height: 300,
                 width: double.maxFinite,
@@ -62,10 +140,12 @@ class _OrderFormState extends State<OrderForm> {
                         });
                       },
                       child: Container(
-                        padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                        padding:
+                            EdgeInsets.symmetric(vertical: 10, horizontal: 10),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(10),
-                          color: isSelected ? Colors.grey.shade300 : Colors.white,
+                          color:
+                              isSelected ? Colors.grey.shade300 : Colors.white,
                           boxShadow: [
                             if (isSelected)
                               BoxShadow(
@@ -84,15 +164,19 @@ class _OrderFormState extends State<OrderForm> {
                             ),
                             SizedBox(width: 10),
                             Expanded(
-                                child: Text(
-                              car['name']!,
-                              style: TextStyle(fontWeight: FontWeight.w500),
-                            )),
+                              child: Text(
+                                car['name']!,
+                                style: TextStyle(fontWeight: FontWeight.w500),
+                              ),
+                            ),
                             CircleAvatar(
                               radius: 15,
-                              backgroundColor: isSelected ? Colors.black : Colors.grey.shade300,
+                              backgroundColor: isSelected
+                                  ? Colors.black
+                                  : Colors.grey.shade300,
                               child: isSelected
-                                  ? Icon(FontAwesomeIcons.check, size: 14, color: Colors.white)
+                                  ? Icon(FontAwesomeIcons.check,
+                                      size: 14, color: Colors.white)
                                   : null,
                             ),
                           ],
@@ -107,7 +191,8 @@ class _OrderFormState extends State<OrderForm> {
                   onPressed: () {
                     Navigator.of(context).pop(selectedCarType);
                   },
-                  child: Text('Select', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: Text('Select',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ],
             );
@@ -121,6 +206,122 @@ class _OrderFormState extends State<OrderForm> {
         });
       }
     });
+  }
+
+  Future<void> _submitOrder() async {
+    if (_isSubmitting) return;
+
+    String from = fromController.text;
+    String destination = destinationController.text;
+    String materialType = materialTypeController.text;
+    String carType = carTypeController.text;
+
+    if (from.isEmpty ||
+        destination.isEmpty ||
+        materialType.isEmpty ||
+        carType.isEmpty) {
+      _showError("Please fill all fields");
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final response = await http.post(
+        Uri.parse('${Config.baseUrl}/client/handle-request'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          "token": getToken(),
+          'from': from,
+          'destination': destination,
+          'material_type': materialType,
+          'car_type': carType,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        _showSuccessDialog("Order submitted successfully!");
+        // Start tracking after successful submission
+        final data = json.decode(response.body);
+        if (data['request_id'] != null) {
+          _userHook.startTracking(data['request_id']);
+        }
+      } else if (response.statusCode == 303) {
+        // Handle existing active request
+        final data = json.decode(response.body);
+        _showActiveRequestDialog(data);
+      } else {
+        _showError("Failed to submit order: ${response.body}");
+      }
+    } catch (e) {
+      _showError("Network error: $e");
+    } finally {
+      setState(() => _isSubmitting = false);
+    }
+  }
+
+  void _showSuccessDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Success'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showActiveRequestDialog(Map<String, dynamic> data) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Active Request Exists'),
+          content: Text(
+              'You have an active request from: ${data['current_request']['from']}\n'
+              'To: ${data['current_request']['destination']}'),
+          actions: [
+            TextButton(
+              child: Text('View Status'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                // Navigate to tracking screen
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showError(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Error'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -168,13 +369,18 @@ class _OrderFormState extends State<OrderForm> {
                 textFieldConfiguration: TextFieldConfiguration(
                   controller: fromController,
                   decoration: InputDecoration(
-                    labelText: 'From (መነሻ)',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    labelText: 'From (ከ)',
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
-                suggestionsCallback: getSuggestions,
+                suggestionsCallback: (pattern) async {
+                  return await fetchLocationSuggestions(pattern);
+                },
                 itemBuilder: (context, suggestion) {
-                  return ListTile(title: Text(suggestion));
+                  return ListTile(
+                    title: Text(suggestion),
+                  );
                 },
                 onSuggestionSelected: (suggestion) {
                   fromController.text = suggestion;
@@ -186,12 +392,17 @@ class _OrderFormState extends State<OrderForm> {
                   controller: destinationController,
                   decoration: InputDecoration(
                     labelText: 'Destination (መድረሻ)',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
-                suggestionsCallback: getSuggestions,
+                suggestionsCallback: (pattern) async {
+                  return await fetchLocationSuggestions(pattern);
+                },
                 itemBuilder: (context, suggestion) {
-                  return ListTile(title: Text(suggestion));
+                  return ListTile(
+                    title: Text(suggestion),
+                  );
                 },
                 onSuggestionSelected: (suggestion) {
                   destinationController.text = suggestion;
@@ -202,7 +413,8 @@ class _OrderFormState extends State<OrderForm> {
                 controller: materialTypeController,
                 decoration: InputDecoration(
                   labelText: 'Material Type (የሚጓጓዘው እቃ አይነት)',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
                 ),
               ),
               SizedBox(height: 10),
@@ -213,7 +425,8 @@ class _OrderFormState extends State<OrderForm> {
                     controller: carTypeController,
                     decoration: InputDecoration(
                       labelText: 'Car Type',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
                 ),
@@ -227,22 +440,19 @@ class _OrderFormState extends State<OrderForm> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: ElevatedButton(
-                  onPressed: () {
-                    String from = fromController.text;
-                    String destination = destinationController.text;
-                    String materialType = materialTypeController.text;
-                    String carType = carTypeController.text;
-                    print('Order submitted: From - $from, Destination - $destination, Material Type - $materialType, Load Type - $loadType, Car Type - $carType');
-                  },
+                  onPressed: _submitOrder, // Call the submit method
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 16, horizontal: 24),
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
                   ),
                   child: Text(
                     'Request',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -256,4 +466,8 @@ class _OrderFormState extends State<OrderForm> {
 
 void main() {
   runApp(MaterialApp(home: OrderForm()));
+}
+
+String getToken() {
+  return "1";
 }

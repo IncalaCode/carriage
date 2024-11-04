@@ -9,6 +9,8 @@ import 'sidebarProfile.dart';
 import 'sidebarWallet.dart';
 import 'sidebarMyOrder.dart';
 import 'sidebarSettings.dart';
+import './Driver_map/driver_map_component.dart';
+import './Driver_map/driver_hock.dart';
 
 class DriverMainScreen extends StatefulWidget {
   @override
@@ -17,6 +19,7 @@ class DriverMainScreen extends StatefulWidget {
 
 class _DriverMainScreenState extends State<DriverMainScreen> {
   bool isDrawerOpen = false;
+  bool loading = true; // Loading state
   File? _profileImage;
 
   Future<void> _pickImage() async {
@@ -56,9 +59,7 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
               builder: (context) => IconButton(
                 icon: Icon(FontAwesomeIcons.bars, color: Colors.white),
                 onPressed: () {
-                  setState(() {
-                    isDrawerOpen = true;
-                  });
+                  setState(() => isDrawerOpen = true);
                   Scaffold.of(context).openDrawer();
                 },
               ),
@@ -112,28 +113,16 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
               child: ListView(
                 children: [
                   _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context, () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => ProfilePage()),
-                    );
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePage()));
                   }),
                   _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context, () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => WalletPage()),
-                    );
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => WalletPage()));
                   }),
                   _buildDrawerItem(FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => MyOrdersPage()),
-                    );
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => MyOrdersPage()));
                   }),
                   _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context, () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => SettingsPage()),
-                    );
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsPage()));
                   }),
                 ],
               ),
@@ -143,32 +132,7 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
       ),
       body: Stack(
         children: [
-          FlutterMap(
-            options: MapOptions(
-              center: LatLng(9.145, 40.4897),
-              zoom: 6.0,
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                subdomains: ['a', 'b', 'c'],
-              ),
-              MarkerLayer(
-                markers: [
-                  Marker(
-                    width: 80.0,
-                    height: 80.0,
-                    point: LatLng(9.145, 40.4897),
-                    builder: (ctx) => Icon(
-                      FontAwesomeIcons.mapMarkerAlt,
-                      color: Colors.black,
-                      size: 40.0,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+          DriverMapComponent(),
           Positioned(
             bottom: 20,
             right: 20,

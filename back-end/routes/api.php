@@ -53,15 +53,13 @@ Route::middleware('auth:driver')->group(function () {
 
 // Driver Routes
 
-Route::post('/driver/request', [driver_request::class, 'getRequest']); // Long polling for new ride requests
-Route::post('/driver/request/accept', [driver_request::class, 'acceptRequest']); // Accept a ride request
-Route::post('/driver/request/send-tracking', [driver_request::class, 'sendTracking']); // Send tracking updates
-Route::post('/driver/request/cancel-acceptance', [driver_request::class, 'cancelAcceptance']); // Cancel acceptance
-Route::post('/driver/request/confirmation', [driver_request::class, 'getConfirmation']); // Get confirmation updates
-
+Route::post('/driver/handle-request', [driver_request::class, 'handleRequest']);
 
 // Client (User) Routes
 
+<<<<<<< HEAD
+Route::post('/client/handle-request', [client_request::class, 'handleRequest']);
+=======
 Route::post('/client/request/send', [client_request::class, 'sendRequest']); // Send a ride request
 Route::post('/client/request/drivers', [client_request::class, 'getDriverResponses']); // View driver responses
 Route::post('/client/request/confirm', [client_request::class, 'confirmDriver']); // Confirm driver selection
@@ -87,3 +85,4 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/wallet/withdraw', [WalletController::class, 'withdraw']);
     Route::get('/wallet/transactions', [WalletController::class, 'transactionHistory']);
 });
+>>>>>>> 498c9d7c747b8880d1fc3d70490282e1af85f465

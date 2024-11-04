@@ -30,6 +30,7 @@ return new class extends Migration
             $table->boolean('approved')->default(false);
             $table->string('otp')->nullable();
             $table->timestamps();
+            $table->timestamp('last_active')->nullable();
         });
 
         // Create the password_reset_tokens table
