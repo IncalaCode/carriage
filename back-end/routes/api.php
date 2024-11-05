@@ -54,19 +54,9 @@ Route::middleware('auth:driver')->group(function () {
 // Driver Routes
 
 Route::post('/driver/handle-request', [driver_request::class, 'handleRequest']);
+Route::post('/client/handle-request', [client_request::class, 'handleRequest']);
 
 // Client (User) Routes
-
-<<<<<<< HEAD
-Route::post('/client/handle-request', [client_request::class, 'handleRequest']);
-=======
-Route::post('/client/request/send', [client_request::class, 'sendRequest']); // Send a ride request
-Route::post('/client/request/drivers', [client_request::class, 'getDriverResponses']); // View driver responses
-Route::post('/client/request/confirm', [client_request::class, 'confirmDriver']); // Confirm driver selection
-Route::post('/client/request/cancel', [client_request::class, 'cancelRequest']); // Cancel pending ride request
-Route::post('/client/request/cancel-locked', [client_request::class, 'cancelLockedRequest']); // Cancel locked ride request
-Route::post('/client/request/track', [client_request::class, 'trackDriverLocation']); // Track driver's location
-Route::post('/client/request/complete', [client_request::class, 'completeRide']); // Mark the ride as completed
 
 Route::post('/payment/initiate', [PaymentController::class, 'initiatePayment']);
 Route::get('/payment/callback', [PaymentController::class, 'paymentCallback'])->name('payment.callback');
@@ -85,4 +75,3 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/wallet/withdraw', [WalletController::class, 'withdraw']);
     Route::get('/wallet/transactions', [WalletController::class, 'transactionHistory']);
 });
->>>>>>> 498c9d7c747b8880d1fc3d70490282e1af85f465
