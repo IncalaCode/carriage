@@ -18,8 +18,8 @@ class clientrequest extends Migration
             $table->string('material_type');  // Type of material being transported
             $table->string('car_type');  // Type of car requested
             $table->json('accepted_driver_ids')->nullable();  // Driver who accepted the request
-            $table->string('locked_driver_id');
-            $table->enum('status', ['pending', 'locked', 'completed',"cancelled"])->default('pending');
+            $table->string('locked_driver_id')->default(0);
+            $table->enum('status', ['pending', 'locked', 'completed', "cancelled"])->default('pending');
             $table->timestamps();
         });
     }
