@@ -10,8 +10,8 @@ class CreateRidePricesTable extends Migration
     {
         Schema::create('ride_prices', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('request_id')->constrained('user_requests')->onDelete('cascade');
-            $table->foreignId('driver_id')->constrained('drivers')->onDelete('cascade');
+            $table->string('request_id');
+            $table->string('driver_id');
             $table->decimal('price', 10, 2);
             $table->timestamps();
             

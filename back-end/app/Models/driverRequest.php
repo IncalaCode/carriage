@@ -24,7 +24,6 @@ class driverRequest extends Model
 
     // Cast fields to specific types
     protected $casts = [
-        'locked_user_ids' => 'array',  // JSON field should be cast to an array
         'status' => 'string',
         'longitude' => 'float',
         'latitude' => 'float',

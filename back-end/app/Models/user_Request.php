@@ -25,7 +25,6 @@ class user_Request extends Model
 
     // Cast fields to specific types
     protected $casts = [
-        'locked_drivers' => 'array',  // JSON field should be cast to an array
         'status' => 'string',
     ];
 
