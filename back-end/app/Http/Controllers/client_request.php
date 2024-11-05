@@ -56,7 +56,7 @@ class client_request extends Controller
             ], 303); // 303 See Other
         }
 
-        switch($action) {
+        switch ($action) {
             case 'create_request':
                 return $this->createRequest($request);
             case 'get_drivers':
@@ -82,11 +82,13 @@ class client_request extends Controller
     private function determineAction($currentRequest, $request)
     {
         // Check if this is an update request
-        if ($currentRequest && 
-            $currentRequest->status === 'pending' && 
-            $request->has(['update']) && 
-            ($request->has('from') || $request->has('destination') || 
-             $request->has('material_type') || $request->has('car_type'))) {
+        if (
+            $currentRequest &&
+            $currentRequest->status === 'pending' &&
+            $request->has(['update']) &&
+            ($request->has('from') || $request->has('destination') ||
+                $request->has('material_type') || $request->has('car_type'))
+        ) {
             return 'update_request';
         }
 
@@ -107,9 +109,10 @@ class client_request extends Controller
         return $this->getStatusAction($currentRequest->status);
     }
 
+
     private function getStatusAction($status)
     {
-        switch($status) {
+        switch ($status) {
             case RequestStatus::PENDING:
                 return 'get_drivers';
             case RequestStatus::DRIVER_ACCEPTED:
@@ -140,7 +143,8 @@ class client_request extends Controller
         // Check existing pending request
         if (user_Request::where('user_id', $this->user->id)
             ->whereIn('status', ['pending', 'locked'])
-            ->exists()) {
+            ->exists()
+        ) {
             return response()->json([
                 'error' => 'Active request already exists'
             ], 400);
@@ -174,9 +178,9 @@ class client_request extends Controller
         while ($timeout > 0) {
             // Refresh request data
             $currentRequest->refresh();
-            
+
             if (!empty($currentRequest->accepted_driver_ids)) {
-                $drivers = Driver::whereIn('id', $currentRequest->accepted_driver_ids)
+                $drivers = Driver::whereIn('id', json_decode($currentRequest->accepted_driver_ids ?? ""))
                     ->where('is_online', true)
                     ->get()
                     ->map(function ($driver) use ($currentRequest) {
@@ -184,6 +188,10 @@ class client_request extends Controller
                         $priceRecord = RidePrice::where('request_id', $currentRequest->id)
                             ->where('driver_id', $driver->id)
                             ->first();
+                        $requst_driver = driverRequest::where('driver_id', $driver->id)
+                            ->where('status', "pending")
+                            ->first();
+
 
                         return [
                             'driver_id' => $driver->id,
@@ -191,8 +199,8 @@ class client_request extends Controller
                             'car_type' => $driver->car_type,
                             'rating' => $driver->rating,
                             'price' => $priceRecord ? $priceRecord->price : null,
-                            'latitude' => $driver->latitude,
-                            'longitude' => $driver->longitude,
+                            'latitude' => $requst_driver->latitude,
+                            'longitude' => $requst_driver->longitude,
                         ];
                     });
 
@@ -239,7 +247,7 @@ class client_request extends Controller
         }
 
         $driver = Driver::find($currentRequest->locked_driver_id);
-        
+
         if (!$driver || !$driver->is_online) {
             return response()->json(['error' => 'Driver not available'], 404);
         }
