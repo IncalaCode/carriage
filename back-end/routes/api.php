@@ -58,6 +58,9 @@ Route::post('/client/handle-request', [client_request::class, 'handleRequest']);
 
 // Client (User) Routes
 
+Route::post('/client/handle-request', [client_request::class, 'handleRequest']);
+
+
 Route::post('/payment/initiate', [PaymentController::class, 'initiatePayment']);
 Route::get('/payment/callback', [PaymentController::class, 'paymentCallback'])->name('payment.callback');
 Route::post('/driver/withdraw', [PaymentController::class, 'withdrawFunds']);

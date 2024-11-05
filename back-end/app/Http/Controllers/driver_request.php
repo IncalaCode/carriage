@@ -86,59 +86,61 @@ class driver_request extends Controller
     }
 
     private function startSearching(Request $request)
-    {
-        $validated = $request->validate([
-            'latitude' => 'required|string',
-            'longitude' => 'required|string',
-        ]);
+{
+    $validated = $request->validate([
+        'latitude' => 'required|string',
+        'longitude' => 'required|string',
+    ]);
 
-        // Clear any existing requests
-        driverRequest::where('driver_id', $this->user->id)
+    // Clear any existing requests
+    driverRequest::where('driver_id', $this->user->id)
+        ->where('status', 'pending')
+        ->delete();
+
+    // Create a new driver request
+    $driverRequest = driverRequest::create([
+        'driver_id' => $this->user->id,
+        'longitude' => $validated['longitude'],
+        'latitude' => $validated['latitude'],
+        'car_type' => $this->user->car_type,
+        'status' => 'pending',
+    ]);
+
+    // Hide the 'id' field before returning
+    return $driverRequest->makeHidden('id');
+}
+
+private function getRequests(Request $request)
+{
+    $timeout = self::POLLING_TIMEOUT;
+    
+    while ($timeout > 0) {
+        $requests = user_Request::where('car_type', $this->user->car_type)
             ->where('status', 'pending')
-            ->delete();
+            ->get()
+            ->map(function ($request) {
+                // Retrieve user name from the user table
+                $user = \App\Models\User::find($request->user_id); // Assuming user_id is the foreign key
 
-        return driverRequest::create([
-            'driver_id' => $this->user->id,
-            'longitude' => $validated['longitude'],
-            'latitude' => $validated['latitude'],
-            'car_type' => $this->user->car_type,
-            'status' => 'pending',
-        ]);
-    }
+                return [
+                    'request_id' => $request->user_id,
+                    'from' => $request->from,
+                    'destination' => $request->destination,
+                    'material_type' => $request->material_type,
+                    'user' => $user ? $user->first_name  . $user->last_name  : 'Unknown' // Get user name or default to 'Unknown'
+                ];
+            });
 
-    private function getRequests(Request $request)
-    {
-        $timeout = self::POLLING_TIMEOUT;
-        
-        while ($timeout > 0) {
-            $requests = user_Request::where('car_type', $this->user->car_type)
-                ->where('status', 'pending')
-                ->whereNotIn('id', function($query) {
-                    $query->select('request_id')
-                        ->from('driver_requests')
-                        ->where('driver_id', $this->user->id);
-                })
-                ->get()
-                ->map(function ($request) {
-                    return [
-                        'request_id' => $request->id,
-                        'from' => $request->from,
-                        'destination' => $request->destination,
-                        'material_type' => $request->material_type,
-                        'user' => $request->user
-                    ];
-                });
-
-            if ($requests->isNotEmpty()) {
-                return response()->json(['requests' => $requests]);
-            }
-
-            $timeout--;
-            sleep(1);
+        if ($requests->isNotEmpty()) {
+            return response()->json(['requests' => $requests]);
         }
 
-        return response()->json(['message' => 'No requests available']);
+        $timeout--;
+        sleep(1);
     }
+
+    return response()->json(['message' => 'No requests available']);
+}
 
     private function acceptRide(Request $request) 
     {
