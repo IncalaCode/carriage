@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Driver;
+use App\Models\User;
 use App\Models\user_Request;
 use App\Models\driverRequest;
 use App\Models\RidePrice;
@@ -30,13 +31,18 @@ class driver_request extends Controller
 
     public function handleRequest(Request $request)
     {
-        // Update last_active timestamp and location
-        $this->updateDriverStatus($request);
+ 
 
         // Get current driver request status
         $driverRequest = driverRequest::where('driver_id', $this->user->id)
             ->whereIn('status', ['pending', 'locked'])
             ->first();
+               // Update last_active timestamp and location
+        $this->updateDriverStatus($request,  $driverRequest);
+
+        if(($request->has(['completed']) && $driverRequest) ){
+            return response()->json($this->completrequest($request , $driverRequest));
+        }
 
         // If trying to start new search but has active request
         if ($request->has(['latitude', 'longitude']) && $driverRequest) {
@@ -73,13 +79,16 @@ class driver_request extends Controller
         }
     }
 
-    private function updateDriverStatus(Request $request)
+    private function updateDriverStatus(Request $request,  $driverRequest)
     {
         $this->user->update([
             'last_active' => Carbon::now(),
+            'is_online' => true
+        ]);
+
+        $driverRequest->update([
             'latitude' => $request->input('latitude'),
             'longitude' => $request->input('longitude'),
-            'is_online' => true
         ]);
 
         // Set drivers inactive after timeout
@@ -124,12 +133,18 @@ private function getRequests(Request $request)
             ->map(function ($request) {
                 $user = \App\Models\User::find($request->user_id);
 
+                $acceptedUsers = json_decode($request->accepted_driver_ids ?? "[]") ?? []; // Get accepted driver IDs
+
+                // Check if the current driver is in the accepted users
+                $isAcceptedByDriver = in_array($this->user->id, $acceptedUsers);
+
                 return [
                     'request_id' => $request->id,
                     'from' => $request->from,
                     'destination' => $request->destination,
                     'material_type' => $request->material_type,
-                    'user' => $user ? $user->first_name . ' ' . $user->last_name : 'Unknown'
+                    'user' => $user ? $user->first_name . ' ' . $user->last_name : 'Unknown',
+                    'is_accepted_by_driver' => $isAcceptedByDriver // Indicate if the current driver is accepted
                 ];
             });
 
@@ -187,23 +202,13 @@ private function getRequests(Request $request)
 
         $userRequest->accepted_driver_ids = $acceptedDrivers;
         $userRequest->save();
-        
-        return response()->json(['message' => 'Ride accepted successfully']);
+
+        return response()->json(['message' => ' Acceptance  sent  successfully']);
     }
 
     private function updateLocation(Request $request)
     {
-        $validated = $request->validate([
-            'latitude' => 'required|string',
-            'longitude' => 'required|string',
-        ]);
-
-        $this->user->update([
-            'latitude' => $validated['latitude'],
-            'longitude' => $validated['longitude']
-        ]);
-
-        return response()->json(['message' => 'Location updated successfully']);
+        return response()->json([ "locked" => true]);
     }
 
     private function cancelRequest($driverRequest)
@@ -250,4 +255,44 @@ private function getRequests(Request $request)
                 return 'start_searching';
         }
     }
+    private function completrequest($request , $driverRequest){
+        $driverRequest->update([
+            "status" => "completed"
+        ]);
+
+        return ["message" => "waiting the client to confrim the completed request "];
+    }
+
+    public function getOrder(Request $request)
+    {
+        $orders = driverRequest::where('driver_id', $this->user->uid)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($order) {
+                // Fetch the user associated with the locked user ID
+                $user = User::where("uid", $order->locked_user_id)->first();
+                
+    
+                if ($user) {
+                    return [
+                        'order_id' => $order->id,
+                        'status' => $order->status,
+                        'name' => $user->first_name . " " . $user->last_name,
+                        'created_at' => $order->created_at,
+                        'updated_at' => $order->updated_at,
+                    ];
+                }
+                
+                return null; // If user or request not found, return null for this entry
+            })
+            ->filter(); // Remove null values from the collection
+    
+        if ($orders->isEmpty()) {
+            return response()->json(['error' => 'No orders found for this client'], 404);
+        }
+    
+        return response()->json(['orders' => $orders]);
+    }
+    
 }
+
