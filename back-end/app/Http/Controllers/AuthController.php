@@ -30,9 +30,8 @@ class AuthController extends Controller
             return response()->json([
                 'errors' => $validator->errors(),
             ], 422);
-
         }
-      
+
 
 
         $otp = rand(1000, 9999); // Adjusted OTP to 4 digits
