@@ -7,7 +7,6 @@ import 'package:image_picker/image_picker.dart';
 import 'sidebarProfileEdit.dart';
 import 'login_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ProfilePage extends StatefulWidget {
   @override

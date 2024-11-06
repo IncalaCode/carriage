@@ -1,19 +1,31 @@
 import 'package:My_truck/screens/main_app_screen.dart';
 import 'package:flutter/material.dart';
-import 'screens/splash_screen.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/login_screen.dart';
+import 'package:My_truck/screens/Driver_main_screen.dart';
 // import 'screens/login_screen.dart'; // Commented out for direct navigation
-import 'screens/PaymentPage.dart';
 
 void main() {
   runApp(MyApp());
 }
 
 Future<String?> getToken() async {
-  final prefs = await SharedPreferences.getInstance();
-  return prefs.getString('authToken');
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('authToken');
+    print('Initial token check - Retrieved token: $token'); // Debug print
+    
+    if (token != null && token.isNotEmpty) {
+      print('Valid token found - Proceeding to MainAppScreen'); // Debug print
+      return token;
+    } else {
+      print('No valid token found - Redirecting to LoginScreen'); // Debug print
+      return null;
+    }
+  } catch (e) {
+    print('Error checking token: $e'); // Debug print
+    return null;
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -26,22 +38,22 @@ class MyApp extends StatelessWidget {
         fontFamily: 'NotoSans',
       ),
       debugShowCheckedModeBanner: false,
-      // Directly navigate to SplashScreen for testing; change back to LoginScreen() after testing
-      // home: SplashScreen(),
-
       home: FutureBuilder<String?>(
         future: getToken(),
         builder: (context, tokenSnapshot) {
           if (tokenSnapshot.connectionState == ConnectionState.waiting) {
-            // Display a loading indicator while waiting for the future to complete
+            print('Checking token status...'); // Debug print
             return Scaffold(
               body: Center(child: CircularProgressIndicator()),
             );
+          } else if (tokenSnapshot.hasError) {
+            print('Error during token check: ${tokenSnapshot.error}'); // Debug print
+            return LoginScreen(); // Fallback to login screen on error
           } else if (tokenSnapshot.hasData && tokenSnapshot.data != null) {
-            // If a token exists, go to MainAppScreen
-            return MainAppScreen();
+            print('Token verification successful - Navigating to MainAppScreen'); // Debug print
+            return DriverMainScreen();
           } else {
-            // If no token, go to LoginScreen
+            print('No token found - Navigating to LoginScreen'); // Debug print
             return LoginScreen();
           }
         },

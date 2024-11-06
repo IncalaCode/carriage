@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'config.dart';
+import 'login_screen.dart';
 import 'OrderRequestsPage.dart';
 import 'sidebarProfile.dart';
 import 'sidebarWallet.dart';
@@ -18,6 +24,259 @@ class DriverMainScreen extends StatefulWidget {
 class _DriverMainScreenState extends State<DriverMainScreen> {
   bool isDrawerOpen = false;
   File? _profileImage;
+  String? _authToken;
+  double _walletBalance = 0.0;
+  bool _isLoading = true;
+  String? _paymentUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    print('🚀 Initializing Driver Main Screen');
+    _initializeScreen();
+  }
+
+  Future<void> _initializeScreen() async {
+    try {
+      print('🔄 Starting screen initialization');
+      await _checkAuthentication();
+      if (_authToken != null) {
+        print('🔑 Token verified, fetching wallet balance');
+        await _fetchWalletBalance();
+      }
+    } catch (e) {
+      print('❌ Initialization Error: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _checkAuthentication() async {
+    print('🔐 Starting authentication check');
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('authToken');
+    print('🔑 Retrieved token: $token');
+
+    if (token == null) {
+      print('❌ No token found - Redirecting to login');
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+      );
+    } else {
+      print('✅ Token found - Proceeding with authentication');
+      setState(() {
+        _authToken = token;
+      });
+    }
+  }
+
+  Future<void> _fetchWalletBalance() async {
+    if (_authToken == null) {
+      print('❌ No auth token available for wallet check');
+      return;
+    }
+
+    try {
+      print('💳 Fetching wallet balance with token: ${_authToken!.substring(0, 10)}...');
+      final url = Uri.parse('${Config.baseUrl}/driver/wallet');
+      print('🔗 Wallet endpoint URL: $url');
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $_authToken',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      print('💰 Wallet Response Status: ${response.statusCode}');
+      print('💰 Wallet Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('💰 Parsed wallet data: $data');
+        if (mounted) {
+          setState(() {
+            _walletBalance = double.parse(data['balance'].toString());
+            _isLoading = false;
+          });
+        }
+        print('💰 Wallet balance updated: $_walletBalance ETB');
+      } else {
+        print('❌ Failed to load wallet: ${response.statusCode}');
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+        throw Exception('Failed to load wallet balance: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Wallet Error: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _initiatePayment() async {
+    try {
+      print('💳 Initiating payment process...');
+      final response = await http.post(
+        Uri.parse('${Config.baseUrl}/driver/initiate-payment'),
+        headers: {
+          'Authorization': 'Bearer $_authToken',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'amount': 1500,
+          'currency': 'ETB',
+        }),
+      );
+
+      print('💳 Payment Initiation Response: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('🔗 Payment URL Received');
+        setState(() {
+          _paymentUrl = data['payment_url'];
+        });
+        _showPaymentWebView();
+      } else {
+        throw Exception('Failed to initiate payment');
+      }
+    } catch (e) {
+      print('❌ Payment Initiation Error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to initiate payment. Please try again.')),
+      );
+    }
+  }
+
+  void _showPaymentWebView() {
+    if (_paymentUrl == null) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            title: Text('Payment'),
+            backgroundColor: Colors.black,
+          ),
+          body: WebView(
+            initialUrl: _paymentUrl,
+            javascriptMode: JavascriptMode.unrestricted,
+            navigationDelegate: (NavigationRequest request) {
+              if (request.url.contains('payment-success')) {
+                _verifyPayment();
+                return NavigationDecision.prevent;
+              }
+              return NavigationDecision.navigate;
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _verifyPayment() async {
+    try {
+      print('✅ Verifying payment...');
+      final response = await http.post(
+        Uri.parse('${Config.baseUrl}/driver/verify-payment'),
+        headers: {
+          'Authorization': 'Bearer $_authToken',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      print('✅ Payment Verification Status: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        print('✅ Payment verified successfully');
+        Navigator.of(context).pop(); // Close WebView
+        await _fetchWalletBalance(); // Refresh wallet balance
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Payment successful! You can now access orders.')),
+        );
+      } else {
+        throw Exception('Payment verification failed');
+      }
+    } catch (e) {
+      print('❌ Payment Verification Error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Payment verification failed. Please contact support.')),
+      );
+    }
+  }
+
+  Widget _buildOrderRequestsButton() {
+    print('🔄 Building order requests button');
+    print('Loading state: $_isLoading');
+    print('Wallet balance: $_walletBalance ETB');
+
+    if (_isLoading) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(color: Colors.black),
+            SizedBox(height: 10),
+            Text('Loading wallet...', 
+              style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_walletBalance >= 1500) {
+      return FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => OrderRequestsPage()),
+          );
+        },
+        backgroundColor: Colors.transparent,
+        icon: Icon(FontAwesomeIcons.bell, color: Colors.white),
+        label: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF000000), Color(0xFF9A839E)],
+            ),
+            borderRadius: BorderRadius.circular(30),
+          ),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Text(
+            'Requests',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
+    } else {
+      return FloatingActionButton.extended(
+        onPressed: _initiatePayment,
+        backgroundColor: Colors.transparent,
+        icon: Icon(FontAwesomeIcons.lock, color: Colors.white),
+        label: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.red.shade900, Colors.red.shade700],
+            ),
+            borderRadius: BorderRadius.circular(30),
+          ),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Text(
+            'Pay 1500 ETB to Access Orders',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
+    }
+  }
 
   Future<void> _pickImage() async {
     final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
@@ -172,29 +431,7 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
           Positioned(
             bottom: 20,
             right: 20,
-            child: FloatingActionButton.extended(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => OrderRequestsPage()),
-                );
-              },
-              backgroundColor: Colors.transparent,
-              icon: Icon(FontAwesomeIcons.bell, color: Colors.white),
-              label: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF000000), Color(0xFF9A839E)],
-                  ),
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Text(
-                  'Requests',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
+            child: _buildOrderRequestsButton(),
           ),
         ],
       ),

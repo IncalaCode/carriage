@@ -39,40 +39,84 @@ class _MainAppScreenState extends State<MainAppScreen> {
     }
   }
 
-  // Fetch payment URL from the backend and start payment process
+  // Add this function to check wallet balance
+  Future<double> _checkWalletBalance() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('authToken');
+      
+      print('Checking wallet with token: $token'); // Debug print
+      
+      final response = await http.get(
+        Uri.parse('${Config.baseUrl}/driver/wallet/balance'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+      
+      print('Wallet balance response status: ${response.statusCode}'); // Debug print
+      print('Wallet balance response: ${response.body}'); // Debug print
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['balance'] ?? 0.0;
+      }
+      return 0.0;
+    } catch (e) {
+      print('Error checking wallet balance: $e'); // Debug print
+      return 0.0;
+    }
+  }
+
+  // Update the payment initiation function
   Future<void> _initiatePayment() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
+      final token = prefs.getString('authToken');
 
       if (token == null) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('User not logged in')));
-        return; // Exit the function if the token is null
+        print('No auth token found'); // Debug print
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Please login to continue'))
+        );
+        return;
       }
-      final response = await http.get(Uri.parse(Config.baseUrl + '/driver/request/initiate-payment'));
+
+      final response = await http.post(
+        Uri.parse('${Config.baseUrl}/driver/payment/initiate'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json'  
+        },
+      );
+
+      print('Payment initiation response status: ${response.statusCode}'); // Debug print
+      print('Payment initiation response: ${response.body}'); // Debug print
+
       if (response.statusCode == 200) {
-        final paymentUrl = json.decode(response.body)['payment_url'];
+        final data = json.decode(response.body);
+        final paymentUrl = data['payment_url'];
+        
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => PaymentPage(chapaPaymentUrl: paymentUrl),
+            builder: (context) => PaymentWebView(
+              paymentUrl: paymentUrl,
+              token: token,
+            ),
           ),
-        ).then((result) {
-          if (result != null) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result)));
-            if (result == "Payment Successful!") {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => MyOrdersPage()),
-              );
-            }
-          }
-        });
+        );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to initiate payment')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to initiate payment. Please try again.'))
+        );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      print('Error initiating payment: $e'); // Debug print
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('An error occurred. Please try again.'))
+      );
     }
   }
 
@@ -81,6 +125,39 @@ class _MainAppScreenState extends State<MainAppScreen> {
       context,
       MaterialPageRoute(builder: (context) => OrderForm()),
     );
+  }
+
+  // Update the floating action button onPressed handler
+  void _handleOrderButtonPress() async {
+    final balance = await _checkWalletBalance();
+    print('Current wallet balance: $balance'); // Debug print
+
+    if (balance >= 1500) {
+      _showOrderForm();
+    } else {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Insufficient Balance'),
+          content: Text('You need a minimum balance of 1500 ETB to place orders. Would you like to add funds?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _initiatePayment();
+              },
+              child: Text('Add Funds'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   @override
@@ -242,7 +319,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
             bottom: 20,
             right: 20,
             child: FloatingActionButton.extended(
-              onPressed: _initiatePayment, // Initiates the payment process
+              onPressed: _handleOrderButtonPress, // Updated to use new handler
               backgroundColor: Colors.transparent,
               icon: Icon(FontAwesomeIcons.add, color: Colors.white),
               label: Container(
@@ -285,55 +362,116 @@ class _MainAppScreenState extends State<MainAppScreen> {
   }
 }
 
-// Page to handle the payment in WebView and verify the transaction
-class PaymentPage extends StatefulWidget {
-  final String chapaPaymentUrl;
-  PaymentPage({required this.chapaPaymentUrl});
+// Add payment verification function
+Future<bool> _verifyPayment() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('authToken');
+    
+    print('Verifying payment with token: $token'); // Debug print
+    
+    final response = await http.get(
+      Uri.parse('${Config.baseUrl}/driver/payment/verify'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+    
+    print('Payment verification response status: ${response.statusCode}'); // Debug print
+    print('Payment verification response: ${response.body}'); // Debug print
 
-  @override
-  _PaymentPageState createState() => _PaymentPageState();
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return data['payment_verified'] == true;
+    }
+    return false;
+  } catch (e) {
+    print('Error verifying payment: $e'); // Debug print
+    return false;
+  }
 }
 
-class _PaymentPageState extends State<PaymentPage> {
-  late WebViewController _controller;
-  final verifyPaymentEndpoint = Config.baseUrl + '/driver/request/confirm-payment';
+// Update the PaymentWebView to handle verification
+class PaymentWebView extends StatelessWidget {
+  final String paymentUrl;
+  final String token;
+
+  const PaymentWebView({
+    required this.paymentUrl,
+    required this.token,
+  });
+
+  Future<void> _handlePaymentSuccess(BuildContext context) async {
+    Navigator.pop(context); // Close payment webview
+    
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Verifying payment...')
+            ],
+          ),
+        );
+      },
+    );
+
+    // Wait a bit for backend to process payment
+    await Future.delayed(Duration(seconds: 2));
+
+    // Verify payment
+    final bool isVerified = await _verifyPayment();
+    
+    Navigator.pop(context); // Close loading dialog
+
+    if (isVerified) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Payment verified successfully!'))
+      );
+      // Refresh wallet balance and proceed
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => OrderForm()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Payment verification failed. Please contact support if money was deducted.'),
+          duration: Duration(seconds: 5),
+        )
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Payment'),
+        leading: IconButton(
+          icon: Icon(Icons.close),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: WebView(
-        initialUrl: widget.chapaPaymentUrl,
+        initialUrl: paymentUrl,
         javascriptMode: JavascriptMode.unrestricted,
-        onWebViewCreated: (WebViewController webViewController) {
-          _controller = webViewController;
-        },
         navigationDelegate: (NavigationRequest request) {
-          if (request.url.contains("payment_success")) {
-            final txRef = Uri.parse(request.url).queryParameters['tx_ref'] ?? '';
-            _verifyTransaction(txRef);
+          print('Navigation to: ${request.url}'); // Debug print
+          if (request.url.contains('success')) {
+            _handlePaymentSuccess(context);
             return NavigationDecision.prevent;
           }
           return NavigationDecision.navigate;
         },
       ),
     );
-  }
-
-  Future<void> _verifyTransaction(String txRef) async {
-    final response = await http.post(
-      Uri.parse(verifyPaymentEndpoint),
-      body: {
-        'tx_ref': txRef
-      },
-    );
-
-    if (response.statusCode == 200) {
-      Navigator.pop(context, "Payment Successful!");
-    } else {
-      Navigator.pop(context, "Payment Verification Failed.");
-    }
   }
 }
