@@ -15,6 +15,8 @@ import 'sidebarProfile.dart';
 import 'sidebarWallet.dart';
 import 'sidebarMyOrder.dart';
 import 'sidebarSettings.dart';
+import './Driver_map/driver_map_component.dart';
+import './Driver_map/driver_hock.dart';
 
 class DriverMainScreen extends StatefulWidget {
   @override
@@ -23,6 +25,7 @@ class DriverMainScreen extends StatefulWidget {
 
 class _DriverMainScreenState extends State<DriverMainScreen> {
   bool isDrawerOpen = false;
+  bool loading = true; // Loading state
   File? _profileImage;
   String? _authToken;
   double _walletBalance = 0.0;
@@ -79,7 +82,7 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
 
     try {
       print('💳 Fetching wallet balance with token: ${_authToken!.substring(0, 10)}...');
-      final url = Uri.parse('${Config.baseUrl}/driver/wallet');
+      final url = Uri.parse('${Config.baseUrl}/wallet/balance');
       print('🔗 Wallet endpoint URL: $url');
 
       final response = await http.get(
@@ -131,16 +134,12 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
           'Authorization': 'Bearer $_authToken',
           'Content-Type': 'application/json',
         },
-        body: json.encode({
-          'amount': 1500,
-          'currency': 'ETB',
-        }),
       );
 
       print('💳 Payment Initiation Response: ${response.statusCode}');
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('🔗 Payment URL Received');
+        print('🔗 Payment URL Received: ${data['payment_url']}');
         setState(() {
           _paymentUrl = data['payment_url'];
         });
@@ -170,9 +169,19 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
             initialUrl: _paymentUrl,
             javascriptMode: JavascriptMode.unrestricted,
             navigationDelegate: (NavigationRequest request) {
-              if (request.url.contains('payment-success')) {
-                _verifyPayment();
-                return NavigationDecision.prevent;
+              print('🔄 Navigation to: ${request.url}');
+              
+              // Check for success URL and extract txref and uid
+              if (request.url.contains('success')) {
+                final uri = Uri.parse(request.url);
+                final txref = uri.queryParameters['tx_ref'];
+                final uid = uri.queryParameters['uid'];
+                
+                if (txref != null && uid != null) {
+                  print('✅ Payment Success - txref: $txref, uid: $uid');
+                  _confirmPayment(txref, uid);
+                  return NavigationDecision.prevent;
+                }
               }
               return NavigationDecision.navigate;
             },
@@ -182,32 +191,36 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
     );
   }
 
-  Future<void> _verifyPayment() async {
+  Future<void> _confirmPayment(String txref, String uid) async {
     try {
-      print('✅ Verifying payment...');
+      print('✅ Confirming payment with backend...');
       final response = await http.post(
-        Uri.parse('${Config.baseUrl}/driver/verify-payment'),
+        Uri.parse('${Config.baseUrl}/driver/confirm-payment'),
         headers: {
           'Authorization': 'Bearer $_authToken',
           'Content-Type': 'application/json',
         },
+        body: json.encode({
+          'tx_ref': txref,
+          'uid': uid,
+        }),
       );
 
-      print('✅ Payment Verification Status: ${response.statusCode}');
+      print('✅ Payment Confirmation Status: ${response.statusCode}');
       if (response.statusCode == 200) {
-        print('✅ Payment verified successfully');
+        print('✅ Payment confirmed successfully');
         Navigator.of(context).pop(); // Close WebView
         await _fetchWalletBalance(); // Refresh wallet balance
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Payment successful! You can now access orders.')),
+          SnackBar(content: Text('Payment successful! Wallet has been updated.')),
         );
       } else {
-        throw Exception('Payment verification failed');
+        throw Exception('Payment confirmation failed');
       }
     } catch (e) {
-      print('❌ Payment Verification Error: $e');
+      print('❌ Payment Confirmation Error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Payment verification failed. Please contact support.')),
+        SnackBar(content: Text('Payment confirmation failed. Please contact support.')),
       );
     }
   }
@@ -315,9 +328,7 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
               builder: (context) => IconButton(
                 icon: Icon(FontAwesomeIcons.bars, color: Colors.white),
                 onPressed: () {
-                  setState(() {
-                    isDrawerOpen = true;
-                  });
+                  setState(() => isDrawerOpen = true);
                   Scaffold.of(context).openDrawer();
                 },
               ),
@@ -371,28 +382,16 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
               child: ListView(
                 children: [
                   _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context, () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => ProfilePage()),
-                    );
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePage()));
                   }),
                   _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context, () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => WalletPage()),
-                    );
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => WalletPage()));
                   }),
                   _buildDrawerItem(FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => MyOrdersPage()),
-                    );
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => MyOrdersPage()));
                   }),
                   _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context, () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => SettingsPage()),
-                    );
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsPage()));
                   }),
                 ],
               ),
@@ -402,32 +401,7 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
       ),
       body: Stack(
         children: [
-          FlutterMap(
-            options: MapOptions(
-              center: LatLng(9.145, 40.4897),
-              zoom: 6.0,
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                subdomains: ['a', 'b', 'c'],
-              ),
-              MarkerLayer(
-                markers: [
-                  Marker(
-                    width: 80.0,
-                    height: 80.0,
-                    point: LatLng(9.145, 40.4897),
-                    builder: (ctx) => Icon(
-                      FontAwesomeIcons.mapMarkerAlt,
-                      color: Colors.black,
-                      size: 40.0,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+          DriverMapComponent(),
           Positioned(
             bottom: 20,
             right: 20,

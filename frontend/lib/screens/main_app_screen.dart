@@ -12,8 +12,10 @@ import 'sidebarProfile.dart';
 import 'sidebarWallet.dart';
 import 'sidebarMyOrder.dart';
 import 'sidebarSettings.dart';
-import 'order_form_screen.dart';
+import 'Order_form_screen.dart';
+import 'user_map/user_map_component.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 
 class MainAppScreen extends StatefulWidget {
   @override
@@ -285,6 +287,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       ),
       body: Stack(
         children: [
+         UserMapComponent (),
           FlutterMap(
             options: MapOptions(
               center: LatLng(9.005401, 38.763611),

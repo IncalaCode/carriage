@@ -28,6 +28,12 @@ dependencies:
   latlong2: ^0.8.1
   flutter_typeahead: ^4.0.0
   flutter_svg: ^1.1.5
+
+  
+
+  
+  location: ^7.0.1
+  provider: ^6.0.0
   flutter_secure_storage: ^9.2.2
   
 
