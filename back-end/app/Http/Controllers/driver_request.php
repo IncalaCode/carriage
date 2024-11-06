@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Driver;
+use App\Models\User;
 use App\Models\user_Request;
 use App\Models\driverRequest;
 use App\Models\RidePrice;
@@ -262,5 +263,36 @@ private function getRequests(Request $request)
         return ["message" => "waiting the client to confrim the completed request "];
     }
 
+    public function getOrder(Request $request)
+    {
+        $orders = driverRequest::where('driver_id', $this->user->uid)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($order) {
+                // Fetch the user associated with the locked user ID
+                $user = User::where("uid", $order->locked_user_id)->first();
+                
+    
+                if ($user) {
+                    return [
+                        'order_id' => $order->id,
+                        'status' => $order->status,
+                        'name' => $user->first_name . " " . $user->last_name,
+                        'created_at' => $order->created_at,
+                        'updated_at' => $order->updated_at,
+                    ];
+                }
+                
+                return null; // If user or request not found, return null for this entry
+            })
+            ->filter(); // Remove null values from the collection
+    
+        if ($orders->isEmpty()) {
+            return response()->json(['error' => 'No orders found for this client'], 404);
+        }
+    
+        return response()->json(['orders' => $orders]);
+    }
+    
 }
 

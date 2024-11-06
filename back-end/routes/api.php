@@ -78,3 +78,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/wallet/withdraw', [WalletController::class, 'withdraw']);
     Route::get('/wallet/transactions', [WalletController::class, 'transactionHistory']);
 });
+
+
+
+Route::post("/client/getorder" ,[client_request::class, 'getOrder']);
+Route::post("/driver/getorder", [driver_request::class, 'getOrder']);
