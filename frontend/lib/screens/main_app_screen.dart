@@ -3,10 +3,9 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-
 import 'sidebarProfile.dart';
 import 'sidebarWallet.dart';
-import 'sidebarMyOrder.dart';
+import './sidebarMyOrder.dart';
 import 'sidebarSettings.dart';
 import 'Order_form_screen.dart';
 import 'user_map/user_map_component.dart';
@@ -22,7 +21,8 @@ class _MainAppScreenState extends State<MainAppScreen> {
 
   Future<void> _pickImage() async {
     try {
-      final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+      final pickedFile =
+          await ImagePicker().pickImage(source: ImageSource.gallery);
       if (pickedFile != null) {
         setState(() {
           _profileImage = File(pickedFile.path);
@@ -99,7 +99,8 @@ class _MainAppScreenState extends State<MainAppScreen> {
                       radius: 40,
                       backgroundColor: Colors.white,
                       child: _profileImage == null
-                          ? Icon(FontAwesomeIcons.user, size: 40, color: Colors.grey)
+                          ? Icon(FontAwesomeIcons.user,
+                              size: 40, color: Colors.grey)
                           : ClipOval(
                               child: Image.file(
                                 _profileImage!,
@@ -125,28 +126,32 @@ class _MainAppScreenState extends State<MainAppScreen> {
             Expanded(
               child: ListView(
                 children: [
-                  _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context, () {
+                  _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context,
+                      () {
                     Navigator.pop(context);
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(builder: (context) => ProfilePage()),
                     );
                   }),
-                  _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context, () {
+                  _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context,
+                      () {
                     Navigator.pop(context);
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(builder: (context) => WalletPage()),
                     );
                   }),
-                  _buildDrawerItem(FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
+                  _buildDrawerItem(
+                      FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
                     Navigator.pop(context);
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(builder: (context) => MyOrdersPage()),
                     );
                   }),
-                  _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context, () {
+                  _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context,
+                      () {
                     Navigator.pop(context);
                     Navigator.pushReplacement(
                       context,
@@ -161,7 +166,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       ),
       body: Stack(
         children: [
-         UserMapComponent (),
+          UserMapComponent(),
           Positioned(
             bottom: 20,
             right: 20,
@@ -179,7 +184,8 @@ class _MainAppScreenState extends State<MainAppScreen> {
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Text(
                   'Order Now',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -189,7 +195,8 @@ class _MainAppScreenState extends State<MainAppScreen> {
     );
   }
 
-  Widget _buildDrawerItem(IconData icon, String title, BuildContext context, Function onTap) {
+  Widget _buildDrawerItem(
+      IconData icon, String title, BuildContext context, Function onTap) {
     return ListTile(
       leading: Icon(icon, color: Colors.black),
       title: Text(
