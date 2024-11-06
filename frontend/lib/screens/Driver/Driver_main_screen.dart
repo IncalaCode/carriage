@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
 import 'OrderRequestsPage.dart';
-import 'sidebarProfile.dart';
-import 'sidebarWallet.dart';
-import 'sidebarMyOrder.dart';
-import 'sidebarSettings.dart';
+import 'sidebarProfiledriver.dart';
+import 'sidebarWalletdriver.dart';
+import 'sidebarMyOrderdriver.dart';
+import 'sidebarSettingsdriver.dart';
+import './Driver_map/driver_map_component.dart';
+
 
 class DriverMainScreen extends StatefulWidget {
   @override
@@ -17,10 +17,12 @@ class DriverMainScreen extends StatefulWidget {
 
 class _DriverMainScreenState extends State<DriverMainScreen> {
   bool isDrawerOpen = false;
+  bool loading = true; // Loading state
   File? _profileImage;
 
   Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final pickedFile =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _profileImage = File(pickedFile.path);
@@ -56,9 +58,7 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
               builder: (context) => IconButton(
                 icon: Icon(FontAwesomeIcons.bars, color: Colors.white),
                 onPressed: () {
-                  setState(() {
-                    isDrawerOpen = true;
-                  });
+                  setState(() => isDrawerOpen = true);
                   Scaffold.of(context).openDrawer();
                 },
               ),
@@ -85,7 +85,8 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
                       radius: 40,
                       backgroundColor: Colors.white,
                       child: _profileImage == null
-                          ? Icon(FontAwesomeIcons.user, size: 40, color: Colors.grey)
+                          ? Icon(FontAwesomeIcons.user,
+                              size: 40, color: Colors.grey)
                           : ClipOval(
                               child: Image.file(
                                 _profileImage!,
@@ -111,29 +112,29 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
             Expanded(
               child: ListView(
                 children: [
-                  _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context, () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => ProfilePage()),
-                    );
+                  _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context,
+                      () {
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (context) => ProfilePagedriver()));
                   }),
-                  _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context, () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => WalletPage()),
-                    );
+                  _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context,
+                      () {
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (context) => WalletPagedriver()));
                   }),
-                  _buildDrawerItem(FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
+                  _buildDrawerItem(
+                      FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
                     Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => MyOrdersPage()),
-                    );
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => MyOrdersPagedriver()));
                   }),
-                  _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context, () {
+                  _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context,
+                      () {
                     Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => SettingsPage()),
-                    );
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => SettingsPagedriver()));
                   }),
                 ],
               ),
@@ -143,32 +144,7 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
       ),
       body: Stack(
         children: [
-          FlutterMap(
-            options: MapOptions(
-              center: LatLng(9.145, 40.4897),
-              zoom: 6.0,
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                subdomains: ['a', 'b', 'c'],
-              ),
-              MarkerLayer(
-                markers: [
-                  Marker(
-                    width: 80.0,
-                    height: 80.0,
-                    point: LatLng(9.145, 40.4897),
-                    builder: (ctx) => Icon(
-                      FontAwesomeIcons.mapMarkerAlt,
-                      color: Colors.black,
-                      size: 40.0,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+          DriverMapComponent(),
           Positioned(
             bottom: 20,
             right: 20,
@@ -191,7 +167,8 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Text(
                   'Requests',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -201,7 +178,8 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
     );
   }
 
-  Widget _buildDrawerItem(IconData icon, String title, BuildContext context, Function onTap) {
+  Widget _buildDrawerItem(
+      IconData icon, String title, BuildContext context, Function onTap) {
     return ListTile(
       leading: Icon(icon, color: Colors.black),
       title: Text(

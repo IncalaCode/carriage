@@ -7,6 +7,11 @@ use App\Http\Controllers\DriverController;
 
 use App\Http\Controllers\driver_request;
 use App\Http\Controllers\client_request;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\ClientOrderController;
+use App\Http\Controllers\DriverRequestController;
+use App\Http\Controllers\WalletController;
+
 
 
 
@@ -48,19 +53,33 @@ Route::middleware('auth:driver')->group(function () {
 
 // Driver Routes
 
-Route::post('/driver/request', [driver_request::class, 'getRequest']); // Long polling for new ride requests
-Route::post('/driver/request/accept', [driver_request::class, 'acceptRequest']); // Accept a ride request
-Route::post('/driver/request/send-tracking', [driver_request::class, 'sendTracking']); // Send tracking updates
-Route::post('/driver/request/cancel-acceptance', [driver_request::class, 'cancelAcceptance']); // Cancel acceptance
-Route::post('/driver/request/confirmation', [driver_request::class, 'getConfirmation']); // Get confirmation updates
-
+Route::post('/driver/handle-request', [driver_request::class, 'handleRequest']);
+Route::post('/client/handle-request', [client_request::class, 'handleRequest']);
 
 // Client (User) Routes
 
-Route::post('/client/request/send', [client_request::class, 'sendRequest']); // Send a ride request
-Route::post('/client/request/drivers', [client_request::class, 'getDriverResponses']); // View driver responses
-Route::post('/client/request/confirm', [client_request::class, 'confirmDriver']); // Confirm driver selection
-Route::post('/client/request/cancel', [client_request::class, 'cancelRequest']); // Cancel pending ride request
-Route::post('/client/request/cancel-locked', [client_request::class, 'cancelLockedRequest']); // Cancel locked ride request
-Route::post('/client/request/track', [client_request::class, 'trackDriverLocation']); // Track driver's location
-Route::post('/client/request/complete', [client_request::class, 'completeRide']); // Mark the ride as completed
+Route::post('/client/handle-request', [client_request::class, 'handleRequest']);
+
+
+Route::post('/payment/initiate', [PaymentController::class, 'initiatePayment']);
+Route::get('/payment/callback', [PaymentController::class, 'paymentCallback'])->name('payment.callback');
+Route::post('/driver/withdraw', [PaymentController::class, 'withdrawFunds']);
+
+Route::post('/client/order/initiate-payment', [ClientOrderController::class, 'initiateOrderPayment']);
+Route::get('/client/order/confirm-payment', [ClientOrderController::class, 'confirmOrderPayment']);
+
+Route::post('/driver/request/initiate-payment', [DriverRequestController::class, 'initiateRequestPayment']);
+Route::get('/driver/request/confirm-payment', [DriverRequestController::class, 'confirmRequestPayment']);
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/wallet/balance', [WalletController::class, 'getBalance']);
+    Route::post('/wallet/deposit', [WalletController::class, 'deposit']);
+    Route::post('/wallet/withdraw', [WalletController::class, 'withdraw']);
+    Route::get('/wallet/transactions', [WalletController::class, 'transactionHistory']);
+});
+
+
+
+Route::post("/client/getorder" ,[client_request::class, 'getOrder']);
+Route::post("/driver/getorder", [driver_request::class, 'getOrder']);

@@ -19,13 +19,12 @@ class user_Request extends Model
         'material_type',
         'car_type',
         'accepted_driver_id',
-        'locked_drivers',
+        'locked_driver_id',
         'status',
     ];
 
     // Cast fields to specific types
     protected $casts = [
-        'locked_drivers' => 'array',  // JSON field should be cast to an array
         'status' => 'string',
     ];
 

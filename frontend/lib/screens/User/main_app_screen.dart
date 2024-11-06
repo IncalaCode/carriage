@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
 import 'sidebarProfile.dart';
 import 'sidebarWallet.dart';
-import 'sidebarMyOrder.dart';
+import './sidebarMyOrder.dart';
 import 'sidebarSettings.dart';
-import 'order_form_screen.dart';
+import 'Order_form_screen.dart';
+import 'user_map/user_map_component.dart';
 
 class MainAppScreen extends StatefulWidget {
   @override
@@ -21,7 +20,8 @@ class _MainAppScreenState extends State<MainAppScreen> {
 
   Future<void> _pickImage() async {
     try {
-      final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+      final pickedFile =
+          await ImagePicker().pickImage(source: ImageSource.gallery);
       if (pickedFile != null) {
         setState(() {
           _profileImage = File(pickedFile.path);
@@ -98,7 +98,8 @@ class _MainAppScreenState extends State<MainAppScreen> {
                       radius: 40,
                       backgroundColor: Colors.white,
                       child: _profileImage == null
-                          ? Icon(FontAwesomeIcons.user, size: 40, color: Colors.grey)
+                          ? Icon(FontAwesomeIcons.user,
+                              size: 40, color: Colors.grey)
                           : ClipOval(
                               child: Image.file(
                                 _profileImage!,
@@ -122,70 +123,45 @@ class _MainAppScreenState extends State<MainAppScreen> {
               ),
             ),
             Expanded(
-              child: ListView(
-                children: [
-                  _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context, () {
-                    Navigator.pop(context);
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => ProfilePage()),
-                    );
-                  }),
-                  _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context, () {
-                    Navigator.pop(context);
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => WalletPage()),
-                    );
-                  }),
-                  _buildDrawerItem(FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
-                    Navigator.pop(context);
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => MyOrdersPage()),
-                    );
-                  }),
-                  _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context, () {
-                    Navigator.pop(context);
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => SettingsPage()),
-                    );
-                  }),
-                ],
-              ),
-            ),
+  child: ListView(
+    children: [
+      _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context, () {
+        Navigator.pop(context); // Close the drawer
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => ProfilePage()),
+        );
+      }),
+      _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context, () {
+        Navigator.pop(context);
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => WalletPage()),
+        );
+      }),
+      _buildDrawerItem(FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
+        Navigator.pop(context);
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => MyOrdersPage()),
+        );
+      }),
+      _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context, () {
+        Navigator.pop(context);
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => SettingsPage()),
+        );
+      }),
+    ],
+  ),
+)
           ],
         ),
       ),
       body: Stack(
         children: [
-          FlutterMap(
-            options: MapOptions(
-              center: LatLng(9.005401, 38.763611),
-              zoom: 6.0,
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                subdomains: ['a', 'b', 'c'],
-              ),
-              MarkerLayer(
-                markers: [
-                  Marker(
-                    width: 80.0,
-                    height: 80.0,
-                    point: LatLng(9.005401, 38.763611),
-                    builder: (ctx) => Icon(
-                      FontAwesomeIcons.mapMarkerAlt,
-                      color: const Color.fromARGB(255, 0, 0, 0),
-                      size: 40.0,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+          UserMapComponent(),
           Positioned(
             bottom: 20,
             right: 20,
@@ -203,7 +179,8 @@ class _MainAppScreenState extends State<MainAppScreen> {
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Text(
                   'Order Now',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -213,7 +190,8 @@ class _MainAppScreenState extends State<MainAppScreen> {
     );
   }
 
-  Widget _buildDrawerItem(IconData icon, String title, BuildContext context, Function onTap) {
+  Widget _buildDrawerItem(
+      IconData icon, String title, BuildContext context, Function onTap) {
     return ListTile(
       leading: Icon(icon, color: Colors.black),
       title: Text(
