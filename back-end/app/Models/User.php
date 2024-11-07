@@ -54,4 +54,8 @@ class User extends Authenticatable
             $user->uid = Str::uuid(); // Automatically generate a UUID for new users
         });
     }
+    public function wallet()
+    {
+        return $this->hasOne(Wallet::class);
+    }
 }

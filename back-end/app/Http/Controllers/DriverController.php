@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
 use App\Models\RequestModel;
 use Illuminate\Support\Facades\Cache;
+use App\Models\Wallet;
 
 require_once "otp.php";
 
@@ -60,6 +61,12 @@ class DriverController extends Controller
             'verified' => false, // Initially set verified to false
             'approved' => false,
             'otp' => rand(1000, 9999), // Store the OTP
+        ]);
+
+        // Create wallet for the driver
+        Wallet::create([
+            'driver_id' => $driver->id,
+            'balance' => 0.00, // Initial balance
         ]);
 
         // Call the otpSend function
