@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'dart:convert'; // For encoding/decoding JSON
 import 'dart:typed_data'; // For handling image bytes
+import 'package:My_truck/screens/Driver/Driver_main_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http; // Import the http package
 import 'package:http_parser/http_parser.dart'; // For setting content type of image
-import 'package:My_truck/screens/main_app_screen.dart';
 import 'config.dart'; // Ensure this points to your correct config file
+import 'login_screen.dart';
 
 class DriverOTP extends StatefulWidget {
   final String firstName;
@@ -167,7 +168,7 @@ class _DriverOTPState extends State<DriverOTP> {
       if (response.statusCode == 200) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => MainAppScreen()),
+          MaterialPageRoute(builder: (context) => LoginScreen()),
         );
       } else {
         print('OTP verification failed. Status Code: ${response.statusCode}');

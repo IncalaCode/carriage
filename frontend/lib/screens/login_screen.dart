@@ -3,15 +3,29 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:My_truck/screens/RegisterUser.dart';
 import 'package:My_truck/screens/RegisterDriver.dart';
-import 'package:My_truck/screens/main_app_screen.dart';
-import 'package:My_truck/screens/Driver_main_screen.dart';
+import 'package:My_truck/screens/user/main_app_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'dart:convert';
+import 'driver/Driver_main_screen.dart ';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
   _LoginScreenState createState() => _LoginScreenState();
+}
+
+// code for the token storing
+Future<void> storeToken(String token, String userType) async {
+  print('🔑 Storing token: $token with userType: $userType'); // Debug print
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('authToken', token);
+    await prefs.setString('userType', userType); // Store user type
+    print('✅ Token and userType stored successfully'); // Debug print
+  } catch (e) {
+    print('❌ Error storing token and userType: $e'); // Debug print
+  }
 }
 
 class _LoginScreenState extends State<LoginScreen> {
@@ -26,6 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // Function to handle sending OTP
   Future<void> _sendOtp() async {
+    print('📲 Sending OTP...'); // Debug print
     // Check phone number format
     if (!_phoneNumber.startsWith('+251') || _phoneNumber.length != 13) {
       setState(() {
@@ -47,20 +62,24 @@ class _LoginScreenState extends State<LoginScreen> {
         }),
       );
 
+      print('📡 OTP Response Status: ${response.statusCode}'); // Debug print
+      print('📡 OTP Response Body: ${response.body}'); // Debug print
+
       if (response.statusCode == 200) {
         setState(() {
           _isOtpSent = true;
           _errorMessage = '';
         });
-        _startOtpTimer();
+       // _startOtpTimer();
       } else {
         setState(() {
           _errorMessage = 'Failed to send OTP. Try again later.';
           final responseBody = json.decode(response.body);
-          print('Error: ${response.statusCode}, Message: ${responseBody['message']}');
+          print('❌ Error: ${response.statusCode}, Message: ${responseBody['message']}');
         });
       }
     } catch (e) {
+      print('❌ Exception during OTP send: $e'); // Debug print
       setState(() {
         _errorMessage = 'An error occurred. Please try again later.';
       });
@@ -68,35 +87,27 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   // Function to handle OTP timer
-  void _startOtpTimer() {
-    _remainingTime = 60;
-    _timer?.cancel();
-    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
-      if (_remainingTime > 0) {
-        setState(() {
-          _remainingTime--;
-        });
-      } else {
-        timer.cancel();
-        setState(() {
-          _isOtpSent = false; // Allow resend after 60 seconds
-        });
-      }
-    });
-  }
+  // void _startOtpTimer() {
+  //   print('⏱️ Starting OTP timer...'); // Debug print
+  //   _remainingTime = 60;
+  //   _timer?.cancel();
+  //   _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+  //     if (_remainingTime > 0) {
+  //       setState(() {
+  //         _remainingTime--;
+  //       });
+  //     } else {
+  //       timer.cancel();
+  //       setState(() {
+  //         _isOtpSent = false; // Allow resend after 60 seconds
+  //       });
+  //     }
+  //   });
+  // }
 
   // Function to handle login
   Future<void> _login() async {
-    // this is the back door so when it is finished remove this 
-              Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => DriverMainScreen()),
-          );
-
-    // ------------------------------------------------------------------
-
-
-
+    print('🔐 Verifying OTP...'); // Debug print
     if (_otp.length != 4) {
       setState(() {
         _errorMessage = 'Please enter a valid 4-digit OTP';
@@ -117,20 +128,61 @@ class _LoginScreenState extends State<LoginScreen> {
         }),
       );
 
+      print('🔍 Verify Response Status: ${response.statusCode}'); // Debug print
+
       if (response.statusCode == 200) {
-        var responseBody = json.decode(response.body);
-        if (responseBody['message'] == 'OTP verified successfully') {
-          // Navigate to the main app screen after successful verification
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => MainAppScreen()),
-          );
-        } else {
+        try {
+          var responseBody = json.decode(response.body);
+          print('🔍 Verify Response Body: ${responseBody}'); // Debug print
+
+          if (responseBody != null) {
+            if (responseBody['message'] == 'OTP verified successfully') {
+              if (responseBody.containsKey('user') && responseBody['user'].containsKey('uid')) {
+                String token = responseBody['user']['uid'].toString();
+                String userType = isUserLogin ? 'user' : 'driver'; // Determine user type
+                print('🔑 Received token: $token, userType: $userType'); // Debug print
+
+                if (token.isNotEmpty) {
+                  await storeToken(token, userType);
+
+                  // Verify token was stored
+                  final prefs = await SharedPreferences.getInstance();
+                  final storedToken = prefs.getString('authToken');
+                  print('🔍 Verified stored token: $storedToken'); // Debug print
+
+                  if (isUserLogin) {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => MainAppScreen()),
+                    );
+                  } else {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => DriverMainScreen()),
+                    );
+                  }
+                } else {
+                  throw Exception('Empty token received');
+                }
+              } else {
+                throw Exception('No uid field found in user object');
+              }
+            } else {
+              setState(() {
+                _errorMessage = responseBody['message'] ?? 'Invalid OTP. Please try again.';
+              });
+            }
+          } else {
+            throw Exception('Empty response body');
+          }
+        } catch (e) {
+          print('❌ Error parsing response: $e'); // Debug print
           setState(() {
-            _errorMessage = 'Invalid OTP. Please try again.';
+            _errorMessage = 'Error processing response. Please try again.';
           });
         }
       } else {
+        print('❌ Server returned ${response.statusCode}: ${response.body}'); // Debug print
         setState(() {
           _errorMessage = 'Login failed. Please check your credentials and try again.';
         });
@@ -139,6 +191,7 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() {
         _errorMessage = 'An error occurred. Please try again later.';
       });
+      print('❌ Exception during login: $e'); // Debug print
     }
   }
 
@@ -258,21 +311,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     borderRadius: BorderRadius.circular(10.0),
                   ),
                 ),
-                onPressed: () {
-                  if (isUserLogin) {
-                    // Redirect to main app screen for users
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => MainAppScreen()),
-                    );
-                  } else {
-                    // Redirect to the driver-specific screen
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => DriverMainScreen()), // Replace with the actual Driver screen
-                    );
-                  }
-                },
+                onPressed: _login,
                 child: Text("Login", style: TextStyle(color: Colors.white)),
               ),
               SizedBox(height: 20),
@@ -319,7 +358,6 @@ class _LoginScreenState extends State<LoginScreen> {
 // import 'package:http/http.dart' as http;
 // import 'dart:async';
 // import 'dart:convert';
-// import 'Driver_main_screen.dart';
 
 // class LoginScreen extends StatefulWidget {
 //   @override
@@ -529,8 +567,11 @@ class _LoginScreenState extends State<LoginScreen> {
 //                         suffixIcon: ElevatedButton(
 //                           onPressed: _isOtpSent ? null : _sendOtp,
 //                           style: ElevatedButton.styleFrom(
-//                             backgroundColor: Colors.blue,
+//                             backgroundColor: const Color.fromARGB(255, 112, 145, 172),
 //                             padding: EdgeInsets.symmetric(horizontal: 10),
+//                             shape: RoundedRectangleBorder(
+//                               borderRadius: BorderRadius.circular(5),
+//                             ),
 //                           ),
 //                           child: Text(
 //                             _isOtpSent ? "Resend (${_remainingTime}s)" : "Send OTP",

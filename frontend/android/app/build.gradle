@@ -36,6 +36,9 @@ android {
 
 
     buildTypes {
+        debug{
+
+        }
         release {
             signingConfig = signingConfigs.debug
         }

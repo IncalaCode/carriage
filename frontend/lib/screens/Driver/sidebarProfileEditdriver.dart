@@ -4,12 +4,12 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 
-class EditProfilePage extends StatefulWidget {
+class EditProfilePagedriver extends StatefulWidget {
   @override
   _EditProfilePageState createState() => _EditProfilePageState();
 }
 
-class _EditProfilePageState extends State<EditProfilePage> {
+class _EditProfilePageState extends State<EditProfilePagedriver> {
   File? _profileImage;
   final _formKey = GlobalKey<FormState>();
 
@@ -20,7 +20,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   // Function to pick an image from the gallery
   Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().getImage(source: ImageSource.gallery);
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _profileImage = File(pickedFile.path);

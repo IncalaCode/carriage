@@ -1,24 +1,21 @@
 
-// Import relevant packages
-
-
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
-import 'sidebarProfileEdit.dart';
-import 'login_screen.dart';
+import 'sidebarProfileEditdriver.dart';
+import '../login_screen.dart';
 
-class ProfilePage extends StatefulWidget {
+class ProfilePagedriver extends StatefulWidget {
   @override
   _ProfilePageState createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _ProfilePageState extends State<ProfilePagedriver> {
   File? _profileImage;
 
   Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().getImage(source: ImageSource.gallery);
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _profileImage = File(pickedFile.path);
@@ -92,7 +89,7 @@ class _ProfilePageState extends State<ProfilePage> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => EditProfilePage()),
+                MaterialPageRoute(builder: (context) => EditProfilePagedriver()),
               );
             },
           ),

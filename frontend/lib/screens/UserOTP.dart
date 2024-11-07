@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
-import 'package:My_truck/screens/main_app_screen.dart';
+import 'package:My_truck/screens/user/main_app_screen.dart';
 import 'config.dart';
 
 class UserOTP extends StatefulWidget {
