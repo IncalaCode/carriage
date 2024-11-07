@@ -1,48 +1,57 @@
-import 'package:My_truck/screens/config.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'sidebarProfile.dart';
-import 'sidebarWallet.dart';
-import './sidebarMyOrder.dart';
-import 'sidebarSettings.dart';
-import 'Order_form_screen.dart';
-import 'user_map/user_map_component.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:My_truck/screens/Login_screen.dart';  
+import 'dart:io';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import '../config.dart';
+import '../login_screen.dart';
+import 'OrderRequestsPage.dart';
+import 'sidebarProfiledriver.dart';
+import 'sidebarWalletdriver.dart';
+import 'sidebarMyOrderdriver.dart';
+import 'sidebarSettingsdriver.dart';
+import './Driver_map/driver_map_component.dart';
+import './Driver_map/driver_hock.dart';
+import './sidebarMyOrderdriver.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-class MainAppScreen extends StatefulWidget {
+
+class DriverMainScreen extends StatefulWidget {
   @override
-  _MainAppScreenState createState() => _MainAppScreenState();
+  _DriverMainScreenState createState() => _DriverMainScreenState();
 }
 
-class _MainAppScreenState extends State<MainAppScreen> {
+class _DriverMainScreenState extends State<DriverMainScreen> {
   bool isDrawerOpen = false;
+  bool loading = true; // Loading state
   File? _profileImage;
+  String? _authToken;
   double _walletBalance = 0.0;
   bool _isLoading = true;
   String? _paymentUrl;
-  String? _authToken;
-
+  String? _txRef;
   @override
   void initState() {
     super.initState();
+    print('🚀 Initializing Driver Main Screen');
     _initializeScreen();
   }
 
   Future<void> _initializeScreen() async {
     try {
+      print('🔄 Starting screen initialization');
       await _checkAuthentication();
       if (_authToken != null) {
+        print('🔑 Token verified, fetching wallet balance');
         await _fetchWalletBalance();
       }
     } catch (e) {
+      print('❌ Initialization Error: $e');
       setState(() {
         _isLoading = false;
       });
@@ -70,19 +79,31 @@ class _MainAppScreenState extends State<MainAppScreen> {
   }
 
   Future<void> _fetchWalletBalance() async {
-    if (_authToken == null) return;
+    if (_authToken == null) {
+      print('❌ No auth token available for wallet check');
+      return;
+    }
 
     try {
+      print('💳 Fetching wallet balance...');
       final url = Uri.parse('${Config.baseUrl}/wallet/balance');
+      print('🔗 Wallet endpoint URL: $url');
+      print('🔑 Using Authorization Header: $_authToken');
+
       final response = await http.post(
         url,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: json.encode({
+       body: {
           'token': _authToken,
-        }),
+        },
+        
       );
+
+      print('💰 Response Status: ${response.statusCode}');
+      print('💰 Response Headers: ${response.headers}');
+      print('💰 Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -93,9 +114,11 @@ class _MainAppScreenState extends State<MainAppScreen> {
           });
         }
       } else {
+        print('❌ Error Response: ${response.body}');
         throw Exception('Failed to load wallet balance: ${response.statusCode}');
       }
     } catch (e) {
+      print('❌ Wallet Error: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -105,31 +128,48 @@ class _MainAppScreenState extends State<MainAppScreen> {
   }
 
   Future<void> _initiatePayment() async {
-    if (_authToken == null) return;
+    if (_authToken == null) {
+      print('❌ No auth token available for payment');
+      return;
+    }
 
     try {
-      final url = Uri.parse('${Config.baseUrl}/user/request/initiate-payment');
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': _authToken!,
-        },
-        body: json.encode({
-          'token': _authToken,
-        }),
-      );
+      print('💳 Initiating payment process...');
+      final url = Uri.parse('${Config.baseUrl}/driver/request/initiate-payment');
+      print('🔗 Payment endpoint URL: $url');
+      print('🔑 Using Authorization Header: $_authToken');
+
+      final value = json.encode({
+        'token': _authToken,
+      });
+         print('🔑 Using Authorization Header: $value');
+
+final response = await http.post(
+  url, // Make sure to parse the URL into a Uri object
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: value,
+);
+
+      print('💳 Payment Initiation Response Status: ${response.statusCode}');
+      print('💳 Payment Initiation Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        print('🔗 Payment URL Received: ${data['payment_url']}');
+        print('🔗 Payment URL Received: ${data['tx_ref']}');
         setState(() {
           _paymentUrl = data['payment_url'];
+          _txRef = data['tx_ref'];
         });
         _showPaymentWebView();
       } else {
+        print('❌ Error Response: ${response.body}');
         throw Exception('Failed to initiate payment: ${response.statusCode}');
       }
     } catch (e) {
+      print('❌ Payment Initiation Error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to initiate payment. Please try again.')),
       );
@@ -150,18 +190,13 @@ class _MainAppScreenState extends State<MainAppScreen> {
             initialUrl: _paymentUrl,
             javascriptMode: JavascriptMode.unrestricted,
             navigationDelegate: (NavigationRequest request) {
-              print (request);
-              if (request.url.contains('success')) {
-                final uri = Uri.parse(request.url);
-                final txref = uri.queryParameters['tx_ref'];
-                final uid = uri.queryParameters['uid'];
-
-                if (txref != null && uid != null) {
-                  _confirmPayment(txref, uid);
-                  return NavigationDecision.prevent;
-                }
-              }
-              return NavigationDecision.navigate;
+              print('🔄 Navigation to: ${request.url}');
+              Navigator.pop(context);
+              _confirmPayment(_txRef!);
+              return NavigationDecision.prevent;
+            },
+            onWebResourceError: (WebResourceError error) {
+              print('🚨 Web Resource Error: ${error.description}');
             },
           ),
         ),
@@ -169,21 +204,24 @@ class _MainAppScreenState extends State<MainAppScreen> {
     );
   }
 
-  Future<void> _confirmPayment(String txref, String uid) async {
+  Future<void> _confirmPayment(String txref) async {
     try {
+      print('✅ Confirming payment with backend...');
       final response = await http.post(
-        Uri.parse('${Config.baseUrl}/user/request/confirm-payment'),
+        Uri.parse('${Config.baseUrl}/driver/request/confirm-payment'),
         headers: {
-          'Authorization': _authToken!,
+          
           'Content-Type': 'application/json',
         },
         body: json.encode({
           'tx_ref': txref,
-          'token': _authToken,
+          'token': _authToken!,
         }),
       );
 
+      print('✅ Payment Confirmation Status: ${response.statusCode}');
       if (response.statusCode == 200) {
+        print('✅ Payment confirmed successfully');
         Navigator.of(context).pop(); // Close WebView
         await _fetchWalletBalance(); // Refresh wallet balance
         ScaffoldMessenger.of(context).showSnackBar(
@@ -193,20 +231,18 @@ class _MainAppScreenState extends State<MainAppScreen> {
         throw Exception('Payment confirmation failed');
       }
     } catch (e) {
+      print('❌ Payment Confirmation Error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Payment confirmation failed. Please contact support.')),
       );
     }
   }
 
-  void _showOrderForm() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => OrderForm()),
-    );
-  }
+  Widget _buildOrderRequestsButton() {
+    print('🔄 Building order requests button');
+    print('Loading state: $_isLoading');
+    print('Wallet balance: $_walletBalance ETB');
 
-  Widget _buildOrderButton() {
     if (_isLoading) {
       return Center(
         child: Column(
@@ -224,7 +260,12 @@ class _MainAppScreenState extends State<MainAppScreen> {
 
     if (_walletBalance >= 1500) {
       return FloatingActionButton.extended(
-        onPressed: _showOrderForm,
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => OrderRequestsPage()),
+          );
+        },
         backgroundColor: Colors.transparent,
         icon: Icon(FontAwesomeIcons.bell, color: Colors.white),
         label: Container(
@@ -236,7 +277,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
           ),
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Text(
-            'Order Now',
+            'Requests',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
         ),
@@ -264,18 +305,12 @@ class _MainAppScreenState extends State<MainAppScreen> {
   }
 
   Future<void> _pickImage() async {
-    try {
-      final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
-      if (pickedFile != null) {
-        setState(() {
-          _profileImage = File(pickedFile.path);
-        });
-      }
-    } catch (e) {
-      print('❌ Error picking image: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to pick image. Please try again.')),
-      );
+    final pickedFile =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _profileImage = File(pickedFile.path);
+      });
     }
   }
 
@@ -288,10 +323,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [
-                Colors.black,
-                Colors.grey.shade800
-              ],
+              colors: [Colors.black, Colors.grey.shade800],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),
@@ -305,14 +337,12 @@ class _MainAppScreenState extends State<MainAppScreen> {
         ),
         actions: [
           Padding(
-            padding: EdgeInsets.only(top: 0, right: 16.0),
+            padding: EdgeInsets.only(right: 16.0),
             child: Builder(
               builder: (context) => IconButton(
                 icon: Icon(FontAwesomeIcons.bars, color: Colors.white),
                 onPressed: () {
-                  setState(() {
-                    isDrawerOpen = true;
-                  });
+                  setState(() => isDrawerOpen = true);
                   Scaffold.of(context).openDrawer();
                 },
               ),
@@ -326,10 +356,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
             DrawerHeader(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [
-                    Colors.black,
-                    Colors.grey.shade800
-                  ],
+                  colors: [Colors.black, Colors.grey.shade800],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
@@ -356,7 +383,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
                   ),
                   SizedBox(width: 15),
                   Text(
-                    'Welcome, User!',
+                    'Hi, Driver!',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 22,
@@ -371,35 +398,27 @@ class _MainAppScreenState extends State<MainAppScreen> {
                 children: [
                   _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context,
                       () {
-                    Navigator.pop(context);
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => ProfilePage()),
-                    );
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (context) => ProfilePagedriver()));
                   }),
                   _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context,
                       () {
-                    Navigator.pop(context);
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => WalletPage()),
-                    );
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (context) => WalletPagedriver()));
                   }),
                   _buildDrawerItem(
                       FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
-                    Navigator.pop(context);
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => MyOrdersPage()),
-                    );
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => MyOrdersPagedriver()));
                   }),
                   _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context,
                       () {
-                    Navigator.pop(context);
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => SettingsPage()),
-                    );
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => SettingsPagedriver()));
                   }),
                 ],
               ),
@@ -409,41 +428,11 @@ class _MainAppScreenState extends State<MainAppScreen> {
       ),
       body: Stack(
         children: [
-         UserMapComponent (),
-          FlutterMap(
-            options: MapOptions(
-              center: LatLng(9.005401, 38.763611),
-              zoom: 6.0,
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                subdomains: [
-                  'a',
-                  'b',
-                  'c'
-                ],
-              ),
-              MarkerLayer(
-                markers: [
-                  Marker(
-                    width: 80.0,
-                    height: 80.0,
-                    point: LatLng(9.005401, 38.763611),
-                    builder: (ctx) => Icon(
-                      FontAwesomeIcons.mapMarkerAlt,
-                      color: const Color.fromARGB(255, 0, 0, 0),
-                      size: 40.0,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+          DriverMapComponent(),
           Positioned(
             bottom: 20,
             right: 20,
-            child: _buildOrderButton(),
+            child: _buildOrderRequestsButton(),
           ),
         ],
       ),
@@ -464,120 +453,6 @@ class _MainAppScreenState extends State<MainAppScreen> {
       ),
       tileColor: Colors.grey[200],
       onTap: () => onTap(),
-    );
-  }
-}
-
-// Add payment verification function
-Future<bool> _verifyPayment() async {
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('authToken');
-    
-    print('Verifying payment with token: $token'); // Debug print
-    
-    final response = await http.get(
-      Uri.parse('${Config.baseUrl}/driver/payment/verify'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-    );
-    
-    print('Payment verification response status: ${response.statusCode}'); // Debug print
-    print('Payment verification response: ${response.body}'); // Debug print
-
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      return data['payment_verified'] == true;
-    }
-    return false;
-  } catch (e) {
-    print('Error verifying payment: $e'); // Debug print
-    return false;
-  }
-}
-
-// Update the PaymentWebView to handle verification
-class PaymentWebView extends StatelessWidget {
-  final String paymentUrl;
-  final String token;
-
-  const PaymentWebView({
-    required this.paymentUrl,
-    required this.token,
-  });
-
-  Future<void> _handlePaymentSuccess(BuildContext context) async {
-    Navigator.pop(context); // Close payment webview
-    
-    // Show loading dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Verifying payment...')
-            ],
-          ),
-        );
-      },
-    );
-
-    // Wait a bit for backend to process payment
-    await Future.delayed(Duration(seconds: 2));
-
-    // Verify payment
-    final bool isVerified = await _verifyPayment();
-    
-    Navigator.pop(context); // Close loading dialog
-
-    if (isVerified) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Payment verified successfully!'))
-      );
-      // Refresh wallet balance and proceed
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => OrderForm()),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Payment verification failed. Please contact support if money was deducted.'),
-          duration: Duration(seconds: 5),
-        )
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Payment'),
-        leading: IconButton(
-          icon: Icon(Icons.close),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: WebView(
-        initialUrl: paymentUrl,
-        javascriptMode: JavascriptMode.unrestricted,
-        navigationDelegate: (NavigationRequest request) {
-          print('Navigation to: ${request.url}'); // Debug print
-          if (request.url.contains('success')) {
-            _handlePaymentSuccess(context);
-            return NavigationDecision.prevent;
-          }
-          return NavigationDecision.navigate;
-        },
-      ),
     );
   }
 }

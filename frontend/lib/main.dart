@@ -1,8 +1,8 @@
-import 'package:My_truck/screens/main_app_screen.dart';
+import 'package:My_truck/screens/driver/Driver_main_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/login_screen.dart';
-import 'package:My_truck/screens/Driver_main_screen.dart';
+import 'package:My_truck/screens/user/main_app_screen.dart';
 // import 'screens/login_screen.dart'; // Commented out for direct navigation
 
 void main() {
