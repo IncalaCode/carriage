@@ -31,6 +31,7 @@ class Driver extends Authenticatable
         'user_photo',
         'uid', // Include this as well based on your schema.
         'otp',
+        'referral_count',
     ];
 
     /**

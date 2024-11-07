@@ -11,6 +11,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ClientOrderController;
 use App\Http\Controllers\DriverRequestController;
 use App\Http\Controllers\WalletController;
+use App\Http\Controllers\ReferralController;
 
 
 
@@ -81,5 +82,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
 
+Route::post('/generate-referral-link/{driverId}', [ReferralController::class, 'generateReferralLink']);
+Route::post('/driver/cache-phone', [DriverController::class, 'cachePhoneNumber']);
+Route::post('/driver/referral-check/{phone}', [DriverController::class, 'referralCheck']);
+
+
 Route::post("/client/getorder" ,[client_request::class, 'getOrder']);
 Route::post("/driver/getorder", [driver_request::class, 'getOrder']);
+

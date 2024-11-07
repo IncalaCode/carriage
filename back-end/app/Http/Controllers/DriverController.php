@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
 use App\Models\RequestModel;
+use Illuminate\Support\Facades\Cache;
 
 require_once "otp.php";
 
@@ -134,6 +135,8 @@ class DriverController extends Controller
         $driver->otp = null; // Clear the OTP after verification
         $driver->save();
 
+        $this->referralcheck($request->phone_number);
+
         return response()->json([
             'message' => 'OTP verified successfully',
             'user' => $driver,
@@ -199,5 +202,53 @@ class DriverController extends Controller
         $requests = RequestModel::where('driver_id', $driver->id)->get();
 
         return response()->json($requests);
+    }
+
+    public function referralCheck($phone)
+    {
+        // Check if the phone number exists in the cache
+        if (Cache::has($phone)) {
+            // Retrieve the driver record based on phone number
+            $driver = Driver::where('phone_number', $phone)->first();
+
+            if ($driver) {
+                // Increment the referral count
+                $driver->referral_count += 1;
+                $driver->save();
+
+                // Optionally, remove the phone from cache after incrementing referral count
+                Cache::forget($phone);
+
+                return response()->json([
+                    'message' => 'Referral count incremented successfully.',
+                    'phone' => $phone,
+                    'new_referral_count' => $driver->referral_count,
+                ]);
+            } else {
+                return response()->json(['message' => 'Driver not found.'], 404);
+            }
+        }
+
+        return response()->json(['message' => 'Phone number not found in cache.'], 404);
+    }
+
+    public function cachePhoneNumber(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'phone_number' => 'required|string|regex:/^\+251[0-9]{9}$/',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()], 422);
+        }
+
+        $phone = $request->phone_number;
+
+        // Cache the phone number for 10 minutes (or your desired duration)
+        Cache::put($phone, true, now()->addMinutes(10));
+
+        return response()->json([
+            'message' => 'Phone number cached successfully.',
+        ], 200);
     }
 }
