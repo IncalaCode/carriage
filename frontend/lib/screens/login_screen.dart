@@ -8,7 +8,6 @@ import 'package:My_truck/screens/Driver_main_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'dart:convert';
-import 'Driver_main_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -17,14 +16,15 @@ class LoginScreen extends StatefulWidget {
 }
 
 // code for the token storing
-Future<void> storeToken(String token) async {
-  print('🔑 Storing token: $token'); // Debug print
+Future<void> storeToken(String token, String userType) async {
+  print('🔑 Storing token: $token with userType: $userType'); // Debug print
   try {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('authToken', token);
-    print('✅ Token stored successfully: $token'); // Debug print
+    await prefs.setString('userType', userType); // Store user type
+    print('✅ Token and userType stored successfully'); // Debug print
   } catch (e) {
-    print('❌ Error storing token: $e'); // Debug print
+    print('❌ Error storing token and userType: $e'); // Debug print
   }
 }
 
@@ -139,10 +139,11 @@ class _LoginScreenState extends State<LoginScreen> {
             if (responseBody['message'] == 'OTP verified successfully') {
               if (responseBody.containsKey('user') && responseBody['user'].containsKey('uid')) {
                 String token = responseBody['user']['uid'].toString();
-                print('🔑 Received token: $token'); // Debug print
+                String userType = isUserLogin ? 'user' : 'driver'; // Determine user type
+                print('🔑 Received token: $token, userType: $userType'); // Debug print
 
                 if (token.isNotEmpty) {
-                  await storeToken(token);
+                  await storeToken(token, userType);
 
                   // Verify token was stored
                   final prefs = await SharedPreferences.getInstance();

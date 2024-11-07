@@ -62,19 +62,22 @@ Route::post('/client/handle-request', [client_request::class, 'handleRequest']);
 
 
 Route::post('/payment/initiate', [PaymentController::class, 'initiatePayment']);
-Route::get('/payment/callback', [PaymentController::class, 'paymentCallback'])->name('payment.callback');
+Route::post('/payment/callback', [PaymentController::class, 'paymentCallback'])->name('payment.callback');
 Route::post('/driver/withdraw', [PaymentController::class, 'withdrawFunds']);
 
 Route::post('/client/order/initiate-payment', [ClientOrderController::class, 'initiateOrderPayment']);
 Route::get('/client/order/confirm-payment', [ClientOrderController::class, 'confirmOrderPayment']);
 
 Route::post('/driver/request/initiate-payment', [DriverRequestController::class, 'initiateRequestPayment']);
-Route::get('/driver/request/confirm-payment', [DriverRequestController::class, 'confirmRequestPayment']);
+Route::post('/driver/request/confirm-payment', [DriverRequestController::class, 'confirmRequestPayment']);
 
 
-Route::middleware('auth:sanctum')->group(function () {
+
     Route::get('/wallet/balance', [WalletController::class, 'getBalance']);
     Route::post('/wallet/deposit', [WalletController::class, 'deposit']);
     Route::post('/wallet/withdraw', [WalletController::class, 'withdraw']);
     Route::get('/wallet/transactions', [WalletController::class, 'transactionHistory']);
-});
+
+
+Route::post("/client/getorder" ,[client_request::class, 'getOrder']);
+Route::post("/driver/getorder", [driver_request::class, 'getOrder']);

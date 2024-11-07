@@ -11,6 +11,7 @@ use App\Models\RequestStatus;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 class client_request extends Controller
 {
@@ -101,6 +102,11 @@ class client_request extends Controller
         if (!$currentRequest && $request->has(['from', 'destination', 'material_type', 'car_type'])) {
             return 'create_request';
         }
+        if ($currentRequest && $request->has(['driver_id'])) {
+            return 'select_driver';
+        }
+
+
 
         if (!$currentRequest) {
             return 'create_request';
@@ -168,19 +174,26 @@ class client_request extends Controller
         ]);
     }
 
+
+
     private function getDrivers($currentRequest)
     {
         if (!$currentRequest || $currentRequest->status !== 'pending') {
             return response()->json(['error' => 'No active request found'], 404);
         }
-
+    
         $timeout = self::TIMEOUT;
+    
         while ($timeout > 0) {
             // Refresh request data
             $currentRequest->refresh();
-
-            if (!empty($currentRequest->accepted_driver_ids)) {
-                $drivers = Driver::whereIn('id', json_decode($currentRequest->accepted_driver_ids ?? ""))
+    
+            // Get accepted drivers from the request
+            $acceptedDriverIds = json_decode($currentRequest->accepted_driver_ids ?? "[]");
+            
+            if (!empty($acceptedDriverIds)) {
+                // Fetch drivers and relevant data
+                $drivers = Driver::whereIn('uid', $acceptedDriverIds)
                     ->where('is_online', true)
                     ->get()
                     ->map(function ($driver) use ($currentRequest) {
@@ -188,36 +201,44 @@ class client_request extends Controller
                         $priceRecord = RidePrice::where('request_id', $currentRequest->id)
                             ->where('driver_id', $driver->id)
                             ->first();
-                        $requst_driver = driverRequest::where('driver_id', $driver->id)
+                        $requestDriver = driverRequest::where('driver_id', $driver->id)
                             ->where('status', "pending")
                             ->first();
-
-
+    
                         return [
                             'driver_id' => $driver->id,
-                            'name' => $driver->name,
+                            'name' => $driver->first_name . " " . $driver->last_name,
                             'car_type' => $driver->car_type,
-                            'rating' => $driver->rating,
                             'price' => $priceRecord ? $priceRecord->price : null,
-                            'latitude' => $requst_driver->latitude,
-                            'longitude' => $requst_driver->longitude,
+                            'latitude' => $requestDriver->latitude,
+                            'longitude' => $requestDriver->longitude,
                         ];
                     });
-
-                return response()->json([
-                    'drivers' => $drivers,
-                    'next_actions' => RequestStatus::getNextActions($currentRequest->status),
-                    'current_status' => $currentRequest->status
-                ]);
+    
+                // Retrieve previous driver data from the cache
+                $cachedDrivers = Cache::get("previous_drivers_{$currentRequest->id}", []);
+    
+                // Check if the current drivers list differs from the cached one
+                if ($drivers->toArray() !== $cachedDrivers) {
+                    // Update the cache with new driver data
+                    Cache::put("previous_drivers_{$currentRequest->id}", $drivers->toArray(), now()->addMinutes(5));
+    
+                    return response()->json([
+                        'drivers' => $drivers,
+                        'next_actions' => RequestStatus::getNextActions($currentRequest->status),
+                        'current_status' => $currentRequest->status
+                    ]);
+                }
             }
-
+    
+            // Decrement timeout and pause
             $timeout--;
             sleep(1);
         }
-
-        return response()->json(['message' => 'No drivers available yet'], 200);
+    
+        return response()->json(['message' => 'No drivers available yet', 'drivers' => $drivers ], 200);
     }
-
+    
     private function selectDriver(Request $request, $currentRequest)
     {
         if (!$currentRequest || $currentRequest->status !== 'pending') {
@@ -228,13 +249,23 @@ class client_request extends Controller
             'driver_id' => 'required|integer'
         ]);
 
-        if (!in_array($validated['driver_id'], $currentRequest->accepted_driver_ids)) {
+        if (!in_array($validated['driver_id'], json_decode($currentRequest->accepted_driver_ids))) {
             return response()->json(['error' => 'Invalid driver selection'], 400);
         }
+
+        if(!driverRequest::where("driver_id",$validated['driver_id'],)->where(
+            'status', 'locked')){
+                return response()->json(['error' => 'The driver you accpeted is locked to anothere user'], 404);
+            }
 
         $currentRequest->update([
             'status' => 'locked',
             'locked_driver_id' => $validated['driver_id']
+        ]);
+
+        driverRequest::where("driver_id",$validated['driver_id'],)->update([
+            'status' => 'locked',
+            'locked_user_id' => $validated['driver_id']
         ]);
 
         return response()->json(['message' => 'Driver selected successfully']);
@@ -245,19 +276,32 @@ class client_request extends Controller
         if (!$currentRequest || $currentRequest->status !== 'locked') {
             return response()->json(['error' => 'No locked request found'], 404);
         }
-
-        $driver = Driver::find($currentRequest->locked_driver_id);
-
+    
+        // Retrieve the locked driver
+        $driver = Driver::where('uid', $currentRequest->locked_driver_id)
+        ->where('status', 'locked')
+        ->first();
+    
+        // Check if driver is available and online
         if (!$driver || !$driver->is_online) {
-            return response()->json(['error' => 'Driver not available'], 404);
+            return response()->json(['error' => 'Driver not online'], 404);
         }
-
+    
+        // Retrieve driver request information based on driver_id
+        $driverRequest = driverRequest::where('driver_id', $driver->id)
+            ->where('status', 'locked')
+            ->first();
+    
+        if (!$driverRequest) {
+            return response()->json(['error' => 'No active driver request found'], 404);
+        }
+    
         return response()->json([
-            'latitude' => $driver->latitude,
-            'longitude' => $driver->longitude
+            'latitude' => $driverRequest->latitude,
+            'longitude' => $driverRequest->longitude
         ]);
     }
-
+    
     private function cancelRequest($currentRequest)
     {
         if (!$currentRequest) {
@@ -308,7 +352,41 @@ class client_request extends Controller
             'next_actions' => RequestStatus::getNextActions($currentRequest->status)
         ]);
     }
+
+    public function getOrder(Request $request)
+    {
+
+        $orders = user_Request::where('user_id', $this->user->uid)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($order) {
+
+                $driver = Driver::where("uid", $order->locked_driver_id)->first();
+
+                return [
+                    'order_id' => $order->id,
+                    'status' => $order->status,
+                    'from' => $order->from,
+                    'destination' => $order->destination,
+                    'material_type' => $order->material_type,
+                    'is_online' => $driver->is_online,
+                    'name' => $driver->first_name . " " . $driver->last_name,
+                    'created_at' => $order->created_at,
+                    'updated_at' => $order->updated_at,
+                ];
+            });
+
+        if ($orders->isEmpty()) {
+            return response()->json(['error' => 'No orders found for this client'], 404);
+        }
+
+        return response()->json(['orders' => $orders]);
+    }
+
 }
+
+
+
 
 
 // canleation place 

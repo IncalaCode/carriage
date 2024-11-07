@@ -47,7 +47,7 @@ class PaymentController extends Controller
             // Process payment, e.g., update user balance or mark order as paid
             return response()->json(['message' => 'Payment verified successfully.']);
         } else {
-            return response()->json(['error' => 'Payment verification failed.'], 500);
+            return response()->json(['error' => 'Payment verification failed.' . $response], 500);
         }
     }
 

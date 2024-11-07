@@ -16,9 +16,12 @@ class DriverRequestController extends Controller
 
     public function __construct(Request $request)
     {
+        // Check for the Authorization header
         $token = $request->input('token');
+        
+        // Look for the user by their token (e.g., assuming `uid` corresponds to the token)
         $this->user = Driver::where('uid', $token)->first();
-
+    
         if (!$this->user) {
             abort(Response::HTTP_UNAUTHORIZED, 'Unauthorized');
         }
@@ -76,10 +79,11 @@ class DriverRequestController extends Controller
 
     public function confirmRequestPayment(Request $request)
     {
-        $txRef = $request->query('tx_ref');
+        $txRef = $request->input('tx_ref');
 
-        $response = Http::withToken(env('CHAPA_API_KEY'))
-            ->get("https://api.chapa.co/v1/transaction/verify/$txRef");
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . env('CHAPA_SECRET_KEY')
+        ])->get("https://api.chapa.co/v1/transaction/verify/$txRef");
 
         if ($response->successful() && $response['data']['status'] === 'success') {
             // Update the request status to completed
@@ -99,7 +103,7 @@ class DriverRequestController extends Controller
 
             return response()->json(['message' => 'Payment verified successfully.']);
         } else {
-            return response()->json(['error' => 'Payment verification failed.'], 500);
+            return response()->json(['error' => 'Payment verification failed.' . $response], 500);
         }
     }
 

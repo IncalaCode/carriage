@@ -13,10 +13,12 @@ import 'login_screen.dart';
 import 'OrderRequestsPage.dart';
 import 'sidebarProfile.dart';
 import 'sidebarWallet.dart';
-import 'sidebarMyOrder.dart';
+import 'Driver_map/sidebarMyOrderdriver.dart';
 import 'sidebarSettings.dart';
 import './Driver_map/driver_map_component.dart';
 import './Driver_map/driver_hock.dart';
+import './Driver_map/sidebarMyOrderdriver.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class DriverMainScreen extends StatefulWidget {
   @override
@@ -31,7 +33,7 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
   double _walletBalance = 0.0;
   bool _isLoading = true;
   String? _paymentUrl;
-
+  String? _txRef;
   @override
   void initState() {
     super.initState();
@@ -59,7 +61,7 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
     print('🔐 Starting authentication check');
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('authToken');
-    print('🔑 Retrieved token: $token');
+    print('🔑 Raw token from storage: $token');
 
     if (token == null) {
       print('❌ No token found - Redirecting to login');
@@ -71,6 +73,7 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
       setState(() {
         _authToken = token;
       });
+      print('🔑 Formatted token: $_authToken');
     }
   }
 
@@ -81,38 +84,36 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
     }
 
     try {
-      print('💳 Fetching wallet balance with token: ${_authToken!.substring(0, 10)}...');
+      print('💳 Fetching wallet balance...');
       final url = Uri.parse('${Config.baseUrl}/wallet/balance');
       print('🔗 Wallet endpoint URL: $url');
+      print('🔑 Using Authorization Header: $_authToken');
 
-      final response = await http.get(
+      final response = await http.post(
         url,
         headers: {
-          'Authorization': 'Bearer $_authToken',
           'Content-Type': 'application/json',
         },
+       body: {
+          'token': _authToken,
+        },
+        
       );
 
-      print('💰 Wallet Response Status: ${response.statusCode}');
-      print('💰 Wallet Response Body: ${response.body}');
+      print('💰 Response Status: ${response.statusCode}');
+      print('💰 Response Headers: ${response.headers}');
+      print('💰 Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('💰 Parsed wallet data: $data');
         if (mounted) {
           setState(() {
             _walletBalance = double.parse(data['balance'].toString());
             _isLoading = false;
           });
         }
-        print('💰 Wallet balance updated: $_walletBalance ETB');
       } else {
-        print('❌ Failed to load wallet: ${response.statusCode}');
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
+        print('❌ Error Response: ${response.body}');
         throw Exception('Failed to load wallet balance: ${response.statusCode}');
       }
     } catch (e) {
@@ -126,26 +127,45 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
   }
 
   Future<void> _initiatePayment() async {
+    if (_authToken == null) {
+      print('❌ No auth token available for payment');
+      return;
+    }
+
     try {
       print('💳 Initiating payment process...');
-      final response = await http.post(
-        Uri.parse('${Config.baseUrl}/driver/initiate-payment'),
-        headers: {
-          'Authorization': 'Bearer $_authToken',
-          'Content-Type': 'application/json',
-        },
-      );
+      final url = Uri.parse('${Config.baseUrl}/driver/request/initiate-payment');
+      print('🔗 Payment endpoint URL: $url');
+      print('🔑 Using Authorization Header: $_authToken');
 
-      print('💳 Payment Initiation Response: ${response.statusCode}');
+      final value = json.encode({
+        'token': _authToken,
+      });
+         print('🔑 Using Authorization Header: $value');
+
+final response = await http.post(
+  url, // Make sure to parse the URL into a Uri object
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: value,
+);
+
+      print('💳 Payment Initiation Response Status: ${response.statusCode}');
+      print('💳 Payment Initiation Response Body: ${response.body}');
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         print('🔗 Payment URL Received: ${data['payment_url']}');
+        print('🔗 Payment URL Received: ${data['tx_ref']}');
         setState(() {
           _paymentUrl = data['payment_url'];
+          _txRef = data['tx_ref'];
         });
         _showPaymentWebView();
       } else {
-        throw Exception('Failed to initiate payment');
+        print('❌ Error Response: ${response.body}');
+        throw Exception('Failed to initiate payment: ${response.statusCode}');
       }
     } catch (e) {
       print('❌ Payment Initiation Error: $e');
@@ -155,7 +175,7 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
     }
   }
 
-  void _showPaymentWebView() {
+  void _showPaymentWebView() async {
     if (_paymentUrl == null) return;
 
     Navigator.of(context).push(
@@ -170,20 +190,12 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
             javascriptMode: JavascriptMode.unrestricted,
             navigationDelegate: (NavigationRequest request) {
               print('🔄 Navigation to: ${request.url}');
-              
-              // Check for success URL and extract txref and uid
-              if (request.url.contains('success')) {
-                final uri = Uri.parse(request.url);
-                final txref = uri.queryParameters['tx_ref'];
-                final uid = uri.queryParameters['uid'];
-                
-                if (txref != null && uid != null) {
-                  print('✅ Payment Success - txref: $txref, uid: $uid');
-                  _confirmPayment(txref, uid);
-                  return NavigationDecision.prevent;
-                }
-              }
-              return NavigationDecision.navigate;
+              Navigator.pop(context);
+              _confirmPayment(_txRef!);
+              return NavigationDecision.prevent;
+            },
+            onWebResourceError: (WebResourceError error) {
+              print('🚨 Web Resource Error: ${error.description}');
             },
           ),
         ),
@@ -191,18 +203,18 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
     );
   }
 
-  Future<void> _confirmPayment(String txref, String uid) async {
+  Future<void> _confirmPayment(String txref) async {
     try {
       print('✅ Confirming payment with backend...');
       final response = await http.post(
-        Uri.parse('${Config.baseUrl}/driver/confirm-payment'),
+        Uri.parse('${Config.baseUrl}/driver/request/confirm-payment'),
         headers: {
-          'Authorization': 'Bearer $_authToken',
+          
           'Content-Type': 'application/json',
         },
         body: json.encode({
           'tx_ref': txref,
-          'uid': uid,
+          'token': _authToken!,
         }),
       );
 
@@ -292,7 +304,8 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
   }
 
   Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final pickedFile =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _profileImage = File(pickedFile.path);
@@ -355,7 +368,8 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
                       radius: 40,
                       backgroundColor: Colors.white,
                       child: _profileImage == null
-                          ? Icon(FontAwesomeIcons.user, size: 40, color: Colors.grey)
+                          ? Icon(FontAwesomeIcons.user,
+                              size: 40, color: Colors.grey)
                           : ClipOval(
                               child: Image.file(
                                 _profileImage!,
@@ -381,17 +395,29 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
             Expanded(
               child: ListView(
                 children: [
-                  _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context, () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePage()));
+                  _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context,
+                      () {
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (context) => ProfilePage()));
                   }),
-                  _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context, () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => WalletPage()));
+                  _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context,
+                      () {
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (context) => WalletPage()));
                   }),
-                  _buildDrawerItem(FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => MyOrdersPage()));
+                  _buildDrawerItem(
+                      FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => MyOrdersPagedriver()));
                   }),
-                  _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context, () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsPage()));
+                  _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context,
+                      () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => SettingsPage()));
                   }),
                 ],
               ),
@@ -412,7 +438,8 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
     );
   }
 
-  Widget _buildDrawerItem(IconData icon, String title, BuildContext context, Function onTap) {
+  Widget _buildDrawerItem(
+      IconData icon, String title, BuildContext context, Function onTap) {
     return ListTile(
       leading: Icon(icon, color: Colors.black),
       title: Text(

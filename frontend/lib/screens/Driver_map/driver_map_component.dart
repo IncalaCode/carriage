@@ -227,31 +227,10 @@ class _DriverMapComponentState extends State<DriverMapComponent> {
           Positioned(
             right: 16,
             bottom: 100,
-            child: Column(
-              children: [
-                FloatingActionButton(
-                  heroTag: "zoomIn",
-                  mini: true,
-                  onPressed: _zoomIn,
-                  child: Icon(Icons.add),
-                ),
-                SizedBox(height: 8),
-                FloatingActionButton(
-                  heroTag: "zoomOut",
-                  mini: true,
-                  onPressed: _zoomOut,
-                  child: Icon(Icons.remove),
-                ),
-              ],
-            ),
-          ),
-          Positioned(
-            right: 16,
-            bottom: 16,
             child: FloatingActionButton(
               heroTag: "currentLocation",
               onPressed: _goToCurrentLocation,
-              child: Icon(Icons.my_location),
+              child: Icon(FontAwesomeIcons.locationArrow), // Fixed typo here
             ),
           ),
           Positioned(
