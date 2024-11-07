@@ -9,7 +9,7 @@ class MyOrdersPage extends StatelessWidget {
         leading: IconButton(
           icon: FaIcon(FontAwesomeIcons.arrowLeft),
           onPressed: () {
-            Navigator.pop(context); // Back functionality
+            Navigator.pop(context);
           },
         ),
         title: Text('My Orders'),

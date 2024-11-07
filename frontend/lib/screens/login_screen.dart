@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:My_truck/screens/RegisterUser.dart';
 import 'package:My_truck/screens/RegisterDriver.dart';
-import 'package:My_truck/screens/main_app_screen.dart';
-import 'package:My_truck/screens/Driver_main_screen.dart';
+import 'package:My_truck/screens/user/main_app_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'dart:convert';
+import 'driver/Driver_main_screen.dart ';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -87,16 +87,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // Function to handle login
   Future<void> _login() async {
-    // this is the back door so when it is finished remove this 
-              Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => DriverMainScreen()),
-          );
-
-    // ------------------------------------------------------------------
-
-
-
     if (_otp.length != 4) {
       setState(() {
         _errorMessage = 'Please enter a valid 4-digit OTP';
@@ -319,7 +309,6 @@ class _LoginScreenState extends State<LoginScreen> {
 // import 'package:http/http.dart' as http;
 // import 'dart:async';
 // import 'dart:convert';
-// import 'Driver_main_screen.dart';
 
 // class LoginScreen extends StatefulWidget {
 //   @override
@@ -529,8 +518,11 @@ class _LoginScreenState extends State<LoginScreen> {
 //                         suffixIcon: ElevatedButton(
 //                           onPressed: _isOtpSent ? null : _sendOtp,
 //                           style: ElevatedButton.styleFrom(
-//                             backgroundColor: Colors.blue,
+//                             backgroundColor: const Color.fromARGB(255, 112, 145, 172),
 //                             padding: EdgeInsets.symmetric(horizontal: 10),
+//                             shape: RoundedRectangleBorder(
+//                               borderRadius: BorderRadius.circular(5),
+//                             ),
 //                           ),
 //                           child: Text(
 //                             _isOtpSent ? "Resend (${_remainingTime}s)" : "Send OTP",
