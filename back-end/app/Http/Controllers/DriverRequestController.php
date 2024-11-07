@@ -9,6 +9,7 @@ use App\Models\DriverRequest;
 use App\Models\Transaction;
 use Illuminate\Support\Facades\Http;
 use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Support\Facades\Log;
 
 class DriverRequestController extends Controller
 {
@@ -18,10 +19,10 @@ class DriverRequestController extends Controller
     {
         // Check for the Authorization header
         $token = $request->input('token');
-        
+
         // Look for the user by their token (e.g., assuming `uid` corresponds to the token)
         $this->user = Driver::where('uid', $token)->first();
-    
+
         if (!$this->user) {
             abort(Response::HTTP_UNAUTHORIZED, 'Unauthorized');
         }
@@ -29,6 +30,8 @@ class DriverRequestController extends Controller
 
     public function initiateRequestPayment(Request $request)
     {
+        Log::info('Chapa API Key:', ['key' => env('CHAPA_SECRET_KEY')]);
+
         $amount = 1500; // ETB
         $txRef = uniqid('request_');
         $driverId = $this->user->id;
@@ -62,10 +65,11 @@ class DriverRequestController extends Controller
         if ($response->successful()) {
             // Save transaction in the database
             Transaction::create([
-                'wallet_id' => $wallet->id,  // Ensure the user's wallet ID is used
+                'wallet_id' => $wallet->id,
                 'amount' => $amount,
                 'type' => 'pending',  // Set the type to pending
-                'description' => 'Request payment initialization',  // Optional description
+                'tx_ref' => $txRef,  // Save tx_ref here
+                'description' => 'Request payment initialization',
             ]);
 
             return response()->json([
@@ -81,31 +85,45 @@ class DriverRequestController extends Controller
     {
         $txRef = $request->input('tx_ref');
 
+        // Ensure txRef is provided
+        if (!$txRef) {
+            return response()->json(['error' => 'Transaction reference is required.'], 400);
+        }
+
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . env('CHAPA_SECRET_KEY')
-        ])->get("https://api.chapa.co/v1/transaction/verify/$txRef");
+        ])->timeout(120)->get("https://api.chapa.co/v1/transaction/verify/$txRef");
 
-        if ($response->successful() && $response['data']['status'] === 'success') {
-            // Update the request status to completed
-            Transaction::where('tx_ref', $txRef)->update(['status' => 'completed']);
-            $driverRequest = DriverRequest::where('tx_ref', $txRef)->first();
-            if ($driverRequest) {
-                $driverRequest->update(['status' => 'completed']);
+        return response()->json(['message' => 'Payment verified successfully.' . $response]);
 
-                // Create a transaction record for successful payment
-                Transaction::create([
-                    'wallet_id' => $this->user->wallet_id, // Assuming the user has a wallet
-                    'amount' => $driverRequest->amount,  // Amount from the driver request
-                    'type' => 'deposit',  // Set type to deposit for completed payments
-                    'description' => 'Payment confirmed for request.',  // Optional description
-                ]);
-            }
+        if ($response->successful() && isset($response['data']['status']) && $response['data']['status'] === 'success') {
+            // // Update transaction and request status to completed
+            // Transaction::where('tx_ref', $txRef)->update(['status' => 'completed']);
 
-            return response()->json(['message' => 'Payment verified successfully.']);
+            // // Find the driver request associated with the transaction reference
+            // $driverRequest = DriverRequest::where('tx_ref', $txRef)->first();
+            // if ($driverRequest) {
+            //     $driverRequest->update(['status' => 'completed']);
+
+            // Create a transaction record for successful payment
+            // Transaction::create([
+            //     'wallet_id' => $driverRequest->user->wallet_id,  // Use wallet_id from related user
+            //     'amount' => $driverRequest->amount,
+            //     'type' => 'deposit',
+            //     'description' => 'Payment confirmed for request.',
+            // ]);
+
+            //     return response()->json(['message' => 'Payment verified successfully.']);
+            // } else {
+            //     return response()->json(['error' => 'Driver request not found for the given transaction.'], 404);
+            // }
         } else {
+            // Log the exact error response for easier debugging
+            Log::error('Payment verification failed:', ['response' => $response->json()]);
             return response()->json(['error' => 'Payment verification failed.' . $response], 500);
         }
     }
+
 
     public function withdrawFunds(Request $request)
     {

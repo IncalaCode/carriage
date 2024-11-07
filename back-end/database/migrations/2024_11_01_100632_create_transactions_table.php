@@ -17,6 +17,7 @@ return new class extends Migration
             $table->enum('type', ['pending', 'deposit', 'withdrawal'])->default('pending'); // Type of transaction
             $table->decimal('amount', 10, 2);
             $table->text('description')->nullable();
+            $table->string('status')->default('pending'); // or whatever data type is appropriate
             $table->timestamps();
         });
     }
