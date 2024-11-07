@@ -291,7 +291,7 @@ private function getRequests(Request $request)
             return response()->json(['error' => 'No orders found for this client'], 404);
         }
     
-        return response()->json(['orders' => $orders]);
+        return response()->json(['orders' => $orders],200);
     }
     
 }
