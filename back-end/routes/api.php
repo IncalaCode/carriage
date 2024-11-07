@@ -81,8 +81,16 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 
+
 Route::post('/generate-referral-link/{driverId}', [ReferralController::class, 'generateReferralLink']);
 Route::post('/driver/cache-phone', [DriverController::class, 'cachePhoneNumber']);
 Route::post('/driver/referral-check/{phone}', [DriverController::class, 'referralCheck']);
 
+<<<<<<< HEAD
 Route::post('/payment/validate', [PaymentController::class, 'validatePayment']);
+=======
+
+Route::post("/client/getorder" ,[client_request::class, 'getOrder']);
+Route::post("/driver/getorder", [driver_request::class, 'getOrder']);
+
+>>>>>>> cd192501a5bfec8586c18f517718264d534d978e

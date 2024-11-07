@@ -19,7 +19,7 @@ class user_Request extends Model
         'material_type',
         'car_type',
         'accepted_driver_id',
-        'locked_drivers',
+        'locked_driver_id',
         'status',
     ];
 
