@@ -323,9 +323,7 @@ final response = await http.post(
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Colors.black, Colors.grey.shade800],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
+              colors: [Color(0xFF000000), Color(0xFF9A839E)],
             ),
           ),
         ),
@@ -356,9 +354,7 @@ final response = await http.post(
             DrawerHeader(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.black, Colors.grey.shade800],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+                  colors: [Color(0xFF000000), Color(0xFF9A839E)],
                 ),
               ),
               child: Row(
@@ -382,14 +378,28 @@ final response = await http.post(
                     ),
                   ),
                   SizedBox(width: 15),
-                  Text(
-                    'Hi, Driver!',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  mainAxisAlignment: MainAxisAlignment.center,
+  children: [
+    Text(
+      'Welcome,',
+      style: TextStyle(
+        color: Colors.white,
+        fontSize: 22,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+    Text(
+      'Driver!',
+      style: TextStyle(
+        color: Colors.white,
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+  ],
+),
                 ],
               ),
             ),

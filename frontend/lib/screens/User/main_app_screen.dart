@@ -288,12 +288,9 @@ class _MainAppScreenState extends State<MainAppScreen> {
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [
-                Colors.black,
-                Colors.grey.shade800
-              ],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
+
+              colors: [Color(0xFF000000), Color(0xFF9A839E)],
+
             ),
           ),
         ),
@@ -326,12 +323,9 @@ class _MainAppScreenState extends State<MainAppScreen> {
             DrawerHeader(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [
-                    Colors.black,
-                    Colors.grey.shade800
-                  ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+
+                  colors: [Color(0xFF000000), Color(0xFF9A839E)],
+
                 ),
               ),
               child: Row(
@@ -355,14 +349,28 @@ class _MainAppScreenState extends State<MainAppScreen> {
                     ),
                   ),
                   SizedBox(width: 15),
-                  Text(
-                    'Welcome, User!',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  mainAxisAlignment: MainAxisAlignment.center,
+  children: [
+    Text(
+      'Welcome,',
+      style: TextStyle(
+        color: Colors.white,
+        fontSize: 22,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+    Text(
+      'User!',
+      style: TextStyle(
+        color: Colors.white,
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+  ],
+),
                 ],
               ),
             ),
