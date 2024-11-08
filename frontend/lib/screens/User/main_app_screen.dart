@@ -15,7 +15,7 @@ import 'sidebarSettings.dart';
 import 'Order_form_screen.dart';
 import 'user_map/user_map_component.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:My_truck/screens/Login_screen.dart';  
+import '../login_screen.dart';
 
 class MainAppScreen extends StatefulWidget {
   @override
@@ -25,8 +25,10 @@ class MainAppScreen extends StatefulWidget {
 class _MainAppScreenState extends State<MainAppScreen> {
   bool isDrawerOpen = false;
   File? _profileImage;
-  double _walletBalance = 0.0;
-  bool _isLoading = true;
+  double _walletBalance = 1500.0;
+  bool _isLoading = false;
+  //   double _walletBalance = 0.0;
+  // bool _isLoading = true;
   String? _paymentUrl;
   String? _authToken;
 
@@ -38,10 +40,10 @@ class _MainAppScreenState extends State<MainAppScreen> {
 
   Future<void> _initializeScreen() async {
     try {
-      await _checkAuthentication();
-      if (_authToken != null) {
-        await _fetchWalletBalance();
-      }
+      // await _checkAuthentication();
+      // if (_authToken != null) {
+      //   await _fetchWalletBalance();
+      // }
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -57,9 +59,9 @@ class _MainAppScreenState extends State<MainAppScreen> {
 
     if (token == null) {
       print('❌ No token found - Redirecting to login');
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => LoginScreen()),
-      );
+      // Navigator.of(context).pushReplacement(
+      //   MaterialPageRoute(builder: (context) => LoginScreen()),
+      // );
     } else {
       print('✅ Token found - Proceeding with authentication');
       setState(() {
@@ -93,7 +95,8 @@ class _MainAppScreenState extends State<MainAppScreen> {
           });
         }
       } else {
-        throw Exception('Failed to load wallet balance: ${response.statusCode}');
+        throw Exception(
+            'Failed to load wallet balance: ${response.statusCode}');
       }
     } catch (e) {
       if (mounted) {
@@ -131,7 +134,8 @@ class _MainAppScreenState extends State<MainAppScreen> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to initiate payment. Please try again.')),
+        SnackBar(
+            content: Text('Failed to initiate payment. Please try again.')),
       );
     }
   }
@@ -150,7 +154,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
             initialUrl: _paymentUrl,
             javascriptMode: JavascriptMode.unrestricted,
             navigationDelegate: (NavigationRequest request) {
-              print (request);
+              print(request);
               if (request.url.contains('success')) {
                 final uri = Uri.parse(request.url);
                 final txref = uri.queryParameters['tx_ref'];
@@ -187,14 +191,17 @@ class _MainAppScreenState extends State<MainAppScreen> {
         Navigator.of(context).pop(); // Close WebView
         await _fetchWalletBalance(); // Refresh wallet balance
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Payment successful! Wallet has been updated.')),
+          SnackBar(
+              content: Text('Payment successful! Wallet has been updated.')),
         );
       } else {
         throw Exception('Payment confirmation failed');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Payment confirmation failed. Please contact support.')),
+        SnackBar(
+            content:
+                Text('Payment confirmation failed. Please contact support.')),
       );
     }
   }
@@ -214,9 +221,9 @@ class _MainAppScreenState extends State<MainAppScreen> {
           children: [
             CircularProgressIndicator(color: Colors.black),
             SizedBox(height: 10),
-            Text('Loading wallet...', 
-              style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)
-            ),
+            Text('Loading wallet...',
+                style: TextStyle(
+                    color: Colors.black, fontWeight: FontWeight.bold)),
           ],
         ),
       );
@@ -265,7 +272,8 @@ class _MainAppScreenState extends State<MainAppScreen> {
 
   Future<void> _pickImage() async {
     try {
-      final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+      final pickedFile =
+          await ImagePicker().pickImage(source: ImageSource.gallery);
       if (pickedFile != null) {
         setState(() {
           _profileImage = File(pickedFile.path);
@@ -288,9 +296,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-
               colors: [Color(0xFF000000), Color(0xFF9A839E)],
-
             ),
           ),
         ),
@@ -323,9 +329,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
             DrawerHeader(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-
                   colors: [Color(0xFF000000), Color(0xFF9A839E)],
-
                 ),
               ),
               child: Row(
@@ -349,71 +353,75 @@ class _MainAppScreenState extends State<MainAppScreen> {
                     ),
                   ),
                   SizedBox(width: 15),
-Column(
-  crossAxisAlignment: CrossAxisAlignment.start,
-  mainAxisAlignment: MainAxisAlignment.center,
-  children: [
-    Text(
-      'Welcome,',
-      style: TextStyle(
-        color: Colors.white,
-        fontSize: 22,
-        fontWeight: FontWeight.bold,
-      ),
-    ),
-    Text(
-      'User!',
-      style: TextStyle(
-        color: Colors.white,
-        fontSize: 20,
-        fontWeight: FontWeight.bold,
-      ),
-    ),
-  ],
-),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Welcome,',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'User!',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
             Expanded(
-  child: ListView(
-    children: [
-      _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context, () {
-        Navigator.pop(context); // Close the drawer
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => ProfilePage()),
-        );
-      }),
-      _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context, () {
-        Navigator.pop(context);
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => WalletPage()),
-        );
-      }),
-      _buildDrawerItem(FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
-        Navigator.pop(context);
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => MyOrdersPage()),
-        );
-      }),
-      _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context, () {
-        Navigator.pop(context);
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => SettingsPage()),
-        );
-      }),
-    ],
-  ),
-)
+              child: ListView(
+                children: [
+                  _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context,
+                      () {
+                    Navigator.pop(context); // Close the drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ProfilePage()),
+                    );
+                  }),
+                  _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context,
+                      () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => WalletPage()),
+                    );
+                  }),
+                  _buildDrawerItem(
+                      FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => MyOrdersPage()),
+                    );
+                  }),
+                  _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context,
+                      () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => SettingsPage()),
+                    );
+                  }),
+                ],
+              ),
+            )
           ],
         ),
       ),
       body: Stack(
         children: [
-         UserMapComponent (),
+          UserMapComponent(),
           FlutterMap(
             options: MapOptions(
               center: LatLng(9.005401, 38.763611),
@@ -421,12 +429,9 @@ Column(
             ),
             children: [
               TileLayer(
-                urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                subdomains: [
-                  'a',
-                  'b',
-                  'c'
-                ],
+                urlTemplate:
+                    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                subdomains: ['a', 'b', 'c'],
               ),
               MarkerLayer(
                 markers: [
@@ -477,9 +482,9 @@ Future<bool> _verifyPayment() async {
   try {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('authToken');
-    
+
     print('Verifying payment with token: $token'); // Debug print
-    
+
     final response = await http.get(
       Uri.parse('${Config.baseUrl}/driver/payment/verify'),
       headers: {
@@ -487,8 +492,9 @@ Future<bool> _verifyPayment() async {
         'Content-Type': 'application/json',
       },
     );
-    
-    print('Payment verification response status: ${response.statusCode}'); // Debug print
+
+    print(
+        'Payment verification response status: ${response.statusCode}'); // Debug print
     print('Payment verification response: ${response.body}'); // Debug print
 
     if (response.statusCode == 200) {
@@ -514,7 +520,7 @@ class PaymentWebView extends StatelessWidget {
 
   Future<void> _handlePaymentSuccess(BuildContext context) async {
     Navigator.pop(context); // Close payment webview
-    
+
     // Show loading dialog
     showDialog(
       context: context,
@@ -538,25 +544,23 @@ class PaymentWebView extends StatelessWidget {
 
     // Verify payment
     final bool isVerified = await _verifyPayment();
-    
+
     Navigator.pop(context); // Close loading dialog
 
     if (isVerified) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Payment verified successfully!'))
-      );
+          SnackBar(content: Text('Payment verified successfully!')));
       // Refresh wallet balance and proceed
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => OrderForm()),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Payment verification failed. Please contact support if money was deducted.'),
-          duration: Duration(seconds: 5),
-        )
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(
+            'Payment verification failed. Please contact support if money was deducted.'),
+        duration: Duration(seconds: 5),
+      ));
     }
   }
 

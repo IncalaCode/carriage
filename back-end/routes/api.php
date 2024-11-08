@@ -52,8 +52,6 @@ Route::middleware('auth:driver')->group(function () {
 
 
 
-// Driver Routes
-
 Route::post('/driver/handle-request', [driver_request::class, 'handleRequest']);
 Route::post('/client/handle-request', [client_request::class, 'handleRequest']);
 
