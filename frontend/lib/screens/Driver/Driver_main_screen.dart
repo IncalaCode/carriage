@@ -6,8 +6,6 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
 import '../config.dart';
 import '../login_screen.dart';
 import 'OrderRequestsPage.dart';
@@ -16,9 +14,6 @@ import 'sidebarWalletdriver.dart';
 import 'sidebarMyOrderdriver.dart';
 import 'sidebarSettingsdriver.dart';
 import './Driver_map/driver_map_component.dart';
-import './Driver_map/driver_hock.dart';
-import './sidebarMyOrderdriver.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 
 class DriverMainScreen extends StatefulWidget {

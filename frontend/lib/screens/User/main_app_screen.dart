@@ -17,6 +17,7 @@ import 'user_map/user_map_component.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:My_truck/screens/Login_screen.dart';  
 
+
 class MainAppScreen extends StatefulWidget {
   @override
   _MainAppScreenState createState() => _MainAppScreenState();
@@ -29,6 +30,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
   bool _isLoading = true;
   String? _paymentUrl;
   String? _authToken;
+  String? _txRef;
 
   @override
   void initState() {
@@ -36,13 +38,16 @@ class _MainAppScreenState extends State<MainAppScreen> {
     _initializeScreen();
   }
 
-  Future<void> _initializeScreen() async {
+   Future<void> _initializeScreen() async {
     try {
+      print('🔄 Starting screen initialization');
       await _checkAuthentication();
       if (_authToken != null) {
+        print('🔑 Token verified, fetching wallet balance');
         await _fetchWalletBalance();
       }
     } catch (e) {
+      print('❌ Initialization Error: $e');
       setState(() {
         _isLoading = false;
       });
@@ -79,7 +84,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: json.encode({
+        body: ({
           'token': _authToken,
         }),
       );
@@ -105,31 +110,49 @@ class _MainAppScreenState extends State<MainAppScreen> {
   }
 
   Future<void> _initiatePayment() async {
-    if (_authToken == null) return;
+    if (_authToken == null) {
+      print('❌ No auth token available for payment');
+      return;
+    }
 
     try {
-      final url = Uri.parse('${Config.baseUrl}/user/request/initiate-payment');
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': _authToken!,
-        },
-        body: json.encode({
-          'token': _authToken,
-        }),
-      );
+      print('💳 Initiating payment process...');
+      final url = Uri.parse('${Config.baseUrl}/client/order/initiate-payment');
+      print('🔗 Payment endpoint URL: $url');
+      print('🔑 Using Authorization Header: $_authToken');
+
+      final value = json.encode({
+        'token': _authToken,
+      });
+         print('🔑 Using Authorization Header: $value');
+
+final response = await http.post(
+  url, // Make sure to parse the URL into a Uri object
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: value,
+);
+
+      print('💳 Payment Initiation Response Status: ${response.statusCode}');
+      print('💳 Payment Initiation Response Body: ${response.body}');
+
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        print('🔗 Payment URL Received: ${data['payment_url']}');
+        print('🔗 Payment URL Received: ${data['tx_ref']}');
         setState(() {
           _paymentUrl = data['payment_url'];
+          _txRef = data['tx_ref'];
         });
         _showPaymentWebView();
       } else {
+        print('❌ Error Response: ${response.body}');
         throw Exception('Failed to initiate payment: ${response.statusCode}');
       }
     } catch (e) {
+      print('❌ Payment Initiation Error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to initiate payment. Please try again.')),
       );
@@ -150,18 +173,13 @@ class _MainAppScreenState extends State<MainAppScreen> {
             initialUrl: _paymentUrl,
             javascriptMode: JavascriptMode.unrestricted,
             navigationDelegate: (NavigationRequest request) {
-              print (request);
-              if (request.url.contains('success')) {
-                final uri = Uri.parse(request.url);
-                final txref = uri.queryParameters['tx_ref'];
-                final uid = uri.queryParameters['uid'];
-
-                if (txref != null && uid != null) {
-                  _confirmPayment(txref, uid);
-                  return NavigationDecision.prevent;
-                }
-              }
-              return NavigationDecision.navigate;
+              print('🔄 Navigation to: ${request.url}');
+              Navigator.pop(context);
+              _confirmPayment(_txRef!);
+              return NavigationDecision.prevent;
+            },
+            onWebResourceError: (WebResourceError error) {
+              print('🚨 Web Resource Error: ${error.description}');
             },
           ),
         ),
@@ -169,21 +187,25 @@ class _MainAppScreenState extends State<MainAppScreen> {
     );
   }
 
-  Future<void> _confirmPayment(String txref, String uid) async {
+
+  Future<void> _confirmPayment(String txref) async {
     try {
+      print('✅ Confirming payment with backend...');
       final response = await http.post(
-        Uri.parse('${Config.baseUrl}/user/request/confirm-payment'),
+        Uri.parse('${Config.baseUrl}/client/order/confirm-payment'),
         headers: {
-          'Authorization': _authToken!,
+          
           'Content-Type': 'application/json',
         },
         body: json.encode({
           'tx_ref': txref,
-          'token': _authToken,
+          'token': _authToken!,
         }),
       );
 
+      print('✅ Payment Confirmation Status: ${response.statusCode}');
       if (response.statusCode == 200) {
+        print('✅ Payment confirmed successfully');
         Navigator.of(context).pop(); // Close WebView
         await _fetchWalletBalance(); // Refresh wallet balance
         ScaffoldMessenger.of(context).showSnackBar(
@@ -193,19 +215,12 @@ class _MainAppScreenState extends State<MainAppScreen> {
         throw Exception('Payment confirmation failed');
       }
     } catch (e) {
+      print('❌ Payment Confirmation Error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Payment confirmation failed. Please contact support.')),
       );
     }
   }
-
-  void _showOrderForm() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => OrderForm()),
-    );
-  }
-
   Widget _buildOrderButton() {
     if (_isLoading) {
       return Center(
@@ -277,6 +292,16 @@ class _MainAppScreenState extends State<MainAppScreen> {
         SnackBar(content: Text('Failed to pick image. Please try again.')),
       );
     }
+  }
+
+  void _showOrderForm() {
+    // Implement the logic to show the order form
+    print('Order form button pressed');
+    // You can navigate to the order form screen here
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => OrderForm()), // Replace with your actual order form screen
+    );
   }
 
   @override

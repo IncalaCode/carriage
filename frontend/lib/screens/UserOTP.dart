@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:My_truck/screens/user/main_app_screen.dart';
+import 'login_screen.dart';
 import 'config.dart';
 
 class UserOTP extends StatefulWidget {
@@ -188,7 +189,7 @@ class _UserOTPState extends State<UserOTP> {
       if (response.statusCode == 200) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => MainAppScreen()),
+          MaterialPageRoute(builder: (context) => LoginScreen()),
         );
       } else {
         setState(() {
