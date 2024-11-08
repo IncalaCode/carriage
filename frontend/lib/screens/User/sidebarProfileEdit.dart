@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:io';
@@ -20,7 +19,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   // Function to pick an image from the gallery
   Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().getImage(source: ImageSource.gallery);
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _profileImage = File(pickedFile.path);
@@ -136,32 +135,33 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 children: [
                   // Cancel Button
                   ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context); // Cancel and go back
-                    },
-                    child : Container(
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [const Color.fromARGB(255, 0, 0, 0), const Color.fromARGB(255, 154, 131, 158)],
+                      onPressed: () {
+                        Navigator.pop(context); // Cancel and go back
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              const Color.fromARGB(255, 0, 0, 0),
+                              const Color.fromARGB(255, 154, 131, 158)
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(5),
                         ),
-                        borderRadius: BorderRadius.circular(5),
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                    
-                    child: Text(
-                      'Cancel',
-                    style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                    ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                    )
-                  ),
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                      )),
 
                   // Update Button with Gradient
                   ElevatedButton(
@@ -178,7 +178,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [const Color.fromARGB(255, 0, 0, 0), const Color.fromARGB(255, 154, 131, 158)],
+                          colors: [
+                            const Color.fromARGB(255, 0, 0, 0),
+                            const Color.fromARGB(255, 154, 131, 158)
+                          ],
                         ),
                         borderRadius: BorderRadius.circular(5),
                       ),

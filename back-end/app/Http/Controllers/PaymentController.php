@@ -24,7 +24,7 @@ class PaymentController extends Controller
         ];
 
         // Send HTTP request to Chapa API
-        $response = Http::withToken(env('CHAPA_API_KEY'))
+        $response = Http::withToken(env('CHAPA_SECRET_KEY'))
             ->post('https://api.chapa.co/v1/transaction/initialize', $data);
 
         if ($response->successful()) {
@@ -40,19 +40,39 @@ class PaymentController extends Controller
     public function paymentCallback(Request $request)
     {
         $txRef = $request->query('tx_ref');
-        $response = Http::withToken(env('CHAPA_API_KEY'))
+        $response = Http::withToken(env('CHAPA_SECRET_KEY'))
             ->get("https://api.chapa.co/v1/transaction/verify/$txRef");
 
         if ($response->successful() && $response['data']['status'] == 'success') {
             // Process payment, e.g., update user balance or mark order as paid
             return response()->json(['message' => 'Payment verified successfully.']);
         } else {
-            return response()->json(['error' => 'Payment verification failed.'], 500);
+            return response()->json(['error' => 'Payment verification failed.' . $response], 500);
         }
     }
 
     public function withdrawFunds($driverId)
     {
         // Implement withdrawal logic for driver based on confirmation status
+    }
+
+    public function validatePayment(Request $request)
+    {
+        $txRef = $request->input('tx_ref'); // Unique transaction reference
+
+        // Send a GET request to Chapa to verify the transaction
+        $response = Http::withToken(env('CHAPA_SECRET_KEY'))
+            ->get("https://api.chapa.co/v1/transaction/verify/{$txRef}");
+
+        if ($response->successful() && $response->json('data.status') === 'success') {
+            // Payment is successful. You can proceed with post-payment processing.
+
+            // For example:
+            // Update order status, credit user's account, etc.
+            return response()->json(['message' => 'Payment verified successfully.'], 200);
+        } else {
+            // Payment verification failed
+            return response()->json(['error' => 'Payment verification failed.'], 400);
+        }
     }
 }
