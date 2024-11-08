@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Response;
 use App\Models\ClientOrder;
+use Illuminate\Support\Facades\Log;
 
 class ClientOrderController extends Controller
 {
@@ -64,17 +65,28 @@ class ClientOrderController extends Controller
 
     public function confirmOrderPayment(Request $request)
     {
-        $txRef = $request->query('tx_ref');
+        // Retrieve tx_ref from the JSON body
+        $txRef = $request->input('tx_ref');
 
+        // Check if tx_ref is provided
+        if (!$txRef) {
+            return response()->json(['error' => 'Transaction reference (tx_ref) is required.'], 400);
+        }
+
+        // Make the Chapa verification request
         $response = Http::withToken(env('CHAPA_SECRET_KEY'))
             ->get("https://api.chapa.co/v1/transaction/verify/$txRef");
 
         if ($response->successful() && $response['data']['status'] === 'success') {
-            // Update the order status to completed
+            // Find the order by tx_ref and update its status
             $order = ClientOrder::where('tx_ref', $txRef)->first();
-            $order->update(['status' => 'completed']);
 
-            return response()->json(['message' => 'Payment verified successfully.']);
+            if ($order) {
+                $order->update(['status' => 'completed']);
+                return response()->json(['message' => 'Payment verified successfully.']);
+            } else {
+                return response()->json(['error' => 'Order not found.'], 404);
+            }
         } else {
             return response()->json(['error' => 'Payment verification failed.'], 500);
         }
