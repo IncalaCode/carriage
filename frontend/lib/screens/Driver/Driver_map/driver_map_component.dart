@@ -21,8 +21,8 @@ class _DriverMapComponentState extends State<DriverMapComponent> {
   bool _isOnline = true;
   int _retryCount = 0;
   static const int MAX_RETRIES = 3;
-  // Example placeholder values. Replace with actual initialization.
-  late final dynamic _localStorage; // Adjust type as needed
+
+  late final dynamic _localStorage;
   late final String gebetaApiKey = "YOUR_API_KEY_HERE";
 
   @override
@@ -57,7 +57,7 @@ class _DriverMapComponentState extends State<DriverMapComponent> {
         builder: (ctx) => GestureDetector(
           onTap: () => _showOrderDetails(order),
           child: Icon(
-            Icons.location_on,
+            FontAwesomeIcons.locationPin,
             color: Colors.red,
             size: 40.0,
           ),
@@ -77,15 +77,15 @@ class _DriverMapComponentState extends State<DriverMapComponent> {
             Text('Order Details',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             ListTile(
-              leading: Icon(Icons.location_on),
+              leading: Icon(FontAwesomeIcons.locationPin),
               title: Text('From: ${order['from']}'),
             ),
             ListTile(
-              leading: Icon(Icons.location_on),
+              leading: Icon(FontAwesomeIcons.locationPin),
               title: Text('To: ${order['destination']}'),
             ),
             ListTile(
-              leading: Icon(Icons.category),
+              leading: Icon(FontAwesomeIcons.tools),
               title: Text('Material: ${order['material_type']}'),
             ),
             ElevatedButton(
@@ -177,7 +177,6 @@ class _DriverMapComponentState extends State<DriverMapComponent> {
   }
 
   void _updateRoute(List<dynamic> route) {
-    // Clear existing route lines
     _routeLines.clear();
 
     // Create new polylines based on the route data
@@ -215,7 +214,7 @@ class _DriverMapComponentState extends State<DriverMapComponent> {
                   Marker(
                     point: _currentPosition!,
                     builder: (ctx) => Icon(
-                      Icons.local_taxi,
+                      FontAwesomeIcons.carOn,
                       color: _isOnline ? Colors.green : Colors.grey,
                       size: 40.0,
                     ),
@@ -230,7 +229,7 @@ class _DriverMapComponentState extends State<DriverMapComponent> {
             child: FloatingActionButton(
               heroTag: "currentLocation",
               onPressed: _goToCurrentLocation,
-              child: Icon(FontAwesomeIcons.locationArrow), // Fixed typo here
+              child: Icon(FontAwesomeIcons.location), // Fixed typo here
             ),
           ),
           Positioned(

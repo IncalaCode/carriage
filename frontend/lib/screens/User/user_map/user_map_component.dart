@@ -236,7 +236,7 @@ class _UserMapComponentState extends State<UserMapComponent> {
                     Marker(
                       point: _driverPosition!,
                       builder: (ctx) => Icon(
-                        Icons.local_taxi,
+                        FontAwesomeIcons.carOn,
                         color: _isDriverOffline ? Colors.grey : Colors.green,
                         size: 40.0,
                       ),
@@ -309,7 +309,7 @@ class _UserMapComponentState extends State<UserMapComponent> {
                       style: TextStyle(color: Colors.white),
                     ),
                     IconButton(
-                      icon: Icon(Icons.refresh, color: Colors.white),
+                      icon: Icon(FontAwesomeIcons.refresh, color: Colors.white),
                       onPressed: _retryConnection,
                     ),
                   ],

@@ -332,9 +332,7 @@ class _OrderFormState extends State<OrderForm> {
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Colors.black, Colors.grey.shade800],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
+              colors: [Color(0xFF000000), Color(0xFF9A839E)],
             ),
           ),
         ),
@@ -370,6 +368,10 @@ class _OrderFormState extends State<OrderForm> {
                   controller: fromController,
                   decoration: InputDecoration(
                     labelText: 'From (ከ)',
+                    hintText: 'አዲስ አበባ - ቂርቆስ - ወረዳ 04 - ጎተራ',
+                    hintStyle: TextStyle(
+        color: Colors.grey.withOpacity(0.7), 
+      ),
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10)),
                   ),
@@ -392,6 +394,10 @@ class _OrderFormState extends State<OrderForm> {
                   controller: destinationController,
                   decoration: InputDecoration(
                     labelText: 'Destination (መድረሻ)',
+                    hintText: 'አዲስ አበባ - ቂርቆስ - ወረዳ 04 - ጎተራ',
+                    hintStyle: TextStyle(
+        color: Colors.grey.withOpacity(0.7), 
+      ),
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10)),
                   ),

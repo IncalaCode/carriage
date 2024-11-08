@@ -4,8 +4,6 @@ import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart' as prefs;
 import '../../config.dart';
-import 'package:latlong2/latlong.dart';
-import 'package:flutter_map/flutter_map.dart';
 
 class DriverHook {
   final StreamController<Map<String, dynamic>> _ordersStreamController =
