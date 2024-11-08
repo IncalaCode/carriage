@@ -17,7 +17,7 @@ class driver_request extends Controller
     protected $user;
     public $previousRequests;
     private const INACTIVE_TIMEOUT = 300; // 5 minutes in seconds
-    private const POLLING_TIMEOUT = 30; // 30 seconds for polling
+    private const POLLING_TIMEOUT = 10; // 10 seconds for polling
 
     public function __construct(Request $request)
     {
@@ -37,28 +37,20 @@ class driver_request extends Controller
         $driverRequest = driverRequest::where('driver_id', $this->user->id)
             ->whereIn('status', ['pending', 'locked'])
             ->first();
-               // Update last_active timestamp and location
-        $this->updateDriverStatus($request,  $driverRequest);
 
+        if($driverRequest){
+            $this->updateDriverStatus($request,  $driverRequest);
+
+        }
+
+
+               // Update last_active timestamp and location
+        
         if(($request->has(['completed']) && $driverRequest) ){
             return response()->json($this->completrequest($request , $driverRequest));
         }
 
-        // If trying to start new search but has active request
-        if ($request->has(['latitude', 'longitude']) && $driverRequest) {
-            return response()->json([
-                'message' => 'Active request exists',
-                'current_request' => [
-                    'status' => $driverRequest->status,
-                    'created_at' => $driverRequest->created_at,
-                    'current_location' => [
-                        'latitude' => $driverRequest->latitude,
-                        'longitude' => $driverRequest->longitude
-                    ]
-                ],
-                'next_action' => $this->getStatusAction($driverRequest->status)
-            ], 303); // 303 See Other
-        }
+        
 
         $action = $this->determineAction($driverRequest, $request);
         
@@ -68,7 +60,7 @@ class driver_request extends Controller
             case 'get_requests':
                 return $this->getRequests($request);
             case 'accept_ride':
-                return $this->acceptRide($request);
+                return $this->acceptRide($request,$driverRequest);
             case 'update_location':
                 return $this->updateLocation($request);
             default:
@@ -118,7 +110,7 @@ class driver_request extends Controller
     ]);
 
     // Hide the 'id' field before returning
-    return $driverRequest->makeHidden('id');
+    return $this->getRequests($request);
 }
 
 private function getRequests(Request $request)
@@ -172,39 +164,53 @@ private function getRequests(Request $request)
 }
 
 
-    private function acceptRide(Request $request) 
-    {
-        $validated = $request->validate([
-            'user_request_id' => 'required',
-            'price' => 'required'
-        ]);
+private function acceptRide(Request $request,$driverrequest) 
+{
+    $validated = $request->validate([
+        'user_request_id' => 'required|exists:user_requests,id',
+        'price' => 'required|numeric'
+    ]);
 
-        $userRequest = user_Request::findOrFail($validated['user_request_id']);
-        
-        if ($userRequest->status !== 'pending') {
-            return response()->json(['error' => 'Request no longer available'], 400);
-        }
+    $userRequest = user_Request::findOrFail($validated['user_request_id']);
 
-        // Add driver to accepted drivers list
-        $acceptedDrivers = json_decode($userRequest->accepted_driver_ids ??  "") ?? [];
-        if (!in_array($this->user->id, $acceptedDrivers)) {
-            $acceptedDrivers[] = $this->user->id;
-        }
-        
-        // Store price in separate table
-        RidePrice::updateOrCreate(
-            [
-                'request_id' => $validated['user_request_id'],
-                'driver_id' => $this->user->id
-            ],
-            ['price' => $validated['price']]
-        );
-
-        $userRequest->accepted_driver_ids = $acceptedDrivers;
-        $userRequest->save();
-
-        return response()->json(['message' => ' Acceptance  sent  successfully']);
+    if ($userRequest->status !== 'pending') {
+        return response()->json(['error' => 'Request no longer available'], 400);
     }
+
+    // Retrieve or initialize the accepted drivers list
+    $acceptedDrivers = json_decode($userRequest->accepted_driver_ids) ?? [];
+    
+    // Check if the driver is not already in the accepted list, then add them
+    if (!in_array($this->user->id, $acceptedDrivers)) {
+        $acceptedDrivers[] = $this->user->id;
+    }
+
+    // Store the price in the RidePrice table
+    RidePrice::updateOrCreate(
+        [
+            'request_id' => $validated['user_request_id'],
+            'driver_id' => $this->user->id
+        ],
+        ['price' => $validated['price']]
+    );
+
+    // Update the driver's accepted_user_ids list
+    $acceptedUserIds = json_decode($driverrequest->accepted_user_ids) ?? [];
+    if (!in_array($validated['user_request_id'], $acceptedUserIds)) {
+        $acceptedUserIds[] = $validated['user_request_id'];
+    }
+
+    // Save updated accepted user IDs to the driver
+    $driverrequest->accepted_user_ids = json_encode($acceptedUserIds);
+    $driverrequest->save();
+
+    // Update the user request with accepted drivers and save
+    $userRequest->accepted_driver_ids = json_encode($acceptedDrivers);
+    $userRequest->save();
+
+    return  $this->getRequests($request);
+}
+
 
     private function updateLocation(Request $request)
     {
@@ -223,6 +229,10 @@ private function getRequests(Request $request)
 
     private function determineAction($driverRequest, $request)
     {
+        if ($driverRequest && $request->has(['user_request_id', 'price'])) {
+            return 'accept_ride';
+        }
+
         // If starting new search but has active request, return current status
         if ($request->has(['latitude', 'longitude']) && $driverRequest) {
             return $this->getStatusAction($driverRequest->status);
@@ -231,10 +241,6 @@ private function getRequests(Request $request)
         // If no current request and location is provided
         if (!$driverRequest && $request->has(['latitude', 'longitude'])) {
             return 'start_searching';
-        }
-
-        if ($driverRequest && $request->has(['user_request_id', 'price'])) {
-            return 'accept_ride';
         }
 
         if (!$driverRequest) {
