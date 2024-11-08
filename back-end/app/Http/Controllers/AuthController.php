@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use App\Models\Wallet;
 
 require_once "otp.php";
 
@@ -30,9 +31,8 @@ class AuthController extends Controller
             return response()->json([
                 'errors' => $validator->errors(),
             ], 422);
-
         }
-      
+
 
 
         $otp = rand(1000, 9999); // Adjusted OTP to 4 digits
@@ -45,6 +45,10 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
             'verified' => false, // Set verified to false initially
             'otp' => $otp, // Store the OTP in the user record
+        ]);
+        Wallet::create([
+            'user_id' => $user->id,
+            'balance' => 0.00, // Initial balance
         ]);
 
         // Send OTP using otpSend
