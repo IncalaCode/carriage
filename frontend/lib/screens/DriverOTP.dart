@@ -134,6 +134,9 @@ class _DriverOTPState extends State<DriverOTP> {
       Navigator.pop(context);
 
       if (response.statusCode == 200) {
+        var jsonResponse = json.decode(response.body);
+        print('OTP sent: ${jsonResponse['otp']}'); // Print the OTP if it's in the response
+        
         setState(() {
           otpVisible = true;
           countdownSeconds = 120;

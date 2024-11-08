@@ -78,19 +78,22 @@ class _MainAppScreenState extends State<MainAppScreen> {
     if (_authToken == null) return;
 
     try {
+      print('💰 Fetching wallet balance...');
       final url = Uri.parse('${Config.baseUrl}/wallet/balance');
       final response = await http.post(
         url,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: ({
+        body: json.encode({
           'token': _authToken,
         }),
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        print('💰 Wallet balance received: ${data['balance']}');
+        
         if (mounted) {
           setState(() {
             _walletBalance = double.parse(data['balance'].toString());
@@ -98,9 +101,11 @@ class _MainAppScreenState extends State<MainAppScreen> {
           });
         }
       } else {
+        print('❌ Failed to fetch wallet balance: ${response.statusCode}');
         throw Exception('Failed to load wallet balance: ${response.statusCode}');
       }
     } catch (e) {
+      print('❌ Error fetching wallet balance: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -174,7 +179,7 @@ final response = await http.post(
             javascriptMode: JavascriptMode.unrestricted,
             navigationDelegate: (NavigationRequest request) {
               print('🔄 Navigation to: ${request.url}');
-              Navigator.pop(context);
+              //Navigator.pop(context);
               _confirmPayment(_txRef!);
               return NavigationDecision.prevent;
             },
@@ -194,7 +199,6 @@ final response = await http.post(
       final response = await http.post(
         Uri.parse('${Config.baseUrl}/client/order/confirm-payment'),
         headers: {
-          
           'Content-Type': 'application/json',
         },
         body: json.encode({
@@ -206,8 +210,20 @@ final response = await http.post(
       print('✅ Payment Confirmation Status: ${response.statusCode}');
       if (response.statusCode == 200) {
         print('✅ Payment confirmed successfully');
-        Navigator.of(context).pop(); // Close WebView
-        await _fetchWalletBalance(); // Refresh wallet balance
+        Navigator.pop(context); // Close WebView
+        
+        // Fetch updated wallet balance
+        await _fetchWalletBalance();
+        
+        // Check if wallet balance is now sufficient
+        // if (_walletBalance >= 1500) {
+        //   // Navigate to order form if balance is sufficient
+        //   Navigator.push(
+        //     context,
+        //     MaterialPageRoute(builder: (context) => OrderForm()),
+        //   );
+        // }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Payment successful! Wallet has been updated.')),
         );

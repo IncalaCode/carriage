@@ -1,7 +1,196 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../config.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
-class WalletPage extends StatelessWidget {
+class WalletPage extends StatefulWidget {
+  @override
+  _WalletPageState createState() => _WalletPageState();
+}
+
+class _WalletPageState extends State<WalletPage> {
+  double balance = 0.0;
+  bool isLoading = true;
+  String? _authToken;
+  String? _paymentUrl;
+  String? _txRef;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAuthToken();
+    fetchWalletBalance();
+  }
+
+  Future<void> _loadAuthToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _authToken = prefs.getString('authToken');
+    });
+  }
+
+  Future<void> _initiatePayment() async {
+    if (_authToken == null) {
+      print('❌ No auth token available for payment');
+      return;
+    }
+
+    try {
+      print('💳 Initiating payment process...');
+      final url = Uri.parse('${Config.baseUrl}/client/order/initiate-payment');
+      print('🔗 Payment endpoint URL: $url');
+      print('🔑 Using Authorization Header: $_authToken');
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'token': _authToken,
+        }),
+      );
+
+      print('💳 Payment Initiation Response Status: ${response.statusCode}');
+      print('💳 Payment Initiation Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('🔗 Payment URL Received: ${data['payment_url']}');
+        print('🔗 Payment URL Received: ${data['tx_ref']}');
+        setState(() {
+          _paymentUrl = data['payment_url'];
+          _txRef = data['tx_ref'];
+        });
+        _showPaymentWebView();
+      } else {
+        throw Exception('Failed to initiate payment: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Payment Initiation Error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to initiate payment. Please try again.')),
+      );
+    }
+  }
+
+  void _showPaymentWebView() async {
+    if (_paymentUrl == null) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            title: Text('Payment'),
+            backgroundColor: Colors.black,
+          ),
+          body: WebView(
+            initialUrl: _paymentUrl,
+            javascriptMode: JavascriptMode.unrestricted,
+            navigationDelegate: (NavigationRequest request) {
+              print('🔄 Navigation to: ${request.url}');
+              _confirmPayment(_txRef!);
+              return NavigationDecision.prevent;
+            },
+            onWebResourceError: (WebResourceError error) {
+              print('🚨 Web Resource Error: ${error.description}');
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmPayment(String txref) async {
+    try {
+      print('✅ Confirming payment with backend...');
+      final response = await http.post(
+        Uri.parse('${Config.baseUrl}/client/order/confirm-payment'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'tx_ref': txref,
+          'token': _authToken!,
+        }),
+      );
+
+      print('✅ Payment Confirmation Status: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        print('✅ Payment confirmed successfully');
+        Navigator.pop(context); // Close WebView
+        
+        // Fetch updated wallet balance
+        await fetchWalletBalance();
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Payment successful! Wallet has been updated.')),
+        );
+      } else {
+        throw Exception('Payment confirmation failed');
+      }
+    } catch (e) {
+      print('❌ Payment Confirmation Error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Payment confirmation failed. Please contact support.')),
+      );
+    }
+  }
+
+  Future<void> fetchWalletBalance() async {
+    print('🔄 Starting to fetch wallet balance...');
+    
+    try {
+      // Get auth token from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('authToken');
+      
+      if (token == null) {
+        print('❌ No auth token found');
+        throw Exception('Authentication token not found');
+      }
+
+      print('🔑 Using token: $token');
+      print('🌐 Making POST request to wallet/balance endpoint...');
+      
+      final response = await http.post(
+        Uri.parse('${Config.baseUrl}/wallet/balance'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'token': token,
+        }),
+      );
+
+      print('📥 Response status code: ${response.statusCode}');
+      print('📥 Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('✅ Successfully decoded JSON data: $data');
+        setState(() {
+          balance = double.parse(data['balance'].toString());
+          isLoading = false;
+        });
+        print('💰 Updated balance to: $balance');
+      } else {
+        print('❌ Failed with status code: ${response.statusCode}');
+        throw Exception('Failed to load wallet balance: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Error fetching wallet balance: $e');
+      print('📚 Stack trace: ${StackTrace.current}');
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
   // Example data for recent transactions
   final List<Map<String, String>> recentTransactions = [
     {'amount': '\$200', 'date': 'Oct 5, 2024', 'type': 'withdrawal'},
@@ -26,10 +215,12 @@ class WalletPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Current Balance: \$1000',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
+            isLoading 
+              ? CircularProgressIndicator()
+              : Text(
+                  'Current Balance: \$${balance.toStringAsFixed(2)}',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
             SizedBox(height: 20),
 
             // Deposit Buttons with Gradient Backgrounds
@@ -45,51 +236,21 @@ class WalletPage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(5),
                     ),
                     child: ElevatedButton(
-                      onPressed: () {
-                        // Deposit via CBE functionality
-                      },
+                      onPressed: _initiatePayment,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
                         padding: EdgeInsets.symmetric(vertical: 12),
                       ),
                       child: Text(
-                        'Deposit via CBE',
+                        'Deposit Money',
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
+                      ),
                     ),
                   ),
-                ),
-                ),
-                SizedBox(width: 20),
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [const Color.fromARGB(255, 0, 0, 0), const Color.fromARGB(255, 154, 131, 158)],
-                      ),
-                      borderRadius: BorderRadius.circular(5),
-                    ),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        // Deposit via Telebirr functionality
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: Text(
-                        'Deposit via Telebirr',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,),
-
-                    ),
-                  ),
-                ),
                 ),
               ],
             ),

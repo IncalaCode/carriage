@@ -102,8 +102,12 @@ class _UserOTPState extends State<UserOTP> {
         }),
       );
 
+      print('Response Status: ${response.statusCode}');
+     print('Response Body: ${response.body}'); // Print full response
+      
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        print('OTP Generated: ${data['otp']}'); // Print the OTP
         setState(() {
           otpVisible = true;
           otpSent = true; // Show success message

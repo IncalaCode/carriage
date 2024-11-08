@@ -90,14 +90,12 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
         headers: {
           'Content-Type': 'application/json',
         },
-       body: {
+        body: json.encode({
           'token': _authToken,
-        },
-        
+        }),
       );
 
       print('💰 Response Status: ${response.statusCode}');
-      print('💰 Response Headers: ${response.headers}');
       print('💰 Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
@@ -107,6 +105,7 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
             _walletBalance = double.parse(data['balance'].toString());
             _isLoading = false;
           });
+          print('💰 Updated wallet balance: $_walletBalance ETB');
         }
       } else {
         print('❌ Error Response: ${response.body}');
@@ -186,7 +185,7 @@ final response = await http.post(
             javascriptMode: JavascriptMode.unrestricted,
             navigationDelegate: (NavigationRequest request) {
               print('🔄 Navigation to: ${request.url}');
-              Navigator.pop(context);
+             // Navigator.pop(context);
               _confirmPayment(_txRef!);
               return NavigationDecision.prevent;
             },
@@ -204,8 +203,7 @@ final response = await http.post(
       print('✅ Confirming payment with backend...');
       final response = await http.post(
         Uri.parse('${Config.baseUrl}/driver/request/confirm-payment'),
-        headers: {
-          
+        headers: {  
           'Content-Type': 'application/json',
         },
         body: json.encode({
@@ -217,7 +215,7 @@ final response = await http.post(
       print('✅ Payment Confirmation Status: ${response.statusCode}');
       if (response.statusCode == 200) {
         print('✅ Payment confirmed successfully');
-        Navigator.of(context).pop(); // Close WebView
+        Navigator.pop(context); // Close WebView
         await _fetchWalletBalance(); // Refresh wallet balance
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Payment successful! Wallet has been updated.')),
@@ -253,6 +251,7 @@ final response = await http.post(
       );
     }
 
+    // If balance is sufficient, show green button for OrderRequests
     if (_walletBalance >= 1500) {
       return FloatingActionButton.extended(
         onPressed: () {
@@ -261,23 +260,25 @@ final response = await http.post(
             MaterialPageRoute(builder: (context) => OrderRequestsPage()),
           );
         },
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.green, // Changed to green for sufficient balance
         icon: Icon(FontAwesomeIcons.bell, color: Colors.white),
         label: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF000000), Color(0xFF9A839E)],
+              colors: [Colors.green.shade700, Colors.green.shade500], // Green gradient
             ),
             borderRadius: BorderRadius.circular(30),
           ),
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Text(
-            'Requests',
+            'Order Requests',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
         ),
       );
-    } else {
+    } 
+    // If balance is insufficient, show red button for payment
+    else {
       return FloatingActionButton.extended(
         onPressed: _initiatePayment,
         backgroundColor: Colors.transparent,
