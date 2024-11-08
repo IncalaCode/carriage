@@ -3,7 +3,9 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import './driver_hock.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class DriverMapComponent extends StatefulWidget {
   @override
@@ -15,36 +17,23 @@ class _DriverMapComponentState extends State<DriverMapComponent> {
   LatLng? _currentPosition;
   double _currentZoom = 9.0;
   bool _isLoading = true;
-  late DriverHook _driverHook;
+  late DriverHook? _driverHook;
   List<Polyline> _routeLines = [];
   List<Marker> _requestMarkers = [];
-  bool _isOnline = true;
   int _retryCount = 0;
   static const int MAX_RETRIES = 3;
-  // Example placeholder values. Replace with actual initialization.
-  late final dynamic _localStorage; // Adjust type as needed
-  late final String gebetaApiKey = "YOUR_API_KEY_HERE";
+  SharedPreferences? _localStorage; // Updated type
+  String gebetaApiKey = ''; // Ensure this is initialized to avoid null issues
 
   @override
   void initState() {
     super.initState();
-    _initializeHook();
+    initEnv(); // Ensure environment variables are loaded first Initialize SharedPreferences before using it
     _initializeLocation();
   }
 
-  Future<void> _initializeHook() async {
-    _driverHook = DriverHook(this._localStorage, this.gebetaApiKey);
-    _driverHook.ordersStream.listen((data) {
-      setState(() {
-        if (data['orders'] != null) {
-          _updateRequestMarkers(data['orders']);
-        }
-        if (data['route'] != null) {
-          _updateRoute(data['route']);
-        }
-      });
-    });
-    _driverHook.startPolling();
+  Future<void> initEnv() async {
+    await dotenv.load(); // Load environment variables
   }
 
   void _updateRequestMarkers(List<dynamic> orders) {
@@ -100,7 +89,7 @@ class _DriverMapComponentState extends State<DriverMapComponent> {
 
   Future<void> _acceptOrder(String orderId) async {
     try {
-      // Implementation of order acceptance
+      // TODO: Implement order acceptance logic here
       Navigator.pop(context); // Close bottom sheet
     } catch (e) {
       _showError('Failed to accept order');
@@ -110,13 +99,17 @@ class _DriverMapComponentState extends State<DriverMapComponent> {
   Future<void> _initializeLocation() async {
     bool locationEnabled = await _checkLocationPermission();
     if (locationEnabled) {
-      Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
-      setState(() {
-        _currentPosition = LatLng(position.latitude, position.longitude);
-        _mapController.move(_currentPosition!, _currentZoom);
-        _isLoading = false; // Stop loading after fetching location
-      });
+      try {
+        Position position = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high);
+        setState(() {
+          _currentPosition = LatLng(position.latitude, position.longitude);
+          _mapController.move(_currentPosition!, _currentZoom);
+          _isLoading = false; // Stop loading after fetching location
+        });
+      } catch (e) {
+        _showError('Failed to get current location'); // Handle potential errors
+      }
     } else {
       setState(() {
         _isLoading = false; // Stop loading if permission fails
@@ -216,7 +209,7 @@ class _DriverMapComponentState extends State<DriverMapComponent> {
                     point: _currentPosition!,
                     builder: (ctx) => Icon(
                       Icons.local_taxi,
-                      color: _isOnline ? Colors.green : Colors.grey,
+                      color: Colors.green, // Always online by default
                       size: 40.0,
                     ),
                   ),
@@ -230,38 +223,12 @@ class _DriverMapComponentState extends State<DriverMapComponent> {
             child: FloatingActionButton(
               heroTag: "currentLocation",
               onPressed: _goToCurrentLocation,
-              child: Icon(FontAwesomeIcons.locationArrow), // Fixed typo here
-            ),
-          ),
-          Positioned(
-            left: 16,
-            top: 50,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                boxShadow: [BoxShadow(blurRadius: 4, color: Colors.black26)],
-              ),
-              child: Switch(
-                value: _isOnline,
-                onChanged: _toggleOnlineStatus,
-              ),
+              child: Icon(FontAwesomeIcons.locationArrow),
             ),
           ),
         ],
       ),
     );
-  }
-
-  void _toggleOnlineStatus(bool value) {
-    setState(() {
-      _isOnline = value;
-      if (_isOnline) {
-        _driverHook.startPolling();
-      } else {
-        _driverHook.stopPolling();
-      }
-    });
   }
 
   Future<void> _goToCurrentLocation() async {
@@ -303,7 +270,7 @@ class _DriverMapComponentState extends State<DriverMapComponent> {
 
   @override
   void dispose() {
-    _driverHook.dispose();
+    _driverHook?.stopPolling(); // Stop polling when the widget is disposed
     super.dispose();
   }
 }

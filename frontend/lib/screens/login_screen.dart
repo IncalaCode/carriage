@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:My_truck/screens/RegisterUser.dart';
 import 'package:My_truck/screens/RegisterDriver.dart';
-import 'package:My_truck/screens/user/main_app_screen.dart';
+import './User/main_app_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'dart:convert';
-import 'driver/Driver_main_screen.dart ';
+import './Driver/Driver_main_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -35,16 +35,13 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     // API URL for sending OTP
-    final url = Uri.parse(Config.baseUrl + '/${isUserLogin ? 'user' : 'driver'}/login');
+    final url =
+        Uri.parse(Config.baseUrl + '/${isUserLogin ? 'user' : 'driver'}/login');
     try {
       final response = await http.post(
         url,
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: json.encode({
-          'phone_number': _phoneNumber
-        }),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'phone_number': _phoneNumber}),
       );
 
       if (response.statusCode == 200) {
@@ -57,7 +54,8 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() {
           _errorMessage = 'Failed to send OTP. Try again later.';
           final responseBody = json.decode(response.body);
-          print('Error: ${response.statusCode}, Message: ${responseBody['message']}');
+          print(
+              'Error: ${response.statusCode}, Message: ${responseBody['message']}');
         });
       }
     } catch (e) {
@@ -94,17 +92,13 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    final url = Uri.parse(Config.baseUrl + '/${isUserLogin ? 'user' : 'driver'}/verify');
+    final url = Uri.parse(
+        Config.baseUrl + '/${isUserLogin ? 'user' : 'driver'}/verify');
     try {
       final response = await http.post(
         url,
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: json.encode({
-          'phone_number': _phoneNumber,
-          'otp': _otp
-        }),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'phone_number': _phoneNumber, 'otp': _otp}),
       );
 
       if (response.statusCode == 200) {
@@ -122,7 +116,8 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       } else {
         setState(() {
-          _errorMessage = 'Login failed. Please check your credentials and try again.';
+          _errorMessage =
+              'Login failed. Please check your credentials and try again.';
         });
       }
     } catch (e) {
@@ -161,11 +156,16 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: TextStyle(
                             color: isUserLogin ? Colors.white : Colors.grey,
                             fontSize: 20,
-                            fontWeight: isUserLogin ? FontWeight.bold : FontWeight.normal,
+                            fontWeight: isUserLogin
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                           ),
                         ),
                         SizedBox(height: 5),
-                        isUserLogin ? Container(height: 2, width: 60, color: Colors.blue) : Container(),
+                        isUserLogin
+                            ? Container(
+                                height: 2, width: 60, color: Colors.blue)
+                            : Container(),
                       ],
                     ),
                   ),
@@ -179,11 +179,16 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: TextStyle(
                             color: !isUserLogin ? Colors.white : Colors.grey,
                             fontSize: 20,
-                            fontWeight: !isUserLogin ? FontWeight.bold : FontWeight.normal,
+                            fontWeight: !isUserLogin
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                           ),
                         ),
                         SizedBox(height: 5),
-                        !isUserLogin ? Container(height: 2, width: 60, color: Colors.blue) : Container(),
+                        !isUserLogin
+                            ? Container(
+                                height: 2, width: 60, color: Colors.blue)
+                            : Container(),
                       ],
                     ),
                   ),
@@ -195,7 +200,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Phone Number", style: TextStyle(color: Colors.white, fontSize: 20)),
+                    Text("Phone Number",
+                        style: TextStyle(color: Colors.white, fontSize: 20)),
                     TextFormField(
                       decoration: InputDecoration(
                         prefixIcon: Icon(FontAwesomeIcons.phone),
@@ -207,7 +213,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       onChanged: (value) => _phoneNumber = value,
                     ),
                     SizedBox(height: 20),
-                    Text("OTP", style: TextStyle(color: Colors.white, fontSize: 20)),
+                    Text("OTP",
+                        style: TextStyle(color: Colors.white, fontSize: 20)),
                     TextFormField(
                       obscureText: true,
                       decoration: InputDecoration(
@@ -226,7 +233,9 @@ class _LoginScreenState extends State<LoginScreen> {
               ElevatedButton(
                 onPressed: _isOtpSent ? null : _sendOtp,
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-                child: Text(_isOtpSent ? "Resend OTP in $_remainingTime s" : "Send OTP"),
+                child: Text(_isOtpSent
+                    ? "Resend OTP in $_remainingTime s"
+                    : "Send OTP"),
               ),
               SizedBox(height: 20),
               if (_errorMessage.isNotEmpty)
@@ -259,7 +268,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     // Redirect to the driver-specific screen
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (context) => DriverMainScreen()), // Replace with the actual Driver screen
+                      MaterialPageRoute(
+                          builder: (context) =>
+                              DriverMainScreen()), // Replace with the actual Driver screen
                     );
                   }
                 },
