@@ -47,7 +47,7 @@ class AuthController extends Controller
             'otp' => $otp, // Store the OTP in the user record
         ]);
         Wallet::create([
-            'user_id' => $user->id,
+            'user_id' => $user->uid,
             'balance' => 0.00, // Initial balance
         ]);
 
@@ -56,7 +56,7 @@ class AuthController extends Controller
 
 
         return response()->json([
-            'message' => 'OTP sent successfully!',
+            'message' => 'OTP sent successfully! ',
             'otp_response' => $response,
         ], 200);
     }

@@ -7,9 +7,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class Transaction extends Model
 {
-    protected $table = 'transactions';
-
-    protected $fillable = ['wallet_id', 'type', 'amount', 'description'];
+    protected $fillable = [
+        'wallet_id',
+        'amount',
+        'type',
+        'tx_ref',
+        'description',
+        'status',
+    ];
 
     public function wallet()
     {
