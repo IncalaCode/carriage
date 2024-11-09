@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Wallet extends Model
 {
     protected $table = 'wallets';
-    protected $fillable = ['user_id', 'driver_id', 'balance'];
+    protected $fillable = ['uid', 'balance'];
 
     public function user()
     {

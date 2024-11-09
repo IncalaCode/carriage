@@ -7,7 +7,7 @@ import 'package:My_truck/screens/User/main_app_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'dart:convert';
-import 'driver/Driver_main_screen.dart ';
+import './Driver/Driver_main_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -52,16 +52,13 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     // API URL for sending OTP
-    final url = Uri.parse(Config.baseUrl + '/${isUserLogin ? 'user' : 'driver'}/login');
+    final url =
+        Uri.parse(Config.baseUrl + '/${isUserLogin ? 'user' : 'driver'}/login');
     try {
       final response = await http.post(
         url,
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: json.encode({
-          'phone_number': _phoneNumber
-        }),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'phone_number': _phoneNumber}),
       );
       print('📡 OTP Response Status: ${response.statusCode}'); // Debug print
       print('📡 OTP Response Body: ${response.body}'); // Debug print
@@ -115,17 +112,13 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    final url = Uri.parse(Config.baseUrl + '/${isUserLogin ? 'user' : 'driver'}/verify');
+    final url = Uri.parse(
+        Config.baseUrl + '/${isUserLogin ? 'user' : 'driver'}/verify');
     try {
       final response = await http.post(
         url,
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: json.encode({
-          'phone_number': _phoneNumber,
-          'otp': _otp
-        }),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'phone_number': _phoneNumber, 'otp': _otp}),
       );
       
       print('🔍 Verify Response Status: ${response.statusCode}'); // Debug print
@@ -184,7 +177,8 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         print('❌ Server returned ${response.statusCode}: ${response.body}'); // Debug print
         setState(() {
-          _errorMessage = 'Login failed. Please check your credentials and try again.';
+          _errorMessage =
+              'Login failed. Please check your credentials and try again.';
         });
       }
     } catch (e) {
@@ -224,11 +218,16 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: TextStyle(
                             color: isUserLogin ? Colors.white : Colors.grey,
                             fontSize: 20,
-                            fontWeight: isUserLogin ? FontWeight.bold : FontWeight.normal,
+                            fontWeight: isUserLogin
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                           ),
                         ),
                         SizedBox(height: 5),
-                        isUserLogin ? Container(height: 2, width: 60, color: Colors.blue) : Container(),
+                        isUserLogin
+                            ? Container(
+                                height: 2, width: 60, color: Colors.blue)
+                            : Container(),
                       ],
                     ),
                   ),
@@ -242,11 +241,16 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: TextStyle(
                             color: !isUserLogin ? Colors.white : Colors.grey,
                             fontSize: 20,
-                            fontWeight: !isUserLogin ? FontWeight.bold : FontWeight.normal,
+                            fontWeight: !isUserLogin
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                           ),
                         ),
                         SizedBox(height: 5),
-                        !isUserLogin ? Container(height: 2, width: 60, color: Colors.blue) : Container(),
+                        !isUserLogin
+                            ? Container(
+                                height: 2, width: 60, color: Colors.blue)
+                            : Container(),
                       ],
                     ),
                   ),
@@ -258,7 +262,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Phone Number", style: TextStyle(color: Colors.white, fontSize: 20)),
+                    Text("Phone Number",
+                        style: TextStyle(color: Colors.white, fontSize: 20)),
                     TextFormField(
                       decoration: InputDecoration(
                         prefixIcon: Icon(FontAwesomeIcons.phone, color: Colors.grey),
@@ -270,7 +275,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       onChanged: (value) => _phoneNumber = value,
                     ),
                     SizedBox(height: 20),
-                    Text("OTP", style: TextStyle(color: Colors.white, fontSize: 20)),
+                    Text("OTP",
+                        style: TextStyle(color: Colors.white, fontSize: 20)),
                     TextFormField(
                       obscureText: true,
                       decoration: InputDecoration(

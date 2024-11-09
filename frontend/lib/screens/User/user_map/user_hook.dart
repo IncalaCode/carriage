@@ -14,11 +14,44 @@ class UserHook {
   Timer? _locationTimer;
   final String gebetaApiKey;
   MapController mapController = MapController();
+  bool _isPolling = true;
 
   Stream<Map<String, dynamic>> get driverStream =>
       _driverStreamController.stream;
 
   UserHook(this._localStorage, this.gebetaApiKey);
+
+  // Method to fetch driver requests
+  // Method to start polling
+  Future<List<Map<String, dynamic>>> fetchDriverRequests() async {
+    List<Map<String, dynamic>> driverRequests = [];
+
+    while (_isPolling) {
+      try {
+        final token = await getToken(); // Retrieve token dynamically if async
+        final response = await http.get(
+          Uri.parse('${Config.baseUrl}/client/handle-request'),
+          headers: {'Content-Type': 'application/json', 'token': token},
+        );
+
+        if (response.statusCode == 200) {
+          final List<dynamic> data = json.decode(response.body);
+          driverRequests =
+              data.map((driver) => driver as Map<String, dynamic>).toList();
+        } else {
+          throw Exception('Failed to load driver requests');
+        }
+      } catch (e) {
+        print('Error fetching driver requests: $e');
+        // Optionally, you could add additional error handling here
+      }
+
+      // Wait for 15 seconds before retrying
+      await Future.delayed(Duration(seconds: 15));
+    }
+
+    return driverRequests;
+  }
 
   // Start tracking driver location
   void startTracking(int driverId) async {

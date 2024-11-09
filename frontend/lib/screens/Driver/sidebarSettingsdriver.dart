@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-class SettingsPagedriver extends StatelessWidget {
+class SettingsPagedriver extends StatefulWidget {
+  @override
+  _SettingsPagedriverState createState() => _SettingsPagedriverState();
+}
+
+class _SettingsPagedriverState extends State<SettingsPagedriver> {
+  bool _notificationsEnabled = true; // State variable for notification switch
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -16,39 +23,16 @@ class SettingsPagedriver extends StatelessWidget {
       ),
       body: ListView(
         children: [
-          _buildSettingsTile(
-            context,
-            FontAwesomeIcons.userCog,
-            'Delete Account',
-            onTap: () {
-              // Navigate to account settings
-            },
-          ),
+          _buildDeleteAccountTile(context),
           Divider(),
-          _buildSettingsTile(
-            context,
-            FontAwesomeIcons.bell,
-            'Notification Settings',
-            onTap: () {
-              // Navigate to notification settings
-            },
-          ),
-          Divider(),
-          _buildSettingsTile(
-            context,
-            FontAwesomeIcons.lock,
-            'Privacy Settings',
-            onTap: () {
-              // Navigate to privacy settings
-            },
-          ),
+          _buildNotificationSettingsTile(),
         ],
       ),
     );
   }
 
-  Widget _buildSettingsTile(
-      BuildContext context, IconData icon, String title, {required VoidCallback onTap}) {
+  // Build the Delete Account tile with confirmation dialog
+  Widget _buildDeleteAccountTile(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -59,13 +43,68 @@ class SettingsPagedriver extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: ListTile(
-        leading: Icon(icon, color: Colors.white),
+        leading: Icon(FontAwesomeIcons.trash, color: Colors.white), // Changed icon to trash
         title: Text(
-          title,
+          'Delete Account',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        trailing: Icon(FontAwesomeIcons.arrowRight, color: Colors.white),
-        onTap: onTap,
+        onTap: () {
+          // Show confirmation dialog
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: Text('Warning'),
+                content: Text('Are you sure you want to delete this account?'),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context); // Close dialog
+                    },
+                    child: Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context); // Close dialog
+                      Navigator.pushReplacementNamed(context, '/login'); // Go to login page
+                    },
+                    child: Text('Yes'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ),
+      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+    );
+  }
+
+  // Build the Notification Settings tile with toggle switch
+  Widget _buildNotificationSettingsTile() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF000000), Color(0xFF9A839E)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: ListTile(
+        leading: Icon(FontAwesomeIcons.bell, color: Colors.white),
+        title: Text(
+          'Notification Settings',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        trailing: Switch(
+          value: _notificationsEnabled, // Bind to state variable
+          onChanged: (bool value) {
+            setState(() {
+              _notificationsEnabled = value; // Update state when switch is toggled
+            });
+          },
+        ),
       ),
       margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
     );

@@ -10,10 +10,24 @@ use Illuminate\Support\Facades\Log;
 
 class WalletController extends Controller
 {
-    public function getBalance(Request $request)
+    public function usergetBalance(Request $request)
     {
-        $wallet = Wallet::where('user_id', $request->user()->id)->firstOrFail();
-        return response()->json(['balance' => $wallet->balance]);
+        $wallet = Wallet::where('uid', $request->input('token'))->first();
+
+        if($wallet){
+            return response()->json(['balance' => $wallet->balance]);
+        }else{
+            return response()->json(['error' => 'Wallet not found'], 404);
+        }
+    }
+    public function drivergetBalance(Request $request)
+    {
+        $wallet = Wallet::where('uid', $request->input('token'))->first();
+        if($wallet){
+            return response()->json(['balance' => $wallet->balance]);
+        }else{
+            return response()->json(['error' => 'Wallet not found'], 303);
+        }
     }
 
     public function deposit(Request $request)

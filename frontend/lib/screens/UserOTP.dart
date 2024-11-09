@@ -56,7 +56,8 @@ class _UserOTPState extends State<UserOTP> {
         setState(() {
           countdownSeconds--; // Decrement the countdown every second
         });
-        print('Countdown: $countdownSeconds'); // Debugging: Print countdown to console
+        print(
+            'Countdown: $countdownSeconds'); // Debugging: Print countdown to console
       } else {
         timer.cancel(); // Stop the timer when time is up
         setState(() {
@@ -86,7 +87,8 @@ class _UserOTPState extends State<UserOTP> {
     });
 
     try {
-      String formattedPhoneNumber = phoneNumber.replaceAll(RegExp(r'[^0-9+]'), '');
+      String formattedPhoneNumber =
+          phoneNumber.replaceAll(RegExp(r'[^0-9+]'), '');
 
       final response = await http.post(
         url,
@@ -118,9 +120,11 @@ class _UserOTPState extends State<UserOTP> {
         // Decode the error response to check for specific error messages
         final errorData = jsonDecode(response.body);
         setState(() {
-          if (errorData['errors'] != null && errorData['errors']['phone_number'] != null) {
+          if (errorData['errors'] != null &&
+              errorData['errors']['phone_number'] != null) {
             // Laravel's unique validation error message
-            _errorMessage = 'Phone number already exists contact admin @ +251 xxxxxxxxx';
+            _errorMessage =
+                'Phone number already exists contact admin @ +251 xxxxxxxxx';
           } else {
             _errorMessage = 'Failed to send OTP';
           }
@@ -247,21 +251,26 @@ class _UserOTPState extends State<UserOTP> {
                       if (value == null || value.isEmpty) {
                         return 'Phone number is required';
                       }
-                      String formattedPhoneNumber = value.replaceAll(RegExp(r'[^0-9]'), '');
-                      if (formattedPhoneNumber.length < 1 || formattedPhoneNumber.length > 15) {
+                      String formattedPhoneNumber =
+                          value.replaceAll(RegExp(r'[^0-9]'), '');
+                      if (formattedPhoneNumber.length < 1 ||
+                          formattedPhoneNumber.length > 15) {
                         return 'Phone number must be between 1 and 15 digits';
                       }
                       return null;
                     },
                     onSaved: (value) {
-                      phoneNumber = value!.replaceAll(RegExp(r'[^0-9+]'), '').trim();
+                      phoneNumber =
+                          value!.replaceAll(RegExp(r'[^0-9+]'), '').trim();
                     },
                   ),
                   const SizedBox(height: 20),
 
                   // Loading Indicator or Success Message
                   if (isLoading) const CircularProgressIndicator(),
-                  if (!isLoading && otpSent) const Text('OTP sent successfully!', style: TextStyle(color: Colors.green)),
+                  if (!isLoading && otpSent)
+                    const Text('OTP sent successfully!',
+                        style: TextStyle(color: Colors.green)),
 
                   // Send OTP Button or Resend OTP Button
                   if (!isLoading && !otpVisible)
@@ -272,8 +281,10 @@ class _UserOTPState extends State<UserOTP> {
                           sendPhoneNumber();
                         }
                       },
-                      icon: const FaIcon(FontAwesomeIcons.solidPaperPlane, color: Colors.blue),
-                      label: Text('Send OTP', style: const TextStyle(color: Colors.blue)),
+                      icon: const FaIcon(FontAwesomeIcons.solidPaperPlane,
+                          color: Colors.blue),
+                      label: Text('Send OTP',
+                          style: const TextStyle(color: Colors.blue)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.black,
                         side: const BorderSide(color: Colors.blue, width: 2),
@@ -286,7 +297,8 @@ class _UserOTPState extends State<UserOTP> {
                       children: [
                         Text(
                           'Time left: ${formatCountdownTime()}',
-                          style: const TextStyle(color: Colors.white, fontSize: 18),
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 18),
                         ),
                         const SizedBox(height: 20),
                         // Resend OTP Button

@@ -52,8 +52,6 @@ Route::middleware('auth:driver')->group(function () {
 
 
 
-// Driver Routes
-
 Route::post('/driver/handle-request', [driver_request::class, 'handleRequest']);
 Route::post('/client/handle-request', [client_request::class, 'handleRequest']);
 
@@ -71,7 +69,8 @@ Route::get('/payment/callback', [PaymentController::class, 'callback'])->name('p
 
 
 
-Route::get('/wallet/balance', [WalletController::class, 'getBalance']);
+Route::post('user/wallet/balance', [WalletController::class, 'usergetBalance']);
+Route::post('driver/wallet/balance', [WalletController::class, 'drivergetBalance']);
 Route::post('/wallet/deposit', [WalletController::class, 'deposit']);
 Route::post('/wallet/withdraw', [WalletController::class, 'withdraw']);
 Route::get('/wallet/transactions', [WalletController::class, 'transactionHistory']);
