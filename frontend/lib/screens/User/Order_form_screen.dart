@@ -32,7 +32,10 @@ class _OrderFormState extends State<OrderForm> {
   String? selectedCarType;
 
   late UserHook _userHook;
+  List<Map<String, dynamic>> drivers = [];
   bool _isSubmitting = false;
+  bool _isLoading = false;
+  bool _showForm = false; // Track whether to show the form or the default view
 
   @override
   void initState() {
@@ -43,6 +46,15 @@ class _OrderFormState extends State<OrderForm> {
   Future<void> _initializeHook() async {
     final prefs = await SharedPreferences.getInstance();
     _userHook = UserHook(prefs, 'YOUR_GEBETA_API_KEY');
+    await _fetchDrivers();
+  }
+
+  Future<void> _fetchDrivers() async {
+    List<Map<String, dynamic>> fetchedDrivers =
+        await _userHook.fetchDriverRequests();
+    setState(() {
+      drivers = fetchedDrivers;
+    });
   }
 
   @override
@@ -209,7 +221,7 @@ class _OrderFormState extends State<OrderForm> {
   }
 
   Future<void> _submitOrder() async {
-    if (_isSubmitting) return;
+    if (_isSubmitting || _isLoading) return;
 
     String from = fromController.text;
     String destination = destinationController.text;
@@ -224,7 +236,10 @@ class _OrderFormState extends State<OrderForm> {
       return;
     }
 
-    setState(() => _isSubmitting = true);
+    setState(() {
+      _isSubmitting = true;
+      _isLoading = true;
+    });
 
     try {
       final response = await http.post(
@@ -256,7 +271,10 @@ class _OrderFormState extends State<OrderForm> {
     } catch (e) {
       _showError("Network error: $e");
     } finally {
-      setState(() => _isSubmitting = false);
+      setState(() {
+        _isSubmitting = false;
+        _isLoading = false;
+      });
     }
   }
 
@@ -305,22 +323,11 @@ class _OrderFormState extends State<OrderForm> {
   }
 
   void _showError(String message) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Error'),
-          content: Text(message),
-          actions: [
-            TextButton(
-              child: Text('OK'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
     );
   }
 
@@ -332,132 +339,222 @@ class _OrderFormState extends State<OrderForm> {
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Colors.black, Colors.grey.shade800],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
+              colors: [Color(0xFF000000), Color(0xFF9A839E)],
             ),
           ),
         ),
         toolbarHeight: 80,
         centerTitle: true,
-      ),
-      body: Container(
-        padding: EdgeInsets.all(20.0),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.white, Colors.grey.shade200],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+        leading: IconButton(
+          color: Colors.white,
+          icon: Icon(FontAwesomeIcons.arrowLeft), // Back button icon
+          onPressed: () {
+            Navigator.of(context).pop(); // Navigate back to the previous screen
+          },
         ),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Text(
-                  'Order Form',
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade800,
+        actions: [
+          IconButton(
+            color: Colors.white,
+            icon:
+                Icon(_showForm ? FontAwesomeIcons.list : FontAwesomeIcons.edit),
+            onPressed: () {
+              setState(() {
+                _showForm = !_showForm; // Toggle the view
+              });
+            },
+          ),
+        ],
+      ),
+      body: _showForm
+          ? _buildOrderForm()
+          : _buildDefaultView(), // Conditional rendering
+    );
+  }
+
+  Widget _buildDefaultView() {
+    return ListView.builder(
+      itemCount: drivers.length,
+      itemBuilder: (context, index) {
+        final driver = drivers[index];
+        return Card(
+          margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: ListTile(
+            contentPadding: EdgeInsets.all(16),
+            title: Text(
+              driver['name'],
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Location: ${driver['location']}'),
+                Text('Price: \$${driver['price']}'),
+                Text('Phone: ${driver['phone']}'),
+              ],
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    // Handle action when the Accept button is pressed
+                    // For example, call a method to accept the request
+                  },
+                  child: Text('Accept'),
+                ),
+                SizedBox(width: 8), // Add some spacing between buttons
+                ElevatedButton(
+                  onPressed: () {
+                    // Handle action when the Cancel button is pressed
+                    // For example, call a method to cancel the request
+                  },
+                  child: Text('Cancel'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        Colors.red, // Change color to indicate cancellation
                   ),
                 ),
-              ),
-              SizedBox(height: 20),
-              TypeAheadFormField(
-                textFieldConfiguration: TextFieldConfiguration(
-                  controller: fromController,
-                  decoration: InputDecoration(
-                    labelText: 'From (ከ)',
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildOrderForm() {
+    return Container(
+      padding: EdgeInsets.all(20.0),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.white, Colors.grey.shade200],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Text(
+                'Order Form',
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade800,
                 ),
-                suggestionsCallback: (pattern) async {
-                  return await fetchLocationSuggestions(pattern);
-                },
-                itemBuilder: (context, suggestion) {
-                  return ListTile(
-                    title: Text(suggestion),
-                  );
-                },
-                onSuggestionSelected: (suggestion) {
-                  fromController.text = suggestion;
-                },
               ),
-              SizedBox(height: 10),
-              TypeAheadFormField(
-                textFieldConfiguration: TextFieldConfiguration(
-                  controller: destinationController,
-                  decoration: InputDecoration(
-                    labelText: 'Destination (መድረሻ)',
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-                suggestionsCallback: (pattern) async {
-                  return await fetchLocationSuggestions(pattern);
-                },
-                itemBuilder: (context, suggestion) {
-                  return ListTile(
-                    title: Text(suggestion),
-                  );
-                },
-                onSuggestionSelected: (suggestion) {
-                  destinationController.text = suggestion;
-                },
-              ),
-              SizedBox(height: 10),
-              TextField(
-                controller: materialTypeController,
+            ),
+            SizedBox(height: 20),
+            TypeAheadFormField(
+              textFieldConfiguration: TextFieldConfiguration(
+                controller: fromController,
                 decoration: InputDecoration(
-                  labelText: 'Material Type (የሚጓጓዘው እቃ አይነት)',
+                  labelText: 'From (ከ)',
+                  hintText: 'አዲስ አበባ - ቂርቆስ - ወረዳ 04 - ጎተራ',
+                  hintStyle: TextStyle(
+                    color: Colors.grey.withOpacity(0.7),
+                  ),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10)),
                 ),
               ),
-              SizedBox(height: 10),
-              GestureDetector(
-                onTap: _selectCarType,
-                child: AbsorbPointer(
-                  child: TextField(
-                    controller: carTypeController,
-                    decoration: InputDecoration(
-                      labelText: 'Car Type',
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
+              suggestionsCallback: (pattern) async {
+                return await fetchLocationSuggestions(pattern);
+              },
+              itemBuilder: (context, suggestion) {
+                return ListTile(
+                  title: Text(suggestion),
+                );
+              },
+              onSuggestionSelected: (suggestion) {
+                fromController.text = suggestion;
+              },
+            ),
+            SizedBox(height: 10),
+            TypeAheadFormField(
+              textFieldConfiguration: TextFieldConfiguration(
+                controller: destinationController,
+                decoration: InputDecoration(
+                  labelText: 'Destination (መድረሻ)',
+                  hintText: 'አዲስ አበባ - ቂርቆስ - ወረዳ 04 - ጎተራ',
+                  hintStyle: TextStyle(
+                    color: Colors.grey.withOpacity(0.7),
                   ),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
                 ),
               ),
-              SizedBox(height: 20),
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF000000), Color(0xFF9A839E)],
-                  ),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: ElevatedButton(
-                  onPressed: _submitOrder, // Call the submit method
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 16, horizontal: 24),
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(
+              suggestionsCallback: (pattern) async {
+                return await fetchLocationSuggestions(pattern);
+              },
+              itemBuilder: (context, suggestion) {
+                return ListTile(
+                  title: Text(suggestion),
+                );
+              },
+              onSuggestionSelected: (suggestion) {
+                destinationController.text = suggestion;
+              },
+            ),
+            SizedBox(height: 10),
+            TextField(
+              controller: materialTypeController,
+              decoration: InputDecoration(
+                labelText: 'Material Type (የሚጓጓዘው እቃ አይነት)',
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            SizedBox(height: 10),
+            GestureDetector(
+              onTap: _selectCarType,
+              child: AbsorbPointer(
+                child: TextField(
+                  controller: carTypeController,
+                  decoration: InputDecoration(
+                    labelText: 'Car Type',
+                    border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: Text(
-                    'Request',
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold),
-                  ),
                 ),
               ),
-            ],
-          ),
+            ),
+            SizedBox(height: 20),
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF000000), Color(0xFF9A839E)],
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _submitOrder,
+                style: ElevatedButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+                child: _isLoading
+                    ? CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      )
+                    : Text(
+                        'Request',
+                        style: TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -469,5 +566,5 @@ void main() {
 }
 
 String getToken() {
-  return "1";
+  return "1u";
 }

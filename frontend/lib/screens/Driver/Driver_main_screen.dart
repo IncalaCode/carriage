@@ -6,8 +6,6 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
 import '../config.dart';
 import '../login_screen.dart';
 import 'OrderRequestsPage.dart';
@@ -16,9 +14,6 @@ import 'sidebarWalletdriver.dart';
 import 'sidebarMyOrderdriver.dart';
 import 'sidebarSettingsdriver.dart';
 import './Driver_map/driver_map_component.dart';
-import './Driver_map/driver_hock.dart';
-import './sidebarMyOrderdriver.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 
 class DriverMainScreen extends StatefulWidget {
@@ -66,9 +61,9 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
 
     if (token == null) {
       print('❌ No token found - Redirecting to login');
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => LoginScreen()),
-      );
+      // Navigator.of(context).pushReplacement(
+      //   MaterialPageRoute(builder: (context) => LoginScreen()),
+      // );
     } else {
       print('✅ Token found - Proceeding with authentication');
       setState(() {
@@ -95,14 +90,12 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
         headers: {
           'Content-Type': 'application/json',
         },
-       body: {
+        body: json.encode({
           'token': _authToken,
-        },
-        
+        }),
       );
 
       print('💰 Response Status: ${response.statusCode}');
-      print('💰 Response Headers: ${response.headers}');
       print('💰 Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
@@ -112,10 +105,12 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
             _walletBalance = double.parse(data['balance'].toString());
             _isLoading = false;
           });
+          print('💰 Updated wallet balance: $_walletBalance ETB');
         }
       } else {
         print('❌ Error Response: ${response.body}');
-        throw Exception('Failed to load wallet balance: ${response.statusCode}');
+        throw Exception(
+            'Failed to load wallet balance: ${response.statusCode}');
       }
     } catch (e) {
       print('❌ Wallet Error: $e');
@@ -135,22 +130,23 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
 
     try {
       print('💳 Initiating payment process...');
-      final url = Uri.parse('${Config.baseUrl}/driver/request/initiate-payment');
+      final url =
+          Uri.parse('${Config.baseUrl}/driver/request/initiate-payment');
       print('🔗 Payment endpoint URL: $url');
       print('🔑 Using Authorization Header: $_authToken');
 
       final value = json.encode({
         'token': _authToken,
       });
-         print('🔑 Using Authorization Header: $value');
+      print('🔑 Using Authorization Header: $value');
 
-final response = await http.post(
-  url, // Make sure to parse the URL into a Uri object
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: value,
-);
+      final response = await http.post(
+        url, // Make sure to parse the URL into a Uri object
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: value,
+      );
 
       print('💳 Payment Initiation Response Status: ${response.statusCode}');
       print('💳 Payment Initiation Response Body: ${response.body}');
@@ -171,7 +167,8 @@ final response = await http.post(
     } catch (e) {
       print('❌ Payment Initiation Error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to initiate payment. Please try again.')),
+        SnackBar(
+            content: Text('Failed to initiate payment. Please try again.')),
       );
     }
   }
@@ -191,7 +188,7 @@ final response = await http.post(
             javascriptMode: JavascriptMode.unrestricted,
             navigationDelegate: (NavigationRequest request) {
               print('🔄 Navigation to: ${request.url}');
-              Navigator.pop(context);
+             // Navigator.pop(context);
               _confirmPayment(_txRef!);
               return NavigationDecision.prevent;
             },
@@ -209,8 +206,7 @@ final response = await http.post(
       print('✅ Confirming payment with backend...');
       final response = await http.post(
         Uri.parse('${Config.baseUrl}/driver/request/confirm-payment'),
-        headers: {
-          
+        headers: {  
           'Content-Type': 'application/json',
         },
         body: json.encode({
@@ -222,10 +218,11 @@ final response = await http.post(
       print('✅ Payment Confirmation Status: ${response.statusCode}');
       if (response.statusCode == 200) {
         print('✅ Payment confirmed successfully');
-        Navigator.of(context).pop(); // Close WebView
+        Navigator.pop(context); // Close WebView
         await _fetchWalletBalance(); // Refresh wallet balance
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Payment successful! Wallet has been updated.')),
+          SnackBar(
+              content: Text('Payment successful! Wallet has been updated.')),
         );
       } else {
         throw Exception('Payment confirmation failed');
@@ -233,7 +230,9 @@ final response = await http.post(
     } catch (e) {
       print('❌ Payment Confirmation Error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Payment confirmation failed. Please contact support.')),
+        SnackBar(
+            content:
+                Text('Payment confirmation failed. Please contact support.')),
       );
     }
   }
@@ -250,14 +249,15 @@ final response = await http.post(
           children: [
             CircularProgressIndicator(color: Colors.black),
             SizedBox(height: 10),
-            Text('Loading wallet...', 
-              style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)
-            ),
+            Text('Loading wallet...',
+                style: TextStyle(
+                    color: Colors.black, fontWeight: FontWeight.bold)),
           ],
         ),
       );
     }
 
+    // If balance is sufficient, show green button for OrderRequests
     if (_walletBalance >= 1500) {
       return FloatingActionButton.extended(
         onPressed: () {
@@ -266,23 +266,25 @@ final response = await http.post(
             MaterialPageRoute(builder: (context) => OrderRequestsPage()),
           );
         },
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.green, // Changed to green for sufficient balance
         icon: Icon(FontAwesomeIcons.bell, color: Colors.white),
         label: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF000000), Color(0xFF9A839E)],
+              colors: [Colors.green.shade700, Colors.green.shade500], // Green gradient
             ),
             borderRadius: BorderRadius.circular(30),
           ),
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Text(
-            'Requests',
+            'Order Requests',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
         ),
       );
-    } else {
+    } 
+    // If balance is insufficient, show red button for payment
+    else {
       return FloatingActionButton.extended(
         onPressed: _initiatePayment,
         backgroundColor: Colors.transparent,
@@ -323,9 +325,7 @@ final response = await http.post(
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Colors.black, Colors.grey.shade800],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
+              colors: [Color(0xFF000000), Color(0xFF9A839E)],
             ),
           ),
         ),
@@ -356,9 +356,7 @@ final response = await http.post(
             DrawerHeader(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.black, Colors.grey.shade800],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+                  colors: [Color(0xFF000000), Color(0xFF9A839E)],
                 ),
               ),
               child: Row(
@@ -382,13 +380,27 @@ final response = await http.post(
                     ),
                   ),
                   SizedBox(width: 15),
-                  Text(
-                    'Hi, Driver!',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Welcome,',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'Driver!',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -398,13 +410,17 @@ final response = await http.post(
                 children: [
                   _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context,
                       () {
-                    Navigator.push(context,
-                        MaterialPageRoute(builder: (context) => ProfilePagedriver()));
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => ProfilePagedriver()));
                   }),
                   _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context,
                       () {
-                    Navigator.push(context,
-                        MaterialPageRoute(builder: (context) => WalletPagedriver()));
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => WalletPagedriver()));
                   }),
                   _buildDrawerItem(
                       FontAwesomeIcons.shoppingCart, 'My Orders', context, () {

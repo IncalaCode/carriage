@@ -63,6 +63,8 @@ class DriverController extends Controller
             'otp' => rand(1000, 9999), // Store the OTP
         ]);
 
+        $driver = Driver::where('phone_number', $request->phone_number)->first(); 
+
         // Create wallet for the driver
         DriverWallet::create([
             'driver_id' => $driver->uid,

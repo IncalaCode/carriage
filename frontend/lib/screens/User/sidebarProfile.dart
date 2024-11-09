@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:io';
@@ -41,13 +40,11 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Text('Cancel'),
             ),
             TextButton(
-              onPressed: () {
-                Future<void> logout() async {
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.remove('authToken');
-                  // After this, navigate to the login page
-                }
-
+              onPressed: () async {
+                // Delete token and navigate to login screen
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.remove('authToken');
+                
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => LoginScreen()),

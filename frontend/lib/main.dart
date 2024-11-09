@@ -1,8 +1,8 @@
-import 'package:My_truck/screens/driver/Driver_main_screen.dart';
+import 'package:My_truck/screens/Driver/Driver_main_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/login_screen.dart';
-import 'package:My_truck/screens/user/main_app_screen.dart';
+import 'package:My_truck/screens/User/main_app_screen.dart';
 // import 'screens/login_screen.dart'; // Commented out for direct navigation
 
 void main() {
@@ -14,8 +14,9 @@ Future<Map<String, String?>> getTokenAndUserType() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('authToken');
     final userType = prefs.getString('userType'); // Retrieve user type
-    print('Initial token check - Retrieved token: $token, userType: $userType'); // Debug print
-    
+    print(
+        'Initial token check - Retrieved token: $token, userType: $userType'); // Debug print
+
     if (token != null && token.isNotEmpty && userType != null) {
       print('Valid token and userType found'); // Debug print
       return {'token': token, 'userType': userType};
@@ -53,18 +54,22 @@ class MyApp extends StatelessWidget {
           } else if (snapshot.hasData && snapshot.data!['token'] != null) {
             final userType = snapshot.data!['userType'];
             if (userType == 'driver') {
-              print('Driver token verification successful - Navigating to DriverMainScreen'); // Debug print
+              print(
+                  'Driver token verification successful - Navigating to DriverMainScreen'); // Debug print
               return DriverMainScreen();
             } else if (userType == 'user') {
-              print('User token verification successful - Navigating to MainAppScreen'); // Debug print
+              print(
+                  'User token verification successful - Navigating to MainAppScreen'); // Debug print
               return MainAppScreen();
             } else {
-              print('Unknown userType - Navigating to LoginScreen'); // Debug print
+              print(
+                  'Unknown userType - Navigating to LoginScreen'); // Debug print
               return LoginScreen();
             }
           } else {
             print('No token found - Navigating to LoginScreen'); // Debug print
-            return LoginScreen();
+             return LoginScreen();
+            //return MainAppScreen();
           }
         },
       ),

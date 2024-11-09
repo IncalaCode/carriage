@@ -8,13 +8,28 @@ use App\Models\DriverWallet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Models\DriverRequest;
 
 class WalletController extends Controller
 {
-    public function getBalance(Request $request)
+    public function usergetBalance(Request $request)
     {
-        $wallet = Wallet::where('user_id', $request->user()->id)->firstOrFail();
-        return response()->json(['balance' => $wallet->balance]);
+        $wallet = Wallet::where('user_id', $request->input('token'))->first();
+
+        if($wallet){
+            return response()->json(['balance' => $wallet->balance , ...$this->getTransactionHistoryUser($request)]);
+        }else{
+            return response()->json(['error' => 'Wallet not found'], 404);
+        }
+    }
+    public function drivergetBalance(Request $request)
+    {
+        $wallet = DriverWallet::where('driver_id', $request->input('token'))->first();
+        if($wallet){
+            return response()->json(['balance' => $wallet->balance, ...$this->getTransactionHistoryDriver($request)]);
+        }else{
+            return response()->json(['error' => 'Wallet not found'], 303);
+        }
     }
 
     public function deposit(Request $request)
@@ -78,7 +93,7 @@ class WalletController extends Controller
             return response()->json(['error' => 'Wallet not found for this driver'], 404);
         }
         $transactions = Transaction::where('wallet_id', $request->input('token'))
-            ->select('amount', 'type', 'description', 'status', 'tx_ref')
+            ->select('amount', 'type', 'description', 'status', 'created_at')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -93,8 +108,8 @@ class WalletController extends Controller
             return response()->json(['error' => 'Wallet not found for this driver'], 404);
         }
         $transactions = Transaction::where('wallet_id', $request->input('token'))
-            ->select('amount', 'type', 'description', 'status', 'tx_ref')
+            ->select('amount', 'type', 'description', 'status', 'created_at')
             ->get();
-        return response()->json(['transactions' => $transactions]);
+        return ['transactions' => $transactions ?? []];
     }
 }
