@@ -65,6 +65,7 @@ Route::post('/client/order/confirm-payment', [ClientOrderController::class, 'con
 Route::post('/driver/request/initiate-payment', [DriverRequestController::class, 'initiateRequestPayment']);
 Route::post('/driver/request/confirm-payment', [DriverRequestController::class, 'confirmRequestPayment']);
 Route::get('/payment/callback', [PaymentController::class, 'callback'])->name('payment.callback');
+Route::get('/transactions/{walletId}', [WalletController::class, 'getTransactionHistory']);
 
 
 
