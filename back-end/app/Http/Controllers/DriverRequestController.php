@@ -92,14 +92,13 @@ class DriverRequestController extends Controller
             'Authorization' => 'Bearer ' . env('CHAPA_SECRET_KEY')
         ])->timeout(120)->get("https://api.chapa.co/v1/transaction/verify/$txRef");
 
-        return response()->json(['message' => 'Payment verified successfully.' . $response]);
-
         if ($response->successful() && isset($response['data']['status']) && $response['data']['status'] === 'success') {
             $txRef_data = Transaction::where('tx_ref', $txRef)->first();
             $txRef_data->update(['status' => 'completed']);
 
-
-            return response()->json(['message' => 'Payment verification successful.'], 200);
+            $wallet = DriverWallet::where('driver_id', $this->user->uid)->first();
+            $wallet->update(['balance' => $wallet->balance + $txRef_data->amount]);
+            return response()->json(['message' => 'Payment verification successful.' . $txRef_data->amount], 200);
         } else {
             // Log the exact error response for easier debugging
             Log::error('Payment verification failed:', ['response' => $response->json()]);
