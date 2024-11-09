@@ -3,7 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
-import './User/main_app_screen.dart';
+import 'package:My_truck/screens/user/main_app_screen.dart';
+import 'login_screen.dart';
 import 'config.dart';
 
 class UserOTP extends StatefulWidget {
@@ -103,8 +104,12 @@ class _UserOTPState extends State<UserOTP> {
         }),
       );
 
+      print('Response Status: ${response.statusCode}');
+     print('Response Body: ${response.body}'); // Print full response
+      
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        print('OTP Generated: ${data['otp']}'); // Print the OTP
         setState(() {
           otpVisible = true;
           otpSent = true; // Show success message
@@ -192,7 +197,7 @@ class _UserOTPState extends State<UserOTP> {
       if (response.statusCode == 200) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => MainAppScreen()),
+          MaterialPageRoute(builder: (context) => LoginScreen()),
         );
       } else {
         setState(() {
