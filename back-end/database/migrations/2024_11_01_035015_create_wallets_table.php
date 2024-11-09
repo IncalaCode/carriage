@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('wallets', function (Blueprint $table) {
             $table->id();
-            $table->string('uid')->nullable();
+            $table->string('user_id')->nullable(); // Foreign key for drivers
             $table->decimal('balance', 15, 2)->default(0.00); // Balance column with precision for money handling
             $table->timestamps();
         });

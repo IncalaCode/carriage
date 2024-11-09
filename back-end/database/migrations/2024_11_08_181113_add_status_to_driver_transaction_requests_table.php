@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('transactions', function (Blueprint $table) {
-            $table->string('tx_ref')->unique()->nullable();  // Add tx_ref column, making it unique
+        Schema::table('driver_transaction_requests', function (Blueprint $table) {
+            $table->enum('status', ['pending', 'completed'])->default('pending');
         });
     }
 
@@ -21,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('transactions', function (Blueprint $table) {
-            $table->dropColumn('tx_ref');  // Rollback: remove the tx_ref column
+        Schema::table('driver_transaction_requests', function (Blueprint $table) {
+            $table->dropColumn('status');
         });
     }
 };

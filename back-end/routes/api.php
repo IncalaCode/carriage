@@ -65,12 +65,13 @@ Route::post('/client/order/confirm-payment', [ClientOrderController::class, 'con
 Route::post('/driver/request/initiate-payment', [DriverRequestController::class, 'initiateRequestPayment']);
 Route::post('/driver/request/confirm-payment', [DriverRequestController::class, 'confirmRequestPayment']);
 Route::get('/payment/callback', [PaymentController::class, 'callback'])->name('payment.callback');
+Route::get('/transactions/{walletId}', [WalletController::class, 'getTransactionHistory']);
 
 
 
 
-Route::post('user/wallet/balance', [WalletController::class, 'usergetBalance']);
-Route::post('driver/wallet/balance', [WalletController::class, 'drivergetBalance']);
+Route::post('/user/wallet/balance', [WalletController::class, 'usergetBalance']);
+Route::post('/driver/wallet/balance', [WalletController::class, 'drivergetBalance']);
 Route::post('/wallet/deposit', [WalletController::class, 'deposit']);
 Route::post('/wallet/withdraw', [WalletController::class, 'withdraw']);
 Route::get('/wallet/transactions', [WalletController::class, 'transactionHistory']);

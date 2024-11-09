@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class ClientOrder extends Model
 {
     use HasFactory;
+    protected $table = 'client_orders';
 
     // Specify the fillable attributes
     protected $fillable = [
@@ -18,4 +19,8 @@ class ClientOrder extends Model
     ];
 
     // Other model methods and relationships...
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

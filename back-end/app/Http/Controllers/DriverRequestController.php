@@ -10,6 +10,9 @@ use App\Models\Transaction;
 use Illuminate\Support\Facades\Http;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Log;
+use App\Models\DriverTransactionRequest;
+use App\Models\DriverWallet;
+
 
 class DriverRequestController extends Controller
 {
@@ -34,17 +37,11 @@ class DriverRequestController extends Controller
 
         $amount = 1500; // ETB
         $txRef = uniqid('request_');
-        $driverId = $this->user->id;
-        $wallet = Wallet::where('driver_id', $driverId)->first();
-
-        // Fetch the driver's wallet
-        $wallet = $this->user->wallet; // This will get the related wallet
+        $driverId = $this->user->uid;
+        $wallet = DriverWallet::where('driver_id', $this->user->uid)->first();
 
         if (!$wallet) {
-            $wallet = Wallet::create([
-                'driver_id' => $driverId,
-                'balance' => 0, // Initialize with a default balance if needed
-            ]);
+            return response()->json(['error' => 'Wallet not found for the driver.'], 404);
         }
 
 
@@ -65,11 +62,12 @@ class DriverRequestController extends Controller
         if ($response->successful()) {
             // Save transaction in the database
             Transaction::create([
-                'wallet_id' => $wallet->id,
+                'wallet_id' => $wallet->driver_id,
                 'amount' => $amount,
-                'type' => 'pending',  // Set the type to pending
+                'type' => 'deposit',  // Set the type to pending
                 'tx_ref' => $txRef,  // Save tx_ref here
-                'description' => 'Request payment initialization',
+                'description' => 'Driver request payment',
+                'status' => 'pending',
             ]);
 
             return response()->json([
@@ -97,30 +95,15 @@ class DriverRequestController extends Controller
         return response()->json(['message' => 'Payment verified successfully.' . $response]);
 
         if ($response->successful() && isset($response['data']['status']) && $response['data']['status'] === 'success') {
-            // // Update transaction and request status to completed
-            // Transaction::where('tx_ref', $txRef)->update(['status' => 'completed']);
+            $txRef_data = Transaction::where('tx_ref', $txRef)->first();
+            $txRef_data->update(['status' => 'completed']);
 
-            // // Find the driver request associated with the transaction reference
-            // $driverRequest = DriverRequest::where('tx_ref', $txRef)->first();
-            // if ($driverRequest) {
-            //     $driverRequest->update(['status' => 'completed']);
 
-            // Create a transaction record for successful payment
-            // Transaction::create([
-            //     'wallet_id' => $driverRequest->user->wallet_id,  // Use wallet_id from related user
-            //     'amount' => $driverRequest->amount,
-            //     'type' => 'deposit',
-            //     'description' => 'Payment confirmed for request.',
-            // ]);
-
-            //     return response()->json(['message' => 'Payment verified successfully.']);
-            // } else {
-            //     return response()->json(['error' => 'Driver request not found for the given transaction.'], 404);
-            // }
+            return response()->json(['message' => 'Payment verification successful.'], 200);
         } else {
             // Log the exact error response for easier debugging
             Log::error('Payment verification failed:', ['response' => $response->json()]);
-            return response()->json(['error' => 'Payment verification failed.' . $response], 500);
+            return response()->json(['error' => 'Payment verification failed.'], 500);
         }
     }
 
