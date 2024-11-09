@@ -74,17 +74,11 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
   }
 
   Future<void> _fetchWalletBalance() async {
-    if (_authToken == null) {
-      print('❌ No auth token available for wallet check');
-      return;
-    }
+    if (_authToken == null) return;
 
     try {
-      print('💳 Fetching wallet balance...');
-      final url = Uri.parse('${Config.baseUrl}/wallet/balance');
-      print('🔗 Wallet endpoint URL: $url');
-      print('🔑 Using Authorization Header: $_authToken');
-
+      print('💰 Fetching wallet balance... $_authToken');
+      final url = Uri.parse('${Config.baseUrl}/driver/wallet/balance');
       final response = await http.post(
         url,
         headers: {
@@ -95,25 +89,30 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
         }),
       );
 
-      print('💰 Response Status: ${response.statusCode}');
-      print('💰 Response Body: ${response.body}');
+      if(response.statusCode == 404){
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => LoginScreen()),
+        );
+      }
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        print('💰 Wallet balance received: ${data['balance']}');
+        
         if (mounted) {
           setState(() {
             _walletBalance = double.parse(data['balance'].toString());
             _isLoading = false;
           });
-          print('💰 Updated wallet balance: $_walletBalance ETB');
         }
       } else {
-        print('❌ Error Response: ${response.body}');
-        throw Exception(
-            'Failed to load wallet balance: ${response.statusCode}');
+        print('❌ Failed to fetch wallet balance: ${response.statusCode}');
+        print('Failed to load wallet balance: ${response.body}');
+        throw Exception('Failed to load wallet balance: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ Wallet Error: $e');
+      print('❌ Error fetching wallet balance: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;

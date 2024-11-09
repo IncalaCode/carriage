@@ -6,6 +6,7 @@ import '../config.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import '../login_screen.dart';
 
 class WalletPage extends StatefulWidget {
   @override
@@ -22,15 +23,28 @@ class _WalletPageState extends State<WalletPage> {
   @override
   void initState() {
     super.initState();
-    _loadAuthToken();
-    fetchWalletBalance();
+    _initializeWallet();
+  }
+
+  Future<void> _initializeWallet() async {
+    try {
+      await _loadAuthToken();
+      if (mounted) {
+        await fetchWalletBalance();
+      }
+    } catch (e) {
+      print('❌ Initialization error: $e');
+    }
   }
 
   Future<void> _loadAuthToken() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _authToken = prefs.getString('authToken');
-    });
+    if (mounted) {
+      setState(() {
+        _authToken = prefs.getString('authToken');
+        print('🔑 Loaded auth token: $_authToken');
+      });
+    }
   }
 
   Future<void> _initiatePayment() async {
@@ -142,44 +156,63 @@ class _WalletPageState extends State<WalletPage> {
   }
 
   Future<void> fetchWalletBalance() async {
-    print('🔄 Starting to fetch wallet balance...');
-    
-    try {
-      // Get auth token from SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('authToken');
-      
-      if (token == null) {
-        print('❌ No auth token found');
-        throw Exception('Authentication token not found');
-      }
+    if (!mounted) return;
 
-      print('🔑 Using token: $token');
-      print('🌐 Making POST request to wallet/balance endpoint...');
-      
+    setState(() {
+      isLoading = true;
+    });
+    
+    if (_authToken == null) {
+      print('❌ No auth token available');
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      print('💰 Fetching wallet balance... $_authToken');
+      final url = Uri.parse('${Config.baseUrl}/user/wallet/balance');
       final response = await http.post(
-        Uri.parse('${Config.baseUrl}/wallet/balance'),
+        url,
         headers: {
           'Content-Type': 'application/json',
         },
         body: json.encode({
-          'token': token,
+          'token': _authToken,
         }),
       );
 
       print('📥 Response status code: ${response.statusCode}');
       print('📥 Response body: ${response.body}');
 
+      if (!mounted) return;
+
+      if (response.statusCode == 404) {
+        setState(() {
+          isLoading = false;
+        });
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => LoginScreen()),
+        );
+        return;
+      }
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         print('✅ Successfully decoded JSON data: $data');
+        
         setState(() {
-          balance = double.parse(data['balance'].toString());
+          balance = data['balance'] is String 
+              ? double.parse(data['balance']) 
+              : (data['balance'] as num).toDouble();
           isLoading = false;
         });
         print('💰 Updated balance to: $balance');
       } else {
-        print('❌ Failed with status code: ${response.statusCode}');
+        print('❌ Failed to fetch wallet balance: ${response.statusCode}');
+        print('❌ Error response body: ${response.body}');
         throw Exception('Failed to load wallet balance: ${response.statusCode}');
       }
     } catch (e) {
@@ -218,7 +251,7 @@ class _WalletPageState extends State<WalletPage> {
             isLoading 
               ? CircularProgressIndicator()
               : Text(
-                  'Current Balance: \$${balance.toStringAsFixed(2)}',
+                  'Current Balance: ${balance.toStringAsFixed(2)} ETB',
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
             SizedBox(height: 20),

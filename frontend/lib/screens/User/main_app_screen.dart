@@ -65,9 +65,9 @@ class _MainAppScreenState extends State<MainAppScreen> {
 
     if (token == null) {
       print('❌ No token found - Redirecting to login');
-      // Navigator.of(context).pushReplacement(
-      //   MaterialPageRoute(builder: (context) => LoginScreen()),
-      // );
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+      );
     } else {
       print('✅ Token found - Proceeding with authentication');
       setState(() {
@@ -90,7 +90,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
           //'Authorization': 'Bearer $_authToken',
           //'token': _authToken!,
           //'Authorization': '$_authToken',
-        },
+        },  
         body: json.encode({
           'token': _authToken,
         }),
@@ -116,7 +116,9 @@ class _MainAppScreenState extends State<MainAppScreen> {
         }
       } else {
         print('❌ Failed to fetch wallet balance: ${response.statusCode}');
+                 print('Failed to load wallet balance: ${response.body}');
         throw Exception('Failed to load wallet balance: ${response.statusCode}');
+
       }
     } catch (e) {
       print('❌ Error fetching wallet balance: $e');
