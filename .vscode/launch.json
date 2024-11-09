@@ -9,9 +9,7 @@
             "name": "Listen for Xdebug",
             "type": "php",
             "request": "launch",
-            "port": 
-                9003
-            
+            "port": 9003
         },
         {
             "name": "Launch built-in server and debug",
@@ -37,11 +35,5 @@
             "externalConsole": false,
             "port": 9003
         },
-        {
-            "name": "Listen for Xdebug",
-            "type": "php",
-            "request": "launch",
-            "port": 9003
-        }
     ]
 }

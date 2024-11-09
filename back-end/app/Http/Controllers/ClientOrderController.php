@@ -90,9 +90,14 @@ class ClientOrderController extends Controller
                 $txRef_data = Transaction::where('tx_ref', $txRef)->first();
                 $txRef_data->update(['status' => 'completed']);
 
+                $wallet = Wallet::where('user_id', $this->user->uid)->first();
+                $wallet->update(['balance' => $wallet->balance + $txRef_data->amount]);
+
             return response()->json(['message' => 'Payment verified successfully.'], 200);
         } else {
             return response()->json(['error' => 'Payment verification failed.'], 500);
         }
     }
+
+
 }

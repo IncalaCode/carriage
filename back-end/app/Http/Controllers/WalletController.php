@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Wallet;
 use App\Models\Transaction;
+use App\Models\DriverWallet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -68,12 +69,32 @@ class WalletController extends Controller
     }
 
 
-    public function getTransactionHistory($walletId)
+
+    public function getTransactionHistoryUser(Request $request)
     {
-        $transactions = Transaction::where('wallet_id', $walletId)
+        $wallet = Wallet::where('user_id', $request->input('token'))->first();
+        
+        if (!$wallet) {
+            return response()->json(['error' => 'Wallet not found for this driver'], 404);
+        }
+        $transactions = Transaction::where('wallet_id', $request->input('token'))
+            ->select('amount', 'type', 'description', 'status', 'tx_ref')
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return response()->json($transactions);
+        return ['transactions' => $transactions ?? []];
+    }
+
+    function getTransactionHistoryDriver(Request $request)
+    {
+        $wallet = DriverWallet::where('driver_id', $request->input('token'))->first();
+        
+        if (!$wallet) {
+            return response()->json(['error' => 'Wallet not found for this driver'], 404);
+        }
+        $transactions = Transaction::where('wallet_id', $request->input('token'))
+            ->select('amount', 'type', 'description', 'status', 'tx_ref')
+            ->get();
+        return response()->json(['transactions' => $transactions]);
     }
 }

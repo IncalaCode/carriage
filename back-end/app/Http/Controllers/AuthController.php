@@ -46,6 +46,7 @@ class AuthController extends Controller
             'verified' => false, // Set verified to false initially
             'otp' => $otp, // Store the OTP in the user record
         ]);
+        
         Wallet::create([
             'user_id' => $user->uid,
             'balance' => 0.00, // Initial balance
