@@ -12,6 +12,7 @@ use App\Http\Controllers\ClientOrderController;
 use App\Http\Controllers\DriverRequestController;
 use App\Http\Controllers\WalletController;
 use App\Http\Controllers\ReferralController;
+use App\Http\Controllers\ProfileController;
 
 
 
@@ -85,3 +86,9 @@ Route::post('/driver/referral-check/{phone}', [DriverController::class, 'referra
 
 Route::post("/client/getorder", [client_request::class, 'getOrder']);
 Route::post("/driver/getorder", [driver_request::class, 'getOrder']);
+
+// Routes for profile actions
+Route::get('/profile/{id}', [ProfileController::class, 'show']);
+Route::post('/profile/update', [ProfileController::class, 'update']);
+Route::post('/profile/send-otp', [ProfileController::class, 'sendOtp']);
+Route::post('/profile/verify-otp', [ProfileController::class, 'verifyPhoneNumberChange']);
