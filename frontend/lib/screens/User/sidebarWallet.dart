@@ -19,15 +19,18 @@ class _WalletPageState extends State<WalletPage> {
   String? _authToken;
   String? _paymentUrl;
   String? _txRef;
+  List<Map<String, dynamic>> transactions = [];
 
   @override
   void initState() {
     super.initState();
+    print('🚀 initState called');
     _initializeWallet();
   }
 
   Future<void> _initializeWallet() async {
     try {
+      print('🏁 Starting wallet initialization');
       await _loadAuthToken();
       if (mounted) {
         await fetchWalletBalance();
@@ -59,14 +62,17 @@ class _WalletPageState extends State<WalletPage> {
       print('🔗 Payment endpoint URL: $url');
       print('🔑 Using Authorization Header: $_authToken');
 
+      final value = json.encode({
+        'token': _authToken,
+      });
+      print('🔑 Using Authorization Header: $value');
+
       final response = await http.post(
         url,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: json.encode({
-          'token': _authToken,
-        }),
+        body: value,
       );
 
       print('💳 Payment Initiation Response Status: ${response.statusCode}');
@@ -82,6 +88,7 @@ class _WalletPageState extends State<WalletPage> {
         });
         _showPaymentWebView();
       } else {
+        print('❌ Error Response: ${response.body}');
         throw Exception('Failed to initiate payment: ${response.statusCode}');
       }
     } catch (e) {
@@ -171,7 +178,7 @@ class _WalletPageState extends State<WalletPage> {
     }
 
     try {
-      print('💰 Fetching wallet balance... $_authToken');
+      print('💰 Fetching wallet balance and transactions... $_authToken');
       final url = Uri.parse('${Config.baseUrl}/user/wallet/balance');
       final response = await http.post(
         url,
@@ -207,29 +214,78 @@ class _WalletPageState extends State<WalletPage> {
           balance = data['balance'] is String 
               ? double.parse(data['balance']) 
               : (data['balance'] as num).toDouble();
+          
+          if (data['transactions'] != null) {
+            transactions = List<Map<String, dynamic>>.from(data['transactions'].map((tx) => {
+              'amount': tx['amount'].toString(),
+              'date': DateTime.parse(tx['created_at']).toString().split(' ')[0],
+              'type': tx['type'],
+              'status': tx['status'] ?? 'completed',
+            }));
+          }
+          
           isLoading = false;
         });
         print('💰 Updated balance to: $balance');
+        print('📊 Updated transactions: $transactions');
       } else {
-        print('❌ Failed to fetch wallet balance: ${response.statusCode}');
-        print('❌ Error response body: ${response.body}');
         throw Exception('Failed to load wallet balance: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ Error fetching wallet balance: $e');
-      print('📚 Stack trace: ${StackTrace.current}');
+      print('❌ Error fetching wallet data: $e');
       setState(() {
         isLoading = false;
       });
     }
   }
 
-  // Example data for recent transactions
-  final List<Map<String, String>> recentTransactions = [
-    {'amount': '\$200', 'date': 'Oct 5, 2024', 'type': 'withdrawal'},
-    {'amount': '\$50', 'date': 'Oct 3, 2024', 'type': 'withdrawal'},
-    {'amount': '\$150', 'date': 'Oct 1, 2024', 'type': 'deposit'},
-  ];
+  Widget buildTransactionTable() {
+    if (transactions.isEmpty) {
+      return Center(child: Text('No transactions found'));
+    }
+
+    return Table(
+      border: TableBorder.all(width: 1.0, color: Colors.grey),
+      children: transactions.map((transaction) {
+        IconData transactionIcon = transaction['type'].toString().toLowerCase() == 'deposit'
+            ? FontAwesomeIcons.arrowDown
+            : FontAwesomeIcons.arrowUp;
+        Color iconColor = transaction['type'].toString().toLowerCase() == 'deposit'
+            ? Colors.green
+            : Colors.red;
+
+        return TableRow(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                children: [
+                  Icon(transactionIcon, color: iconColor, size: 16),
+                  SizedBox(width: 8),
+                  Text('${transaction['amount']} ETB'),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(transaction['date']),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                transaction['type'],
+                style: TextStyle(
+                  color: transaction['type'].toString().toLowerCase() == 'deposit'
+                      ? Colors.green
+                      : Colors.red,
+                ),
+              ),
+            ),
+          ],
+        );
+      }).toList(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -309,47 +365,7 @@ class _WalletPageState extends State<WalletPage> {
             SizedBox(height: 10),
 
             // Display recent 3 transactions in a table with icons
-            Table(
-              border: TableBorder.all(width: 1.0, color: Colors.grey),
-              children: recentTransactions.map((transaction) {
-                IconData transactionIcon = transaction['type'] == 'deposit'
-                    ? FontAwesomeIcons.arrowDown
-                    : FontAwesomeIcons.arrowUp;
-                Color iconColor = transaction['type'] == 'deposit'
-                    ? Colors.green
-                    : Colors.red;
-
-                return TableRow(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Row(
-                        children: [
-                          Icon(transactionIcon, color: iconColor, size: 16),
-                          SizedBox(width: 8),
-                          Text(transaction['amount']!),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text(transaction['date']!),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text(
-                        transaction['type']!,
-                        style: TextStyle(
-                          color: transaction['type'] == 'deposit'
-                              ? Colors.green
-                              : Colors.red,
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              }).toList(),
-            ),
+            buildTransactionTable(),
           ],
         ),
       ),

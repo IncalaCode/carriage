@@ -11,6 +11,7 @@ import '../login_screen.dart';
 import 'OrderRequestsPage.dart';
 import 'sidebarProfiledriver.dart';
 import 'sidebarWalletdriver.dart';
+import 'package:My_truck/screens/Driver/sidebarWalletdriver.dart';
 import 'sidebarMyOrderdriver.dart';
 import 'sidebarSettingsdriver.dart';
 import './Driver_map/driver_map_component.dart';
@@ -419,7 +420,7 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
                     Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => WalletPagedriver()));
+                            builder: (context) => WalletDriverPage()));
                   }),
                   _buildDrawerItem(
                       FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
@@ -471,3 +472,5 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
     );
   }
 }
+
+
