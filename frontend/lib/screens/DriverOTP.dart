@@ -131,7 +131,9 @@ class _DriverOTPState extends State<DriverOTP> {
       var response = await http.Response.fromStream(streamedResponse);
 
       // Hide loading indicator
-      Navigator.pop(context);
+      //Navigator.pop(context);
+      print('Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         var jsonResponse = json.decode(response.body);

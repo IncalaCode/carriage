@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('wallet_id')->index(); // Assuming each user has a wallet
+            $table->string('wallet_id'); // Assuming each user has a wallet
             $table->decimal('amount', 10, 2);
             $table->enum('type', ['deposit', 'withdraw', 'pending'])->default('pending');
             $table->enum('status', ['completed', 'pending'])->default('pending');
