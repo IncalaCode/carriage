@@ -225,6 +225,8 @@ class DriverController extends Controller
                 $driver->referral_count += 1;
                 $driver->save();
 
+                
+
                 // Optionally, remove the phone from cache after incrementing referral count
                 Cache::forget($phone);
 
