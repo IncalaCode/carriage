@@ -32,6 +32,7 @@ class Driver extends Authenticatable
         'uid', // Include this as well based on your schema.
         'otp',
         'referral_count',
+        'referred_by',
     ];
 
     /**
@@ -91,6 +92,24 @@ class Driver extends Authenticatable
     {
         return $this->hasOne(Wallet::class); // Adjust this if your wallet relation is different
     }
+     // Define the accessor for the referral name
+    public function getReferralNameAttribute()
+    {
+        // Generate the referral name if it doesn't already exist
+        return 'user_' . Str::random(5); // Adjust the random length as desired
+    }
+
+       // Relationship for referrals (drivers this driver has referred)
+       public function referrals()
+       {
+           return $this->hasMany(Driver::class, 'referred_by');
+       }
+       public function referrer()
+{
+    return $this->belongsTo(Driver::class, 'referred_by');
+}
+
+    
 }
 
 namespace App\Models;
