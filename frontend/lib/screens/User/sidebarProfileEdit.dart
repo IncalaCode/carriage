@@ -1,10 +1,22 @@
-
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class EditProfilePage extends StatefulWidget {
+  final File? profileImage;
+  final String firstName;
+  final String lastName;
+  final String phoneNumber;
+
+  EditProfilePage({
+    Key? key,
+    required this.profileImage,
+    required this.firstName,
+    required this.lastName,
+    required this.phoneNumber,
+  }) : super(key: key);
+
   @override
   _EditProfilePageState createState() => _EditProfilePageState();
 }
@@ -12,13 +24,24 @@ class EditProfilePage extends StatefulWidget {
 class _EditProfilePageState extends State<EditProfilePage> {
   File? _profileImage;
   final _formKey = GlobalKey<FormState>();
+  bool isNewPhoneNumber = false;
+  bool showOTPField = false;
 
   // TextEditingControllers for the form fields
-  TextEditingController _fullNameController = TextEditingController();
-  TextEditingController _emailController = TextEditingController();
+  TextEditingController _firstNameController = TextEditingController();
+  TextEditingController _lastNameController = TextEditingController();
   TextEditingController _phoneController = TextEditingController();
+  TextEditingController _otpController = TextEditingController();
 
-  // Function to pick an image from the gallery
+  @override
+  void initState() {
+    super.initState();
+    _firstNameController.text = widget.firstName;
+    _lastNameController.text = widget.lastName;
+    _phoneController.text = widget.phoneNumber;
+    _profileImage = widget.profileImage;
+  }
+
   Future<void> _pickImage() async {
     final pickedFile = await ImagePicker().getImage(source: ImageSource.gallery);
     if (pickedFile != null) {
@@ -28,12 +51,19 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
 
+  void _onPhoneNumberChanged(String newPhoneNumber) {
+    setState(() {
+      isNewPhoneNumber = newPhoneNumber != widget.phoneNumber;
+      showOTPField = isNewPhoneNumber;
+    });
+  }
+
   @override
   void dispose() {
-    // Dispose the controllers when the widget is disposed
-    _fullNameController.dispose();
-    _emailController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     _phoneController.dispose();
+    _otpController.dispose();
     super.dispose();
   }
 
@@ -44,25 +74,24 @@ class _EditProfilePageState extends State<EditProfilePage> {
         leading: IconButton(
           icon: FaIcon(FontAwesomeIcons.arrowLeft),
           onPressed: () {
-            Navigator.pop(context); // Back functionality
+            Navigator.pop(context);
           },
         ),
-        title: Text('Edit Profile'),
+        title: Text("Edit Profile"),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: Column(
             children: [
-              // Profile Image
               GestureDetector(
-                onTap: _pickImage, // Tap to upload image
+                onTap: _pickImage,
                 child: _profileImage == null
                     ? CircleAvatar(
                         radius: 50,
                         backgroundColor: Colors.grey.shade300,
-                        child: Icon(
+                        child: FaIcon(
                           FontAwesomeIcons.user,
                           size: 50,
                           color: Colors.grey.shade700,
@@ -75,128 +104,134 @@ class _EditProfilePageState extends State<EditProfilePage> {
               ),
               SizedBox(height: 20),
 
-              // Full Name Input
               TextFormField(
-                controller: _fullNameController,
+                controller: _firstNameController,
                 decoration: InputDecoration(
-                  labelText: 'Full Name',
-                  prefixIcon: FaIcon(FontAwesomeIcons.user),
-                  border: OutlineInputBorder(),
+                  labelText: 'First Name',
+                  hintText: widget.firstName,
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your full name';
-                  }
-                  return null;
-                },
               ),
               SizedBox(height: 16),
 
-              // Email Input
               TextFormField(
-                controller: _emailController,
+                controller: _lastNameController,
                 decoration: InputDecoration(
-                  labelText: 'Email',
-                  prefixIcon: FaIcon(FontAwesomeIcons.envelope),
-                  border: OutlineInputBorder(),
+                  labelText: 'Last Name',
+                  hintText: widget.lastName,
                 ),
-                keyboardType: TextInputType.emailAddress,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your email';
-                  } else if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                    return 'Please enter a valid email';
-                  }
-                  return null;
-                },
               ),
               SizedBox(height: 16),
 
-              // Phone Number Input
               TextFormField(
                 controller: _phoneController,
                 decoration: InputDecoration(
                   labelText: 'Phone Number',
-                  prefixIcon: FaIcon(FontAwesomeIcons.phone),
-                  border: OutlineInputBorder(),
+                  hintText: widget.phoneNumber,
+                  suffixIcon: isNewPhoneNumber
+                      ? SizedBox(
+                          width: 80,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Color.fromARGB(255, 80, 80, 80), Color.fromARGB(255, 192, 163, 197)],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                              ),
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            child: TextButton(
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('OTP Sent!')),
+                                );
+                              },
+                              child: Text('Send OTP', style: TextStyle(color: Colors.white)),
+                              style: TextButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                padding: EdgeInsets.symmetric(vertical: 12.0),
+                              ),
+                            ),
+                          ),
+                        )
+                      : null,
                 ),
-                keyboardType: TextInputType.phone,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your phone number';
-                  }
-                  return null;
-                },
+                onChanged: _onPhoneNumberChanged,
               ),
               SizedBox(height: 16),
 
-              // Buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Cancel Button
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context); // Cancel and go back
-                    },
-                    child : Container(
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [const Color.fromARGB(255, 0, 0, 0), const Color.fromARGB(255, 154, 131, 158)],
+              if (showOTPField)
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _otpController,
+                        decoration: InputDecoration(
+                          labelText: 'Enter OTP',
+                          hintText: 'Enter OTP',
                         ),
-                        borderRadius: BorderRadius.circular(5),
                       ),
-                    
-                    child: Text(
-                      'Cancel',
-                    style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                    ),
+                    SizedBox(
+                      width: 80,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color.fromARGB(255, 80, 80, 80), Color.fromARGB(255, 192, 163, 197)],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
+                          borderRadius: BorderRadius.circular(5),
                         ),
+                        child: TextButton(
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('OTP Confirmed!')),
+                            );
+                          },
+                          child: Text('Confirm', style: TextStyle(color: Colors.white)),
+                          style: TextButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            padding: EdgeInsets.symmetric(vertical: 12.0),
+                          ),
+                        ),
+                      ),
                     ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                    )
-                  ),
+                  ],
+                ),
+              SizedBox(height: 16),
 
-                  // Update Button with Gradient
-                  ElevatedButton(
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        // Submit updated profile data
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Profile Updated!')),
-                        );
-                        Navigator.pop(context);
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [const Color.fromARGB(255, 0, 0, 0), const Color.fromARGB(255, 154, 131, 158)],
-                        ),
-                        borderRadius: BorderRadius.circular(5),
-                      ),
-                      child: Text(
-                        'Update',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF000000), Color(0xFF9A839E)],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (_formKey.currentState!.validate()) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Profile Updated!')),
+                      );
+                      Navigator.pop(context);
+                    }
+                  },
+                  child: Text(
+                    'Update',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: 16.0),
+                    shadowColor: Colors.transparent,
+                    backgroundColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(5),
                     ),
                   ),
-                ],
+                ),
               ),
             ],
           ),

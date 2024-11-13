@@ -15,8 +15,12 @@ class MainAppScreen extends StatefulWidget {
 }
 
 class _MainAppScreenState extends State<MainAppScreen> {
-  bool isDrawerOpen = false;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   File? _profileImage;
+  double _buttonScale = 1.0;
+  bool _isIconRotated = false;
+
+  
 
   Future<void> _pickImage() async {
     try {
@@ -42,41 +46,11 @@ class _MainAppScreenState extends State<MainAppScreen> {
   }
 
   @override
+
+  
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF000000), Color(0xFF9A839E)],
-            ),
-          ),
-        ),
-        toolbarHeight: 80,
-        centerTitle: true,
-        title: Padding(
-          padding: const EdgeInsets.only(top: 50),
-          child: Image.asset('assets/Nave.png', height: 100),
-        ),
-        actions: [
-          Padding(
-            padding: EdgeInsets.only(top: 0, right: 16.0),
-            child: Builder(
-              builder: (context) => IconButton(
-                icon: Icon(FontAwesomeIcons.bars, color: Colors.white),
-                onPressed: () {
-                  setState(() {
-                    isDrawerOpen = true;
-                  });
-                  Scaffold.of(context).openDrawer();
-                },
-              ),
-            ),
-          ),
-        ],
-      ),
+      key: _scaffoldKey,
       drawer: Drawer(
         child: Column(
           children: [
@@ -107,90 +81,171 @@ class _MainAppScreenState extends State<MainAppScreen> {
                     ),
                   ),
                   SizedBox(width: 15),
-Column(
-  crossAxisAlignment: CrossAxisAlignment.start,
-  mainAxisAlignment: MainAxisAlignment.center,
-  children: [
-    Text(
-      'Welcome,',
-      style: TextStyle(
-        color: Colors.white,
-        fontSize: 22,
-        fontWeight: FontWeight.bold,
-      ),
-    ),
-    Text(
-      'User!',
-      style: TextStyle(
-        color: Colors.white,
-        fontSize: 20,
-        fontWeight: FontWeight.bold,
-      ),
-    ),
-  ],
-),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Welcome,',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'User!',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
             Expanded(
-  child: ListView(
-    children: [
-      _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context, () {
-        Navigator.pop(context); // Close the drawer
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => ProfilePage()),
-        );
-      }),
-      _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context, () {
-        Navigator.pop(context);
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => WalletPage()),
-        );
-      }),
-      _buildDrawerItem(FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
-        Navigator.pop(context);
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => MyOrdersPage()),
-        );
-      }),
-      _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context, () {
-        Navigator.pop(context);
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => SettingsPage()),
-        );
-      }),
-    ],
-  ),
-)
+              child: ListView(
+                children: [
+                  _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context, () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePage()));
+                  }),
+                  _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context, () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => WalletPage()));
+                  }),
+                  _buildDrawerItem(FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => MyOrdersPage()));
+                  }),
+                  _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context, () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsPage()));
+                  }),
+                ],
+              ),
+            ),
           ],
         ),
       ),
       body: Stack(
         children: [
           UserMapComponent(),
+          
+          // Floating Nav Menu Icon
+          Positioned(
+            top: 30,
+            left: 20,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF000000), Color(0xFF9A839E)],
+                ),
+                borderRadius: BorderRadius.circular(15),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: Offset(2, 4),
+                  ),
+                ],
+              ),
+              child: FloatingActionButton(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                hoverElevation: 0,
+                focusElevation: 0,
+                highlightElevation: 0,
+                mini: true,
+                child: Icon(
+                  FontAwesomeIcons.bars,
+                  color: Colors.white, // Set icon color to white
+                ),
+                onPressed: () {
+                  _scaffoldKey.currentState?.openDrawer();
+                },
+              ),
+            ),
+          ),
+
+          // Floating Logo with Gradient Background
+          Positioned(
+            top: 30,
+            right: 20,
+            child: Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF000000), Color(0xFF9A839E)],
+                ),
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black45,
+                    blurRadius: 10,
+                    offset: Offset(2, 2),
+                  ),
+                ],
+              ),
+              child: Image.asset(
+                'assets/NewLogo.png',
+                height: 50,
+              ),
+            ),
+          ),
+
+          // Floating Order Button
           Positioned(
             bottom: 20,
             right: 20,
-            child: FloatingActionButton.extended(
-              onPressed: _showOrderForm,
-              backgroundColor: Colors.transparent,
-              icon: Icon(FontAwesomeIcons.add, color: Colors.white),
-              label: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF000000), Color(0xFF9A839E)],
+            child: GestureDetector(
+              onTapDown: (_) {
+                setState(() {
+                  _buttonScale = 0.95; // Slightly shrink the button
+                  _isIconRotated = !_isIconRotated; // Toggle the icon animation
+                });
+              },
+              onTapUp: (_) {
+                setState(() {
+                  _buttonScale = 1.0; // Reset button size
+                });
+              },
+              child: Transform.scale(
+                scale: _buttonScale,
+                child: FloatingActionButton.extended(
+                  onPressed: () {
+                    // Navigate to the order form
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => OrderForm()),
+                    );
+                  },
+                  backgroundColor: Colors.transparent,
+                  icon: AnimatedRotation(
+                    duration: Duration(milliseconds: 300),
+                    turns: _isIconRotated ? 1.0 : 0.0, // 1 full rotation
+                    child: Icon(
+                      FontAwesomeIcons.add,
+                      color: Colors.white,
+                    ),
                   ),
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Text(
-                  'Order Now',
-                  style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold),
+                  label: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF000000), Color(0xFF9A839E)],
+                      ),
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Text(
+                      'Order Now',
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -199,9 +254,9 @@ Column(
       ),
     );
   }
+}
 
-  Widget _buildDrawerItem(
-      IconData icon, String title, BuildContext context, Function onTap) {
+  Widget _buildDrawerItem(IconData icon, String title, BuildContext context, Function onTap) {
     return ListTile(
       leading: Icon(icon, color: Colors.black),
       title: Text(
@@ -216,4 +271,4 @@ Column(
       onTap: () => onTap(),
     );
   }
-}
+

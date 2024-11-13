@@ -48,6 +48,7 @@ flutter:
     - assets/suv.jpg
     - assets/sedan.jpg
     - assets/van.jpg
+    - assets/NewLogo.png
 
   fonts:
     - family: NotoSans

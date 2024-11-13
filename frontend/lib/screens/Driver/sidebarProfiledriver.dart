@@ -1,8 +1,8 @@
-
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/services.dart';
 import 'sidebarProfileEditdriver.dart';
 import '../login_screen.dart';
 
@@ -13,6 +13,10 @@ class ProfilePagedriver extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePagedriver> {
   File? _profileImage;
+  bool isApproved = true;
+  String referralCode = "ABC123";
+  List<String> referrals = ["Yabets Ds", "Kaleb Ad", "Roba TS", "Yab TS"];
+  final int referralReward = 1000;
 
   Future<void> _pickImage() async {
     final pickedFile = await ImagePicker().getImage(source: ImageSource.gallery);
@@ -60,15 +64,17 @@ class _ProfilePageState extends State<ProfilePagedriver> {
                   ),
                 ),
               ),
-              style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.zero,
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-              ),
             ),
           ],
         );
       },
+    );
+  }
+
+  void _copyReferralCode() {
+    Clipboard.setData(ClipboardData(text: referralCode));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Referral code copied to clipboard")),
     );
   }
 
@@ -89,7 +95,14 @@ class _ProfilePageState extends State<ProfilePagedriver> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => EditProfilePagedriver()),
+                MaterialPageRoute(
+                  builder: (context) => EditProfilePagedriver(
+                    profileImage: _profileImage,
+                    firstName: 'Jabez',
+                    lastName: 'Hap',
+                    phoneNumber: '+251 963 488 972',
+                  ),
+                ),
               );
             },
           ),
@@ -102,25 +115,19 @@ class _ProfilePageState extends State<ProfilePagedriver> {
           children: [
             GestureDetector(
               onTap: _pickImage,
-              child: _profileImage == null
-                  ? CircleAvatar(
-                      radius: 50,
-                      child: Icon(
+              child: CircleAvatar(
+                radius: 50,
+                backgroundImage: _profileImage != null
+                    ? FileImage(_profileImage!)
+                    : null,
+                child: _profileImage == null
+                    ? Icon(
                         FontAwesomeIcons.user,
                         size: 50,
                         color: const Color.fromARGB(255, 52, 52, 52),
-                      ),
-                    )
-                  : Container(
-                      width: double.infinity,
-                      height: MediaQuery.of(context).size.height * 0.4,
-                      decoration: BoxDecoration(
-                        image: DecorationImage(
-                          image: FileImage(_profileImage!),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
+                      )
+                    : null,
+              ),
             ),
             SizedBox(height: 20),
             Center(
@@ -130,23 +137,9 @@ class _ProfilePageState extends State<ProfilePagedriver> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      FaIcon(FontAwesomeIcons.user, size: 20, color: Colors.grey),
-                      SizedBox(width: 10),
                       Text(
                         'Jabez Hap',
                         style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      FaIcon(FontAwesomeIcons.envelope, size: 20, color: Colors.grey),
-                      SizedBox(width: 10),
-                      Text(
-                        'Jabez@gmail.com',
-                        style: TextStyle(fontSize: 18, color: Colors.grey),
                       ),
                     ],
                   ),
@@ -163,6 +156,86 @@ class _ProfilePageState extends State<ProfilePagedriver> {
                     ],
                   ),
                 ],
+              ),
+            ),
+            SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text("Status: "),
+                Icon(
+                  isApproved ? FontAwesomeIcons.check : FontAwesomeIcons.times,
+                  color: isApproved ? Colors.green : Colors.red,
+                  size: 20,
+                ),
+                Text(
+                  isApproved ? " Approved" : " Not Approved",
+                  style: TextStyle(
+                    color: isApproved ? Colors.green : Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text("Referral Code: "),
+                Text(
+                  referralCode,
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  icon: Icon(FontAwesomeIcons.copy),
+                  onPressed: _copyReferralCode,
+                ),
+              ],
+            ),
+            SizedBox(height: 20),
+            Text(
+              "My Referrals",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Total Referrals: ${referrals.length}",
+                  style: TextStyle(fontSize: 16),
+                ),
+                Text(
+                  "Total Gain: ${referrals.length * referralReward} Birr",
+                  style: TextStyle(fontSize: 16),
+                ),
+              ],
+            ),
+            SizedBox(height: 15),
+            Expanded(
+              child: Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.4),
+                      spreadRadius: 2,
+                      blurRadius: 5,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: ListView.builder(
+                  itemCount: referrals.length,
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                      leading: Icon(FontAwesomeIcons.user, color: Colors.grey),
+                      title: Text(referrals[index]),
+                    );
+                  },
+                ),
               ),
             ),
             Spacer(),
