@@ -22,6 +22,7 @@ class User extends Authenticatable
         'last_name',
         'phone_number',
         'password',
+        'profile_picture',
         "otp",
         'verified', // Include this as it's in your migration.
     ];
@@ -54,4 +55,9 @@ class User extends Authenticatable
             $user->uid = Str::uuid(); // Automatically generate a UUID for new users
         });
     }
+    public function wallet()
+    {
+        return $this->hasOne(Wallet::class);
+    }
+     // Accessor for full name
 }

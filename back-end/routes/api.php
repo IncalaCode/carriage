@@ -11,6 +11,9 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ClientOrderController;
 use App\Http\Controllers\DriverRequestController;
 use App\Http\Controllers\WalletController;
+use App\Http\Controllers\ReferralController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\DriverProfileController;
 
 
 
@@ -51,32 +54,51 @@ Route::middleware('auth:driver')->group(function () {
 
 
 
-// Driver Routes
-
 Route::post('/driver/handle-request', [driver_request::class, 'handleRequest']);
 Route::post('/client/handle-request', [client_request::class, 'handleRequest']);
 
 
 
-Route::post('/payment/initiate', [PaymentController::class, 'initiatePayment']);
-Route::get('/payment/callback', [PaymentController::class, 'paymentCallback'])->name('payment.callback');
-Route::post('/driver/withdraw', [PaymentController::class, 'withdrawFunds']);
+
 
 Route::post('/client/order/initiate-payment', [ClientOrderController::class, 'initiateOrderPayment']);
-Route::get('/client/order/confirm-payment', [ClientOrderController::class, 'confirmOrderPayment']);
+Route::post('/client/order/confirm-payment', [ClientOrderController::class, 'confirmOrderPayment']);
 
 Route::post('/driver/request/initiate-payment', [DriverRequestController::class, 'initiateRequestPayment']);
-Route::get('/driver/request/confirm-payment', [DriverRequestController::class, 'confirmRequestPayment']);
-
-
-Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/wallet/balance', [WalletController::class, 'getBalance']);
-    Route::post('/wallet/deposit', [WalletController::class, 'deposit']);
-    Route::post('/wallet/withdraw', [WalletController::class, 'withdraw']);
-    Route::get('/wallet/transactions', [WalletController::class, 'transactionHistory']);
-});
+Route::post('/driver/request/confirm-payment', [DriverRequestController::class, 'confirmRequestPayment']);
+Route::get('/payment/callback', [PaymentController::class, 'callback'])->name('payment.callback');
+Route::get('/transactions/{walletId}', [WalletController::class, 'getTransactionHistory']);
 
 
 
-Route::post("/client/getorder" ,[client_request::class, 'getOrder']);
+
+Route::post('/user/wallet/balance', [WalletController::class, 'usergetBalance']);
+Route::post('/driver/wallet/balance', [WalletController::class, 'drivergetBalance']);
+Route::post('/wallet/deposit', [WalletController::class, 'deposit']);
+Route::post('/wallet/withdraw', [WalletController::class, 'withdraw']);
+Route::get('/wallet/transactions', [WalletController::class, 'transactionHistory']);
+
+
+Route::post('/generate-referral-link/{driverId}', [ReferralController::class, 'generateReferralLink']);
+Route::post('/driver/cache-phone', [DriverController::class, 'cachePhoneNumber']);
+Route::post('/driver/referral-check/{phone}', [DriverController::class, 'referralCheck']);
+
+
+Route::post('/payment/validate', [PaymentController::class, 'validatePayment']);
+
+Route::post('/payment/validate', [PaymentController::class, 'validatePayment']);
+
+Route::post("/client/getorder", [client_request::class, 'getOrder']);
 Route::post("/driver/getorder", [driver_request::class, 'getOrder']);
+
+// Routes for user profile actions
+Route::get('/profile/{id}', [ProfileController::class, 'show']);
+Route::post('/profile/update', [ProfileController::class, 'update']);
+Route::post('/profile/send-otp', [ProfileController::class, 'sendOtp']);
+Route::post('/profile/verify-otp', [ProfileController::class, 'verifyPhoneNumberChange']);
+
+// Routes for driver profile actions
+Route::get('/driver/profile/{id}', [DriverProfileController::class, 'getProfile']);
+Route::post('/driver/profile/update', [DriverProfileController::class, 'updateProfile']);
+Route::post('/driver/profile/send-otp', [DriverProfileController::class, 'sendOtp']);
+Route::post('/driver/profile/verifyotp', [DriverProfileController::class, 'verifyOtp']);

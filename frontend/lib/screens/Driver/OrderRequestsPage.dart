@@ -1,6 +1,9 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'Driver_map/driver_hock.dart';
 
 class OrderRequestsPage extends StatefulWidget {
@@ -22,45 +25,76 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
   }
 
   Future<void> _initializeHook() async {
+    await dotenv.load(); // Ensure environment variables are loaded
     final prefs = await SharedPreferences.getInstance();
-    driverHook = DriverHook(prefs, 'YOUR_GEBETA_API_KEY');
+    driverHook = DriverHook(context, prefs,
+        'YOUR_GEBETA_API_KEY,'); // Initialize with context for message display
+    await driverHook.initialize();
+    await _loadStoredOrderStatuses(); // Load persisted statuses
     _fetchOrders();
+    driverHook.startPolling(); // Start polling when page opens
+  }
+
+  Future<void> _loadStoredOrderStatuses() async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String>? storedStatuses = prefs.getStringList('orderStatuses');
+    if (storedStatuses != null) {
+      setState(() {
+        orderRequests = storedStatuses.map((orderData) {
+          return json.decode(orderData) as Map<String, dynamic>;
+        }).toList();
+      });
+    }
   }
 
   void _fetchOrders() {
     setState(() => loading = true);
-    driverHook.startPolling();
+
     driverHook.ordersStream.listen((data) {
-      setState(() {
-        if (data['orders'] != null) {
-          orderRequests = List<Map<String, dynamic>>.from(data['orders']);
-        }
-        if (data['message'] != null) {
-          message = data['message'];
-        }
-        loading = false;
-      });
+      // Only update the state if the widget is still mounted
+      if (mounted) {
+        setState(() {
+          if (data['requests'] != null) {
+            orderRequests = List<Map<String, dynamic>>.from(data['requests']);
+            loading = false;
+          }
+          if (data['message'] != null) {
+            message = data['message'];
+          }
+        });
+      }
     });
   }
 
-  Future<void> _acceptOrder(int index, String price) async {
+  Future<void> _acceptOrder(int index, String price, String requestId) async {
     try {
       setState(() => loading = true);
 
-      // Update UI immediately
-      setState(() {
-        orderRequests[index]['status'] = 'waiting';
-        orderRequests[index]['price'] = price;
-      });
+      await driverHook.acceptRequest(requestId, price);
 
-      // Close price input dialog
       Navigator.of(context).pop();
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Failed to accept order: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(' faild to : $e')),
+      );
     } finally {
       setState(() => loading = false);
     }
+  }
+
+  Future<void> _storeOrderStatuses() async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String> orderData = orderRequests.map((order) {
+      return json.encode(order);
+    }).toList();
+    await prefs.setStringList('orderStatuses', orderData);
+  }
+
+  @override
+  void dispose() {
+    driverHook.stopPolling(); // Stop polling when page closes
+    driverHook.dispose();
+    super.dispose();
   }
 
   @override
@@ -95,7 +129,7 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
                     leading: Icon(FontAwesomeIcons.person,
                         color: const Color.fromARGB(255, 56, 158, 241)),
                     title: Text(
-                      order['name'],
+                      order['user'],
                       style:
                           TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                     ),
@@ -106,7 +140,7 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
                         SizedBox(width: 4),
                         Expanded(
                           child: Text(
-                            order['initialAddress'],
+                            "${order['from']} - ${order['destination']}",
                             style: TextStyle(
                                 fontSize: 13, color: Colors.grey[700]),
                           ),
@@ -115,10 +149,12 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
                     ),
                     trailing: SizedBox(
                       width: 100, // Ensures chip doesn't consume entire width
-                      child: _buildStatusChip(order['status']),
+                      child: _buildStatusChip(
+                          order['is_accepted_by_driver'] ?? ""),
                     ),
                     onTap: () {
-                      _showOrderDetails(context, order, index);
+                      order['is_accepted_by_driver'] ??
+                          _showOrderDetails(context, order, index);
                     },
                   ),
                 );
@@ -127,35 +163,25 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
     );
   }
 
-  Widget _buildStatusChip(String status) {
+  Widget _buildStatusChip(bool status) {
     LinearGradient gradient;
     IconData icon;
     String label;
 
-    switch (status) {
-      case 'waiting':
-        gradient = LinearGradient(colors: [
-          const Color.fromARGB(255, 247, 176, 83),
-          const Color.fromARGB(255, 244, 96, 51)
-        ]);
-        icon = FontAwesomeIcons.circleNotch;
-        label = 'Waiting';
-        break;
-      case 'visited':
-        gradient = LinearGradient(colors: [
-          Colors.greenAccent,
-          const Color.fromARGB(255, 78, 167, 81)
-        ]);
-        icon = FontAwesomeIcons.checkCircle;
-        label = 'Visited';
-        break;
-      default:
-        gradient = LinearGradient(colors: [
-          const Color.fromARGB(255, 255, 140, 140),
-          const Color.fromARGB(255, 239, 78, 67)
-        ]);
-        icon = FontAwesomeIcons.warning;
-        label = 'Unvisited';
+    if (status) {
+      gradient = LinearGradient(colors: [
+        const Color.fromARGB(255, 247, 176, 83),
+        const Color.fromARGB(255, 244, 96, 51)
+      ]);
+      icon = FontAwesomeIcons.circleNotch;
+      label = 'Waiting';
+    } else {
+      gradient = LinearGradient(colors: [
+        const Color.fromARGB(255, 255, 140, 140),
+        const Color.fromARGB(255, 239, 78, 67)
+      ]);
+      icon = FontAwesomeIcons.warning;
+      label = 'Unvisited';
     }
 
     return Container(
@@ -190,8 +216,10 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Name: ${order['name'] ?? 'Unknown'}'),
-              Text('Address: ${order['initialAddress'] ?? 'No Address'}'),
+              Text('Name: ${order['user'] ?? 'Unknown'}'),
+              Text(
+                  'Address: ${order['from']} to ${order['destination'] ?? 'No Address'}'),
+              Text('Material Type: ${order["material_type"] ?? 'Unknown'}'),
               SizedBox(height: 20),
               TextField(
                 decoration: InputDecoration(labelText: 'Enter Price'),
@@ -206,8 +234,7 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
             TextButton(
               onPressed: () {
                 if (price != null && price!.isNotEmpty) {
-                  _acceptOrder(index, price!);
-                  Navigator.of(context).pop();
+                  _acceptOrder(index, price!, order['request_id'].toString());
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Please enter a price')),
@@ -220,11 +247,5 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
         );
       },
     );
-  }
-
-  @override
-  void dispose() {
-    driverHook.dispose();
-    super.dispose();
   }
 }

@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:convert'; // For encoding/decoding JSON
 import 'dart:typed_data'; // For handling image bytes
-import 'package:My_truck/screens/Driver/Driver_main_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http; // Import the http package
 import 'package:http_parser/http_parser.dart'; // For setting content type of image
 import 'config.dart'; // Ensure this points to your correct config file
+import 'login_screen.dart';
 
 class DriverOTP extends StatefulWidget {
   final String firstName;
@@ -127,24 +127,45 @@ class _DriverOTPState extends State<DriverOTP> {
         );
       }
 
-      // Send request and handle the response
-      var response = await request.send();
-      var responseData = await response.stream.bytesToString();
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
 
-      print('Response status: ${response.statusCode}');
-      print('Response data: $responseData');
+      // Hide loading indicator
+      //Navigator.pop(context);
+      print('Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
+        var jsonResponse = json.decode(response.body);
+        print('OTP sent: ${jsonResponse['otp']}'); // Print the OTP if it's in the response
+        
         setState(() {
           otpVisible = true;
           countdownSeconds = 120;
         });
         startCountdown();
+        
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('OTP sent successfully!')),
+        );
       } else {
-        print('Failed to send data and request OTP. Status Code: ${response.statusCode}');
+        // Show error message from server
+        var errorData = json.decode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorData['message'] ?? 'Failed to send OTP')),
+        );
       }
     } catch (e) {
-      print('Error sending data and requesting OTP: $e');
+      // Hide loading indicator if still showing
+      if (context.mounted) {
+        Navigator.pop(context);
+      }
+      
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
     }
   }
 
@@ -167,7 +188,7 @@ class _DriverOTPState extends State<DriverOTP> {
       if (response.statusCode == 200) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => DriverMainScreen()),
+          MaterialPageRoute(builder: (context) => LoginScreen()),
         );
       } else {
         print('OTP verification failed. Status Code: ${response.statusCode}');
@@ -227,15 +248,10 @@ class _DriverOTPState extends State<DriverOTP> {
 
                   // Send OTP Button
                   ElevatedButton.icon(
-                    onPressed: () {
+                    onPressed: () async {
                       if (_formKey.currentState!.validate()) {
                         _formKey.currentState!.save();
-                        // Ensure password meets minimum length requirement
-                        if (widget.password.length < 8) {
-                          print("Password must be at least 8 characters.");
-                          return;
-                        }
-                        sendDriverDataAndRequestOtp(); // Send data and request OTP
+                        await sendDriverDataAndRequestOtp();
                       }
                     },
                     icon: FaIcon(FontAwesomeIcons.solidPaperPlane, color: Colors.blue),

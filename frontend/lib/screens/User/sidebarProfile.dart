@@ -1,9 +1,10 @@
-
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'sidebarProfileEdit.dart';
+
+import 'package:shared_preferences/shared_preferences.dart';
 import '../login_screen.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -15,7 +16,8 @@ class _ProfilePageState extends State<ProfilePage> {
   File? _profileImage;
 
   Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().getImage(source: ImageSource.gallery);
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+
     if (pickedFile != null) {
       setState(() {
         _profileImage = File(pickedFile.path);
@@ -38,7 +40,11 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Text('Cancel'),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
+                // Delete token and navigate to login screen
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.remove('authToken');
+                
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => LoginScreen()),
@@ -48,7 +54,10 @@ class _ProfilePageState extends State<ProfilePage> {
                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF000000), Color(0xFF9A839E)],
+                    colors: [
+                      Color(0xFF000000),
+                      Color(0xFF9A839E)
+                    ],
                   ),
                   borderRadius: BorderRadius.circular(5),
                 ),
@@ -158,7 +167,10 @@ class _ProfilePageState extends State<ProfilePage> {
               width: double.infinity,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFF000000), Color(0xFF9A839E)],
+                  colors: [
+                    Color(0xFF000000),
+                    Color(0xFF9A839E)
+                  ],
                 ),
                 borderRadius: BorderRadius.circular(5),
               ),

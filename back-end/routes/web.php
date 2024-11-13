@@ -6,6 +6,10 @@ use App\Http\Controllers\admin_master_index;
 use App\Http\Controllers\DriverController;
 use App\Http\Controllers\ClientOrderController;
 use App\Http\Controllers\DriverRequestController;
+use App\Http\Controllers\ReferralController;
+
+
+
 
 
 // Public Routes
@@ -50,3 +54,6 @@ Route::get('/order/deposit/callback/{id}', [ClientOrderController::class, 'handl
 
 Route::post('/request/deposit', [DriverRequestController::class, 'acceptRequestDeposit'])->name('request.deposit');
 Route::get('/request/deposit/callback/{id}', [DriverRequestController::class, 'handleDriverDepositCallback'])->name('request.deposit.callback');
+
+
+Route::get('/referral', [ReferralController::class, 'referralLandingPage'])->withoutMiddleware('auth');

@@ -8,6 +8,8 @@ use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Response;
 use App\Models\ClientOrder;
+use Illuminate\Support\Facades\Log;
+use App\Models\Transaction;
 
 class ClientOrderController extends Controller
 {
@@ -28,7 +30,13 @@ class ClientOrderController extends Controller
     {
         $amount = 1500; // ETB
         $txRef = uniqid('order_');
-        $userId = $this->user->id;
+        $userId = $this->user->uid;
+        $wallet = Wallet::where('user_id', $this->user->uid)->first();
+
+        if (!$wallet) {
+            return response()->json(['error' => 'Wallet not found for the user.'], 404);
+        }
+
 
         $data = [
             'amount' => $amount,
@@ -46,11 +54,13 @@ class ClientOrderController extends Controller
 
         if ($response->successful()) {
             // Save transaction in the database
-            $order = ClientOrder::create([
-                'user_id' => $userId,
-                'tx_ref' => $txRef,
+            Transaction::create([
+                'wallet_id' => $wallet->user_id,
                 'amount' => $amount,
-                'status' => 'pending', // initial status
+                'type' => 'deposit',  // Set the type to pending
+                'tx_ref' => $txRef,  // Save tx_ref here
+                'description' => 'client order payment',
+                'status' => 'pending',
             ]);
 
             return response()->json([
@@ -64,19 +74,30 @@ class ClientOrderController extends Controller
 
     public function confirmOrderPayment(Request $request)
     {
-        $txRef = $request->query('tx_ref');
+        // Retrieve tx_ref from the JSON body
+        $txRef = $request->input('tx_ref');
 
+        if (!$txRef) {
+            return response()->json(['error' => 'Transaction reference (tx_ref) is required.'], 400);
+        }
+
+        // Make the Chapa verification request
         $response = Http::withToken(env('CHAPA_SECRET_KEY'))
             ->get("https://api.chapa.co/v1/transaction/verify/$txRef");
+                
+            
+        if ($response->successful() && isset($response['data']['status']) && $response['data']['status'] === 'success') {
+                $txRef_data = Transaction::where('tx_ref', $txRef)->first();
+                $txRef_data->update(['status' => 'completed']);
 
-        if ($response->successful() && $response['data']['status'] === 'success') {
-            // Update the order status to completed
-            $order = ClientOrder::where('tx_ref', $txRef)->first();
-            $order->update(['status' => 'completed']);
+                $wallet = Wallet::where('user_id', $this->user->uid)->first();
+                $wallet->update(['balance' => $wallet->balance + $txRef_data->amount]);
 
-            return response()->json(['message' => 'Payment verified successfully.']);
+            return response()->json(['message' => 'Payment verified successfully.'], 200);
         } else {
             return response()->json(['error' => 'Payment verification failed.'], 500);
         }
     }
+
+
 }
