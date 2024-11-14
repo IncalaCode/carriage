@@ -7,10 +7,11 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io';
 import '../config.dart';
-import '../login_screen.dart';
+//import '../login_screen.dart';
 import 'OrderRequestsPage.dart';
 import 'sidebarProfiledriver.dart';
 import 'sidebarWalletdriver.dart';
+import 'package:My_truck/screens/Driver/sidebarWalletdriver.dart';
 import 'sidebarMyOrderdriver.dart';
 import 'sidebarSettingsdriver.dart';
 import './Driver_map/driver_map_component.dart';
@@ -87,12 +88,12 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
         }),
       );
 
-      if(response.statusCode == 404){
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => LoginScreen()),
-        );
-      }
+      // if(response.statusCode == 404){
+      //   Navigator.pushReplacement(
+      //     context,
+      //     MaterialPageRoute(builder: (context) => DriverMainScreen()),
+      //   );
+      // }
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -376,19 +377,10 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
                   _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context, () {
                     Navigator.pop(context);
                     Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePagedriver()));
-                  _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context,
-                      () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => ProfilePagedriver()));
                   }),
-                  _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context,
-                      () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => WalletDriverPage()));
+                  _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context, () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => WalletDriverPage()));
                   }),
                   _buildDrawerItem(FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
                     Navigator.pop(context);
@@ -407,10 +399,67 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
       body: Stack(
         children: [
           DriverMapComponent(),
+          
+          
+          Positioned(
+            top: 30,
+            left: 20,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF000000), Color(0xFF9A839E)],
+                ),
+                borderRadius: BorderRadius.circular(15),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: Offset(2, 4),
+                  ),
+                ],
+              ),
+              child: FloatingActionButton(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                hoverElevation: 0,
+                focusElevation: 0,
+                highlightElevation: 0,
+                mini: true,
+                child: Icon(
+                  FontAwesomeIcons.bars,
+                  color: Colors.white,
+                ),
+                onPressed: () {
+                  _scaffoldKey.currentState?.openDrawer();
+                },
+              ),
+            ),
+          ),
+
+          
           Positioned(
             top: 30,
             right: 20,
-            child: _buildOrderRequestsButton(),
+            child: Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF000000), Color(0xFF9A839E)],
+                ),
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black45,
+                    blurRadius: 10,
+                    offset: Offset(2, 2),
+                  ),
+                ],
+              ),
+              child: Image.asset(
+                'assets/NewLogo.png',
+                height: 50,
+              ),
+            ),
           ),
 
           
