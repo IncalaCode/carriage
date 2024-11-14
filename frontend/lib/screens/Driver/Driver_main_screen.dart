@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io';
 import '../config.dart';
-import '../login_screen.dart';
+//import '../login_screen.dart';
 import 'OrderRequestsPage.dart';
 import 'sidebarProfiledriver.dart';
 import 'sidebarWalletdriver.dart';
@@ -16,15 +16,13 @@ import 'sidebarMyOrderdriver.dart';
 import 'sidebarSettingsdriver.dart';
 import './Driver_map/driver_map_component.dart';
 
-
 class DriverMainScreen extends StatefulWidget {
   @override
   _DriverMainScreenState createState() => _DriverMainScreenState();
 }
 
 class _DriverMainScreenState extends State<DriverMainScreen> {
-  bool isDrawerOpen = false;
-  bool loading = true; // Loading state
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   File? _profileImage;
   String? _authToken;
   double _walletBalance = 0.0;
@@ -90,12 +88,12 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
         }),
       );
 
-      if(response.statusCode == 404){
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => LoginScreen()),
-        );
-      }
+      // if(response.statusCode == 404){
+      //   Navigator.pushReplacement(
+      //     context,
+      //     MaterialPageRoute(builder: (context) => DriverMainScreen()),
+      //   );
+      // }
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -307,8 +305,7 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
   }
 
   Future<void> _pickImage() async {
-    final pickedFile =
-        await ImagePicker().pickImage(source: ImageSource.gallery);
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _profileImage = File(pickedFile.path);
@@ -319,37 +316,7 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF000000), Color(0xFF9A839E)],
-            ),
-          ),
-        ),
-        toolbarHeight: 80,
-        centerTitle: true,
-        title: Padding(
-          padding: const EdgeInsets.only(top: 50),
-          child: Image.asset('assets/Nave.png', height: 100),
-        ),
-        actions: [
-          Padding(
-            padding: EdgeInsets.only(right: 16.0),
-            child: Builder(
-              builder: (context) => IconButton(
-                icon: Icon(FontAwesomeIcons.bars, color: Colors.white),
-                onPressed: () {
-                  setState(() => isDrawerOpen = true);
-                  Scaffold.of(context).openDrawer();
-                },
-              ),
-            ),
-          ),
-        ],
-      ),
+      key: _scaffoldKey,
       drawer: Drawer(
         child: Column(
           children: [
@@ -367,8 +334,7 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
                       radius: 40,
                       backgroundColor: Colors.white,
                       child: _profileImage == null
-                          ? Icon(FontAwesomeIcons.user,
-                              size: 40, color: Colors.grey)
+                          ? Icon(FontAwesomeIcons.user, size: 40, color: Colors.grey)
                           : ClipOval(
                               child: Image.file(
                                 _profileImage!,
@@ -408,33 +374,21 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
             Expanded(
               child: ListView(
                 children: [
-                  _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context,
-                      () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => ProfilePagedriver()));
+                  _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context, () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePagedriver()));
                   }),
-                  _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context,
-                      () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => WalletDriverPage()));
+                  _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context, () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => WalletDriverPage()));
                   }),
-                  _buildDrawerItem(
-                      FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => MyOrdersPagedriver()));
+                  _buildDrawerItem(FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => MyOrdersPagedriver()));
                   }),
-                  _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context,
-                      () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => SettingsPagedriver()));
+                  _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context, () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsPagedriver()));
                   }),
                 ],
               ),
@@ -445,6 +399,70 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
       body: Stack(
         children: [
           DriverMapComponent(),
+          
+          
+          Positioned(
+            top: 30,
+            left: 20,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF000000), Color(0xFF9A839E)],
+                ),
+                borderRadius: BorderRadius.circular(15),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: Offset(2, 4),
+                  ),
+                ],
+              ),
+              child: FloatingActionButton(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                hoverElevation: 0,
+                focusElevation: 0,
+                highlightElevation: 0,
+                mini: true,
+                child: Icon(
+                  FontAwesomeIcons.bars,
+                  color: Colors.white,
+                ),
+                onPressed: () {
+                  _scaffoldKey.currentState?.openDrawer();
+                },
+              ),
+            ),
+          ),
+
+          
+          Positioned(
+            top: 30,
+            right: 20,
+            child: Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF000000), Color(0xFF9A839E)],
+                ),
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black45,
+                    blurRadius: 10,
+                    offset: Offset(2, 2),
+                  ),
+                ],
+              ),
+              child: Image.asset(
+                'assets/NewLogo.png',
+                height: 50,
+              ),
+            ),
+          ),
+
+          
           Positioned(
             bottom: 20,
             right: 20,
@@ -455,8 +473,7 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
     );
   }
 
-  Widget _buildDrawerItem(
-      IconData icon, String title, BuildContext context, Function onTap) {
+  Widget _buildDrawerItem(IconData icon, String title, BuildContext context, Function onTap) {
     return ListTile(
       leading: Icon(icon, color: Colors.black),
       title: Text(
