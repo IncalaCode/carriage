@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 
 class client_request extends Controller
 {
@@ -40,8 +41,17 @@ class client_request extends Controller
             ])
             ->first();
 
-        // Determine action based on current status
-        $action = $this->determineAction($currentRequest, $request);
+        // If no current request and request has required fields for creation
+        if (!$currentRequest && $request->has(['from', 'destination', 'material_type', 'car_type'])) {
+            return $this->createRequest($request);
+        }
+
+                // If no current request and request has required fields for creation
+        if ($request->has(['completed'])) {
+            return $this->completeRide($currentRequest);
+        }
+
+
 
         // If trying to create new request but has active one
         if ($request->has(['from', 'destination']) && $currentRequest) {
@@ -57,9 +67,18 @@ class client_request extends Controller
             ], 303); // 303 See Other
         }
 
+
+        if(!$currentRequest){
+            return response()->json([
+                'error' => 'no  order found ',
+            ], 401);
+        }
+
+                // Determine action based on current status
+        $action = $this->determineAction($currentRequest, $request);
+
+
         switch ($action) {
-            case 'create_request':
-                return $this->createRequest($request);
             case 'get_drivers':
                 return $this->getDrivers($currentRequest);
             case 'select_driver':
@@ -98,10 +117,7 @@ class client_request extends Controller
             return $this->getStatusAction($currentRequest->status);
         }
 
-        // If no current request and request has required fields for creation
-        if (!$currentRequest && $request->has(['from', 'destination', 'material_type', 'car_type'])) {
-            return 'create_request';
-        }
+
         if ($currentRequest && $request->has(['driver_id'])) {
             return 'select_driver';
         }
@@ -164,7 +180,7 @@ class client_request extends Controller
             'car_type' => $validated['car_type'],
             'status' => RequestStatus::PENDING,
             'accepted_driver_ids' => [],
-            'prices' => []
+            'locked_driver_id' => ""
         ]);
 
         return response()->json([
@@ -183,6 +199,7 @@ class client_request extends Controller
         }
     
         $timeout = self::TIMEOUT;
+        $drivers = [];
     
         while ($timeout > 0) {
             // Refresh request data
@@ -206,7 +223,7 @@ class client_request extends Controller
                             ->first();
     
                         return [
-                            'driver_id' => $driver->id,
+                            'driver_id' => $driver->uid,
                             'name' => $driver->first_name . " " . $driver->last_name,
                             'car_type' => $driver->car_type,
                             'price' => $priceRecord ? $priceRecord->price : null,
@@ -246,7 +263,7 @@ class client_request extends Controller
         }
 
         $validated = $request->validate([
-            'driver_id' => 'required|integer'
+            'driver_id' => 'required'
         ]);
 
         if (!in_array($validated['driver_id'], json_decode($currentRequest->accepted_driver_ids))) {
@@ -263,23 +280,35 @@ class client_request extends Controller
             'locked_driver_id' => $validated['driver_id']
         ]);
 
-        driverRequest::where("driver_id",$validated['driver_id'],)->update([
+        driverRequest::where("driver_id",$validated['driver_id'])->update([
             'status' => 'locked',
-            'locked_user_id' => $validated['driver_id']
+            'locked_user_id' => $currentRequest->user_id
         ]);
 
-        return response()->json(['message' => 'Driver selected successfully']);
+        $driverinfo = Driver::where('uid' , $validated['driver_id'])->first();
+        if ($driverinfo) {
+            $value  = [
+                "name" => $driverinfo->first_name . " " . $driverinfo->last_name,
+                "phone" => $driverinfo->phone_number,
+                "image" => Storage::url($driverinfo->user_photo),
+                "latitude" =>  driverRequest::where('driver_id' , $validated['driver_id'])->first()->latitude ?? "",
+                "longitude" => driverRequest::where('driver_id' ,  $validated['driver_id'])->first()->longitude ?? ""
+            ];
+        }
+
+        return response()->json(['message' => 'Driver selected successfully',
+        "driver" => $value
+    ]);
     }
 
     private function trackDriver($currentRequest)
     {
         if (!$currentRequest || $currentRequest->status !== 'locked') {
-            return response()->json(['error' => 'No locked request found'], 404);
+            return response()->json(['error' => 'No locked request found'], 303);
         }
     
         // Retrieve the locked driver
         $driver = Driver::where('uid', $currentRequest->locked_driver_id)
-        ->where('status', 'locked')
         ->first();
     
         // Check if driver is available and online
@@ -288,18 +317,18 @@ class client_request extends Controller
         }
     
         // Retrieve driver request information based on driver_id
-        $driverRequest = driverRequest::where('driver_id', $driver->id)
+        $driverRequest = driverRequest::where('driver_id', $driver->uid)
             ->where('status', 'locked')
             ->first();
-    
-        if (!$driverRequest) {
-            return response()->json(['error' => 'No active driver request found'], 404);
-        }
+
     
         return response()->json([
+            "name" => $driver->first_name . " " . $driver->last_name,
+            "phone" => $driver->phone_number,
+            "image" => Storage::url("car_plate_photo/UIVZkulq1Tzh1ftnILnBqJaJFigBpgYEmF82THRG.jpg"),
             'latitude' => $driverRequest->latitude,
             'longitude' => $driverRequest->longitude
-        ]);
+        ] , 303);
     }
     
     private function cancelRequest($currentRequest)
@@ -323,7 +352,12 @@ class client_request extends Controller
             return response()->json(['error' => 'No locked request found'], 404);
         }
 
+        $driverRequest = driverRequest::where('driver_id', $currentRequest->locked_driver_id)
+        ->where('status', 'locked')
+        ->first();
+
         $currentRequest->update(['status' => 'completed']);
+        $driverRequest->update(['status' => 'completed']);
 
         return response()->json(['message' => 'Ride completed successfully']);
     }

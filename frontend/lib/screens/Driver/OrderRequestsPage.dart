@@ -56,7 +56,11 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
         setState(() {
           if (data['requests'] != null) {
             orderRequests = List<Map<String, dynamic>>.from(data['requests']);
-            loading = false;
+            if (!orderRequests.isEmpty) {
+              loading = false;
+            } else {
+              loading = true;
+            }
           }
           if (data['message'] != null) {
             message = data['message'];
@@ -153,8 +157,9 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
                           order['is_accepted_by_driver'] ?? ""),
                     ),
                     onTap: () {
-                      order['is_accepted_by_driver'] ??
-                          _showOrderDetails(context, order, index);
+                      if (order['is_accepted_by_driver'] == false) {
+                        _showOrderDetails(context, order, index);
+                      }
                     },
                   ),
                 );

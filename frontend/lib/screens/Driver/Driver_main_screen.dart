@@ -30,8 +30,10 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
   bool loading = true; // Loading state
   File? _profileImage;
   String? _authToken;
-  double _walletBalance = 0.0;
-  bool _isLoading = true;
+  // double _walletBalance = 0.0;
+  // bool _isLoading = true;
+  double _walletBalance = 1600.0;
+  bool _isLoading = false;
   String? _paymentUrl;
   String? _txRef;
   @override

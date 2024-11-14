@@ -33,7 +33,7 @@ class _UserMapComponentState extends State<UserMapComponent> {
 
   Future<void> _initializeHook() async {
     final prefs = await SharedPreferences.getInstance();
-    _userHook = UserHook(prefs, 'YOUR_GEBETA_API_KEY');
+    _userHook = UserHook(prefs);
 
     // Listen to driver updates
     _userHook.driverStream.listen((data) {
@@ -275,9 +275,7 @@ class _UserMapComponentState extends State<UserMapComponent> {
           Positioned(
             right: 16,
             bottom: 100,
-            child: Column(
-              
-            ),
+            child: Column(),
           ),
 
           // Add current location button
@@ -345,3 +343,5 @@ class _UserMapComponentState extends State<UserMapComponent> {
     super.dispose();
   }
 }
+
+

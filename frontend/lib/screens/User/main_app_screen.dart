@@ -16,6 +16,7 @@ import 'Order_form_screen.dart';
 import 'user_map/user_map_component.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../login_screen.dart';
+import 'dart:async';
 
 class MainAppScreen extends StatefulWidget {
   @override
@@ -31,11 +32,57 @@ class _MainAppScreenState extends State<MainAppScreen> {
   // bool _isLoading = true;
   String? _paymentUrl;
   String? _authToken;
+  static bool is_tracking = false;
+
+  bool _isRideInfoVisible =
+      false; // New state to control RideInfoCard visibility
+
+  RideInfoCard? rideInfoCard;
 
   @override
   void initState() {
     super.initState();
     _initializeScreen();
+    checkData(); // make it to check frist
+  }
+
+  void _change(bool value) {
+    setState(() {
+      is_tracking = true;
+    });
+  }
+
+  Future<void> checkData() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.containsKey('name')) {
+      // Create the RideInfoCard with a key
+      rideInfoCard = RideInfoCard(
+        name: prefs.getString('name') ?? '',
+        phone: prefs.getString('phone') ?? '',
+        photoUrl: prefs.getString('photoUrl') ?? '',
+        distance: prefs.getString('distance') ?? '0',
+        time: prefs.getString('time') ?? '',
+      );
+
+      // Show the RideInfoCard if data exists
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          builder: (_) => rideInfoCard!,
+        );
+      });
+
+      // Use the key to update the ride information dynamically
+      // rideInfoCardKey.currentState?._updateRideInfo("24km", "11min");
+    }
+  }
+
+  void _toggleRideInfoCard() {
+    showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => rideInfoCard!);
   }
 
   Future<void> _initializeScreen() async {
@@ -231,7 +278,9 @@ class _MainAppScreenState extends State<MainAppScreen> {
 
     if (_walletBalance >= 1500) {
       return FloatingActionButton.extended(
-        onPressed: _showOrderForm,
+        onPressed: _MainAppScreenState.is_tracking
+            ? _toggleRideInfoCard
+            : _showOrderForm,
         backgroundColor: Colors.transparent,
         icon: Icon(FontAwesomeIcons.bell, color: Colors.white),
         label: Container(
@@ -243,7 +292,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
           ),
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Text(
-            'Order Now',
+            _MainAppScreenState.is_tracking ? "See your order" : "Order Now",
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
         ),
@@ -422,33 +471,6 @@ class _MainAppScreenState extends State<MainAppScreen> {
       body: Stack(
         children: [
           UserMapComponent(),
-          FlutterMap(
-            options: MapOptions(
-              center: LatLng(9.005401, 38.763611),
-              zoom: 6.0,
-            ),
-            children: [
-              TileLayer(
-                urlTemplate:
-                    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                subdomains: ['a', 'b', 'c'],
-              ),
-              MarkerLayer(
-                markers: [
-                  Marker(
-                    width: 80.0,
-                    height: 80.0,
-                    point: LatLng(9.005401, 38.763611),
-                    builder: (ctx) => Icon(
-                      FontAwesomeIcons.mapMarkerAlt,
-                      color: const Color.fromARGB(255, 0, 0, 0),
-                      size: 40.0,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
           Positioned(
             bottom: 20,
             right: 20,
@@ -586,6 +608,245 @@ class PaymentWebView extends StatelessWidget {
           return NavigationDecision.navigate;
         },
       ),
+    );
+  }
+}
+
+// Import Stream
+// Import Stream
+class RideInfoCard extends StatefulWidget {
+  final String name;
+  final String phone;
+  final String photoUrl;
+  final String distance;
+  final String time;
+
+  const RideInfoCard({
+    Key? key,
+    required this.name,
+    required this.phone,
+    required this.photoUrl,
+    required this.distance,
+    required this.time,
+  }) : super(key: key);
+
+  @override
+  _RideInfoCardState createState() => _RideInfoCardState();
+
+  // Public method to update ride info
+  void updateRideInfo(String newDistance, String newTime) {
+    // This will be called from outside the widget
+    final state = this.createState();
+    state._updateRideInfo(newDistance, newTime);
+  }
+}
+
+class _RideInfoCardState extends State<RideInfoCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnimation;
+
+  late String _currentDistance;
+  late String _currentTime;
+
+  // StreamController to update distance and time
+  final StreamController<Map<String, String>> _rideInfoController =
+      StreamController<Map<String, String>>();
+  _MainAppScreenState main = _MainAppScreenState();
+
+  bool _isOpen = true; // New variable to control visibility
+
+  @override
+  void initState() {
+    super.initState();
+
+    _currentDistance = widget.distance;
+    _currentTime = widget.time;
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _offsetAnimation = Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    ));
+
+    _controller.forward();
+    saveData();
+
+    // Listen to the stream and update the UI
+    _rideInfoController.stream.listen((data) {
+      setState(() {
+        _currentDistance = data['distance'] ?? _currentDistance;
+        _currentTime = data['time'] ?? _currentTime;
+      });
+    });
+  }
+
+  // Private method to update ride info state
+  void _updateRideInfo(String newDistance, String newTime) {
+    // Send new data to the stream
+    _rideInfoController.add({
+      'distance': newDistance,
+      'time': newTime,
+    });
+  }
+
+  @override
+  void dispose() {
+    _rideInfoController.close(); // Close stream controller
+    _controller.dispose();
+    super.dispose();
+  }
+
+  // Save data to SharedPreferences
+  Future<void> saveData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('name', widget.name);
+    await prefs.setString('phone', widget.phone);
+    await prefs.setString('photoUrl', widget.photoUrl);
+    await prefs.setString('distance', _currentDistance);
+    await prefs.setString('time', _currentTime);
+
+    setState(() {
+      _MainAppScreenState.is_tracking = true;
+    });
+  }
+
+  // Function to handle completion
+  void _completeRide() async {
+    final token = await getToken();
+    final prefs = await SharedPreferences
+        .getInstance(); // Retrieve token dynamically if async
+    final response =
+        await http.post(Uri.parse('${Config.baseUrl}/client/handle-request'),
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({'token': token, "completed": true}));
+
+    final dynamic data = json.decode(response.body);
+
+    _toggleVisibility();
+
+    if (response.statusCode == 200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ride set completed successfully!')),
+      );
+      prefs.remove("name");
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Ride set not  completed !'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+
+    // Logic for completing the ride
+  }
+
+  // Function to show warning before completing
+  void _showCompletionWarning() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Complete Ride'),
+          content: Text('Are you sure your order is completed?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+                _completeRide(); // Call the complete function
+              },
+              child: Text('Yes, confirm'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _toggleVisibility() {
+    setState(() {
+      _isOpen = !_isOpen; // Toggle the visibility
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    print("shsssssssssssss" + widget.photoUrl);
+
+    final res = http.get(
+      Uri.parse(Config.imagebaseUrl + widget.photoUrl),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    );
+
+    print(res);
+
+    return SlideTransition(
+      position: _offsetAnimation,
+      child: _isOpen // Check the visibility state
+          ? Container(
+              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CircleAvatar(
+                        radius: 30,
+                        //  backgroundImage: NetworkImage(''),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.name,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "+" + widget.phone,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: _showCompletionWarning,
+                    child: Text('Complete Ride'),
+                  ),
+                ],
+              ),
+            )
+          : SizedBox.shrink(), // Return an empty widget when closed
     );
   }
 }
