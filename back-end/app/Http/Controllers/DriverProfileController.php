@@ -9,8 +9,11 @@ use Illuminate\Support\Facades\Storage;
 
 class DriverProfileController extends Controller
 {
-    public function getProfile( $value)
-    {
+    public function getProfile(Request $request)
+     {
+       
+        $value = $request->input("token");
+
         $driver = Driver::where('uid', $value)->first();
         if (!$driver) {
             return response()->json(['error' => 'Driver not found'], 404);
@@ -146,8 +149,8 @@ class DriverProfileController extends Controller
 
     public function generateReferralLink($driverId)
     {
-        $driver = Driver::findOrFail($driverId);
-        $referralLink = url('/referral?ref=' . $driver->id);
+        $driver = Driver::where("uid",$driverId);
+        $referralLink = url('/referral?ref=' . $driverId);
 
         return  $referralLink;
     }

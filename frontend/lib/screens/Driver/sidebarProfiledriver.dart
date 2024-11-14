@@ -1,10 +1,13 @@
-
+import 'package:My_truck/screens/config.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'sidebarProfileEditdriver.dart';
 import '../login_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class ProfilePagedriver extends StatefulWidget {
   @override
@@ -13,6 +16,15 @@ class ProfilePagedriver extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePagedriver> {
   File? _profileImage;
+  String? _authToken;
+  String _displayName = 'Jabez Hap';
+  String _phoneNumber = '+251 963 488 972';
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuthentication();
+  }
 
   Future<void> _pickImage() async {
     final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
@@ -20,6 +32,54 @@ class _ProfilePageState extends State<ProfilePagedriver> {
       setState(() {
         _profileImage = File(pickedFile.path);
       });
+    }
+  }
+
+  Future<void> _checkAuthentication() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('authToken');
+    if (token == null) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+      );
+    } else {
+      setState(() {
+        _authToken = token;
+      });
+      _fetchUserProfile();
+    }
+  }
+
+  Future<void> _fetchUserProfile() async {
+    if (_authToken == null) return;
+
+    // Assuming driverId is stored as part of _authToken or fetched separately
+    final driverId = _authToken; // Replace with actual driver ID if different from token
+    final url = Uri.parse('${Config.baseUrl}/driver/profile');
+
+    print('🔑 Driver ID: $driverId');
+    print('🔗 Profile endpoint URL: $url');
+
+    final response = await http.post(
+      url,
+      headers: {
+       // 'Authorization': 'Bearer $_authToken',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'token': driverId,
+      }),
+    );
+
+    print('💳 Profile Response Status: ${response.statusCode}');
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      setState(() {
+        _displayName = data['first_name'] ?? _displayName;
+        _phoneNumber = data['phone_number'] ?? _phoneNumber;
+      });
+    } else {
+      print('Failed to load profile data: ${response.statusCode}');
     }
   }
 
@@ -48,7 +108,10 @@ class _ProfilePageState extends State<ProfilePagedriver> {
                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF000000), Color(0xFF9A839E)],
+                    colors: [
+                      Color(0xFF000000),
+                      Color(0xFF9A839E),
+                    ],
                   ),
                   borderRadius: BorderRadius.circular(5),
                 ),
@@ -133,20 +196,8 @@ class _ProfilePageState extends State<ProfilePagedriver> {
                       FaIcon(FontAwesomeIcons.user, size: 20, color: Colors.grey),
                       SizedBox(width: 10),
                       Text(
-                        'Jabez Hap',
+                        _displayName,
                         style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      FaIcon(FontAwesomeIcons.envelope, size: 20, color: Colors.grey),
-                      SizedBox(width: 10),
-                      Text(
-                        'Jabez@gmail.com',
-                        style: TextStyle(fontSize: 18, color: Colors.grey),
                       ),
                     ],
                   ),
@@ -157,7 +208,7 @@ class _ProfilePageState extends State<ProfilePagedriver> {
                       FaIcon(FontAwesomeIcons.phone, size: 20, color: Colors.grey),
                       SizedBox(width: 10),
                       Text(
-                        '+251 963 488 972',
+                        _phoneNumber,
                         style: TextStyle(fontSize: 18, color: Colors.grey),
                       ),
                     ],
@@ -170,7 +221,10 @@ class _ProfilePageState extends State<ProfilePagedriver> {
               width: double.infinity,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFF000000), Color(0xFF9A839E)],
+                  colors: [
+                    Color(0xFF000000),
+                    Color(0xFF9A839E),
+                  ],
                 ),
                 borderRadius: BorderRadius.circular(5),
               ),
