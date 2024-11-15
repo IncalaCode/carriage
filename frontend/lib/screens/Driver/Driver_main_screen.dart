@@ -1,3 +1,5 @@
+import 'package:My_truck/screens/User/Order_form_screen.dart';
+import 'package:My_truck/screens/User/main_app_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
@@ -16,6 +18,9 @@ import 'sidebarMyOrderdriver.dart';
 import 'sidebarSettingsdriver.dart';
 import './Driver_map/driver_map_component.dart';
 
+late BuildContext cont;
+late Function(bool) function;
+
 class DriverMainScreen extends StatefulWidget {
   @override
   _DriverMainScreenState createState() => _DriverMainScreenState();
@@ -25,15 +30,44 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   File? _profileImage;
   String? _authToken;
-  double _walletBalance = 0.0;
-  bool _isLoading = true;
+  // double _walletBalance = 0.0;
+  // bool _isLoading = true;
+  double _walletBalance = 1600.0;
+  bool _isLoading = false;
   String? _paymentUrl;
   String? _txRef;
+  bool is_tracking = false;
+
   @override
   void initState() {
     super.initState();
     print('🚀 Initializing Driver Main Screen');
     _initializeScreen();
+    cont = context;
+    function = change;
+  }
+
+  void change(bool value) {
+    setState(() {
+      is_tracking = value;
+    });
+  }
+
+  Future<void> checkData() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.containsKey('username')) {
+      showUserInfoBottomSheet(
+        cont,
+        {
+          "name": prefs.getString('username') ?? "unknown",
+          "phone": prefs.getString('userphone') ?? "123-456-7890",
+          "locked": true,
+          "from": prefs.getString('userfrom') ?? '' ?? "unknown",
+          "material_type": prefs.getString('usermaterial_type') ?? "unknown",
+          "destination": prefs.getString('userdestination') ?? "unknown",
+        },
+      );
+    }
   }
 
   Future<void> _initializeScreen() async {
@@ -259,10 +293,12 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
     if (_walletBalance >= 1500) {
       return FloatingActionButton.extended(
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => OrderRequestsPage()),
-          );
+          is_tracking
+              ? checkData()
+              : Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => OrderRequestsPage()),
+                );
         },
         backgroundColor: Colors.green, // Changed to green for sufficient balance
         icon: Icon(FontAwesomeIcons.bell, color: Colors.white),
@@ -275,7 +311,9 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
           ),
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Text(
-            'Order Requests',
+
+            is_tracking ? 'locked request' : 'Requests',
+
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
         ),
@@ -490,4 +528,181 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
   }
 }
 
+
+void showUserInfoBottomSheet(
+    BuildContext context, Map<String, dynamic> userData) {
+  Future<void> saveData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('username', userData['name']);
+    await prefs.setString('userphone', userData['phone']);
+    await prefs.setString('userfrom', userData['from']);
+    await prefs.setString('usermaterial_type', userData['material_type']);
+    await prefs.setString('userdestination', userData['destination']);
+  }
+
+  saveData();
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (BuildContext context) {
+      return FractionallySizedBox(
+        heightFactor: 0.5, // Takes half the screen height
+        child: Column(
+          children: [
+            const SizedBox(height: 16),
+            // Indicator at the top of the bottom sheet
+            Container(
+              height: 4,
+              width: 40,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Driver-oriented user information layout
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Order Details",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Divider(thickness: 1.0, height: 16),
+                    buildDetailRow(
+                        FontAwesomeIcons.person, "Name", userData['name']),
+                    const SizedBox(height: 8),
+                    buildDetailRow(
+                        FontAwesomeIcons.phone, "Phone", userData['phone']),
+                    const SizedBox(height: 8),
+                    buildDetailRow(FontAwesomeIcons.lock, "Locked",
+                        userData['locked'] ? "Yes" : "No"),
+                    const SizedBox(height: 8),
+                    buildDetailRow(
+                        FontAwesomeIcons.locationDot, "From", userData['from']),
+                    const SizedBox(height: 8),
+                    buildDetailRow(FontAwesomeIcons.cartShopping,
+                        "Material Type", userData['material_type']),
+                    const SizedBox(height: 8),
+                    buildDetailRow(FontAwesomeIcons.flag, "Destination",
+                        userData['destination']),
+                    const Spacer(),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        cancelRequest(cont);
+                        if (!is_tracking) {
+                          Navigator.pop(context);
+                        }
+                      },
+                      child: const Center(
+                        child: Text(
+                          "cancel Request",
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+Widget buildDetailRow(IconData icon, String label, String? value) {
+  return Row(
+    crossAxisAlignment: CrossAxisAlignment.center,
+    children: [
+      Icon(icon, color: Colors.blueGrey, size: 24),
+      const SizedBox(width: 12),
+      Expanded(
+        child: Text(
+          "$label: ${value ?? 'Unknown'}",
+          style: const TextStyle(fontSize: 16),
+        ),
+      ),
+    ],
+  );
+}
+
+void cancelRequest(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text("Warning"),
+        content: const Text(
+            "If you proceed, the cancellation fee will be deducted from your wallet. Are you sure you want to cancel this request?"),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close the dialog without action
+            },
+            child: const Text("No, Go Back"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red, // Red color for emphasis
+            ),
+            onPressed: () {
+              Navigator.pop(context); // Close the dialog
+              _proceedWithCancellation(context); // Proceed with cancellation
+            },
+            child: const Text("Yes, Cancel"),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+void _proceedWithCancellation(BuildContext context) async {
+  final response = await http.post(
+    Uri.parse('${Config.baseUrl}/driver/request/confirm-payment'),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: json.encode({
+      "cancel": true,
+      'token': getToken(),
+    }),
+  );
+
+  if (response.statusCode == 200) {
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text("Request has been canceled and wallet updated.")),
+    );
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text("There were proble in the requst pls try again .")),
+    );
+  }
+}
 

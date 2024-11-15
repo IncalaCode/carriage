@@ -13,7 +13,7 @@ class driverrequest extends Migration
     {
         Schema::create('driverRequest', function (Blueprint $table) {
             $table->id();
-            $table->string('driver_id')->unique();  // Unique Driver ID
+            $table->string('driver_id');  // Unique Driver ID
             $table->decimal('longitude', 11, 8);  // Driver's longitude location
             $table->decimal('latitude', 11, 8);  // Driver's latitude location
             $table->string('car_type');  // Type of car driver uses
