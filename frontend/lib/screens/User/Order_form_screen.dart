@@ -53,11 +53,13 @@ class _OrderFormState extends State<OrderForm> {
     _userHook!.driverStream.listen((data) {
       if (data['statusCode'] == 200) {
         // Update drivers list when new data is received
-        setState(() {
-          drivers = List<Map<String, dynamic>>.from(data['drivers'] ?? []);
-          _hasActiveOrder = drivers.isNotEmpty; // Update active order status
-          _isLoading = !drivers.isNotEmpty;
-        });
+        if (mounted) {
+          setState(() {
+            drivers = List<Map<String, dynamic>>.from(data['drivers'] ?? []);
+            _hasActiveOrder = drivers.isNotEmpty;
+            _isLoading = false; // Update active order status
+          });
+        }
       } else if (data['statusCode'] == 303) {
         Navigator.pop(context);
 
@@ -67,12 +69,12 @@ class _OrderFormState extends State<OrderForm> {
             context: context,
             isScrollControlled: true,
             builder: (context) => RideInfoCard(
-              name: data['drivers']['name'] ?? "",
-              phone: data['drivers']['phone'] ?? "",
-              photoUrl: data['drivers']['image'] ?? "",
-              distance: "calculating..",
-              time: "calculating..",
-            ),
+                name: data['drivers']['name'] ?? "",
+                phone: data['drivers']['phone'] ?? "",
+                photoUrl: data['drivers']['image'] ?? "",
+                distance: "calculating..",
+                time: "calculating..",
+                change: function),
           );
         });
       } else if (data['statusCode'] == 401) {
@@ -290,6 +292,7 @@ class _OrderFormState extends State<OrderForm> {
 
       if (response.statusCode == 200) {
         _showSuccessDialog("Order submitted successfully!");
+        _initializeHook();
         // Start tracking after successful submission
         final data = json.decode(response.body);
         if (data['request_id'] != null) {
@@ -328,7 +331,7 @@ class _OrderFormState extends State<OrderForm> {
                 setState(() {
                   _showForm = false;
                   _isLoading = true;
-                  _userHook!.startPolling(); // Redirect to _buildDefaultView
+                  // Redirect to _buildDefaultView
                 });
               },
             ),
@@ -409,12 +412,12 @@ class _OrderFormState extends State<OrderForm> {
             context: context,
             isScrollControlled: true,
             builder: (context) => RideInfoCard(
-              name: driverName,
-              phone: driverPhone,
-              photoUrl: driverImage,
-              distance: "calculating..",
-              time: "calculating..",
-            ),
+                name: driverName,
+                phone: driverPhone,
+                photoUrl: driverImage,
+                distance: "calculating..",
+                time: "calculating..",
+                change: function),
           );
         });
 
@@ -508,12 +511,22 @@ class _OrderFormState extends State<OrderForm> {
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Name: ${driver['name']}'),
+                Text('Name: ${driver['name'] ?? 'Unknown driver'}'),
                 Text('Price: ${driver['price']} birr'),
                 Text('Car Type: ${driver['car_type'] ?? 'UNKNOWN'}'),
-                Text(
-                    '${calculateDistance(driver['latitude'], driver['longitude'])}' ??
-                        "unknown"),
+                FutureBuilder<String>(
+                  future: calculateDistance(
+                      driver['latitude'], driver['longitude']),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Text("Calculating distance...");
+                    } else if (snapshot.hasError || !snapshot.hasData) {
+                      return Text("Distance: unknown");
+                    } else {
+                      return Text("Distance: ${snapshot.data}");
+                    }
+                  },
+                ),
               ],
             ),
             trailing: ElevatedButton(
@@ -671,15 +684,38 @@ class _OrderFormState extends State<OrderForm> {
     );
   }
 
-  Future calculateDistance(double endLatitude, double endLongitude) async {
-    final position = await getCurrentPosition();
+  Future<String> calculateDistance(
+      double endLatitude, double endLongitude) async {
+    try {
+      // Get the current position of the device
+      Position position = await Geolocator.getCurrentPosition();
 
-    double startLatitude = position.latitude;
-    double startLongitude = position.longitude;
+      double startLatitude = position.latitude;
+      double startLongitude = position.longitude;
 
-    double value = Geolocator.distanceBetween(
-        startLatitude, startLongitude, endLatitude, endLongitude);
-    return "Distance: ${value / 1000} km";
+      // Calculate the distance between the current position and the driver's location
+      double distance = Geolocator.distanceBetween(
+          startLatitude, startLongitude, endLatitude, endLongitude);
+
+      // Estimate travel time based on an average speed (e.g., 50 km/h)
+      const double averageSpeedKmPerHour = 30.0; // Adjust based on use case
+      double timeInHours = (distance / 1000) / averageSpeedKmPerHour;
+
+      // Convert time to hours and minutes
+      int hours = timeInHours.floor();
+      int minutes = ((timeInHours - hours) * 60).round();
+
+      // Format the distance and time
+      String formattedDistance = "${(distance / 1000).toStringAsFixed(2)} km";
+      String formattedTime = (hours > 0)
+          ? "$hours h ${minutes} m"
+          : "$minutes m"; // Display only minutes if < 1 hour
+
+      return "$formattedDistance, Time: $formattedTime";
+    } catch (e) {
+      // Handle location errors
+      return "unknown";
+    }
   }
 }
 

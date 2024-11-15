@@ -18,12 +18,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../login_screen.dart';
 import 'dart:async';
 
+late Function(bool) function;
+bool is_tracking = false;
+
 class MainAppScreen extends StatefulWidget {
   @override
   _MainAppScreenState createState() => _MainAppScreenState();
 }
 
 class _MainAppScreenState extends State<MainAppScreen> {
+  Stream<bool>? stream;
   bool isDrawerOpen = false;
   File? _profileImage;
   double _walletBalance = 1500.0;
@@ -32,7 +36,6 @@ class _MainAppScreenState extends State<MainAppScreen> {
   // bool _isLoading = true;
   String? _paymentUrl;
   String? _authToken;
-  static bool is_tracking = false;
 
   bool _isRideInfoVisible =
       false; // New state to control RideInfoCard visibility
@@ -44,11 +47,17 @@ class _MainAppScreenState extends State<MainAppScreen> {
     super.initState();
     _initializeScreen();
     checkData(); // make it to check frist
+    function = change;
   }
 
-  void _change(bool value) {
+  void change(bool value) {
+    print("ehheheesmnssss eheehehheh ${is_tracking}");
     setState(() {
-      is_tracking = true;
+      is_tracking = value;
+      if (!is_tracking) {
+        _checkAuthentication();
+        _isLoading = true;
+      }
     });
   }
 
@@ -62,7 +71,10 @@ class _MainAppScreenState extends State<MainAppScreen> {
         photoUrl: prefs.getString('photoUrl') ?? '',
         distance: prefs.getString('distance') ?? '0',
         time: prefs.getString('time') ?? '',
+        change: function,
       );
+
+      // change();
 
       // Show the RideInfoCard if data exists
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -78,11 +90,19 @@ class _MainAppScreenState extends State<MainAppScreen> {
     }
   }
 
-  void _toggleRideInfoCard() {
+  void _toggleRideInfoCard() async {
+    final prefs = await SharedPreferences.getInstance();
     showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        builder: (_) => rideInfoCard!);
+        builder: (_) => rideInfoCard = RideInfoCard(
+              name: prefs.getString('name') ?? '',
+              phone: prefs.getString('phone') ?? '',
+              photoUrl: prefs.getString('photoUrl') ?? '',
+              distance: prefs.getString('distance') ?? '0',
+              time: prefs.getString('time') ?? '',
+              change: function,
+            ));
   }
 
   Future<void> _initializeScreen() async {
@@ -278,9 +298,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
 
     if (_walletBalance >= 1500) {
       return FloatingActionButton.extended(
-        onPressed: _MainAppScreenState.is_tracking
-            ? _toggleRideInfoCard
-            : _showOrderForm,
+        onPressed: is_tracking ? _toggleRideInfoCard : _showOrderForm,
         backgroundColor: Colors.transparent,
         icon: Icon(FontAwesomeIcons.bell, color: Colors.white),
         label: Container(
@@ -292,7 +310,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
           ),
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Text(
-            _MainAppScreenState.is_tracking ? "See your order" : "Order Now",
+            is_tracking ? "See your order" : "Order Now",
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
         ),
@@ -620,25 +638,19 @@ class RideInfoCard extends StatefulWidget {
   final String photoUrl;
   final String distance;
   final String time;
+  final Function(bool) change;
 
-  const RideInfoCard({
-    Key? key,
+  RideInfoCard({
     required this.name,
     required this.phone,
     required this.photoUrl,
     required this.distance,
     required this.time,
-  }) : super(key: key);
+    required this.change,
+  });
 
   @override
   _RideInfoCardState createState() => _RideInfoCardState();
-
-  // Public method to update ride info
-  void updateRideInfo(String newDistance, String newTime) {
-    // This will be called from outside the widget
-    final state = this.createState();
-    state._updateRideInfo(newDistance, newTime);
-  }
 }
 
 class _RideInfoCardState extends State<RideInfoCard>
@@ -650,9 +662,6 @@ class _RideInfoCardState extends State<RideInfoCard>
   late String _currentTime;
 
   // StreamController to update distance and time
-  final StreamController<Map<String, String>> _rideInfoController =
-      StreamController<Map<String, String>>();
-  _MainAppScreenState main = _MainAppScreenState();
 
   bool _isOpen = true; // New variable to control visibility
 
@@ -677,28 +686,11 @@ class _RideInfoCardState extends State<RideInfoCard>
 
     _controller.forward();
     saveData();
-
-    // Listen to the stream and update the UI
-    _rideInfoController.stream.listen((data) {
-      setState(() {
-        _currentDistance = data['distance'] ?? _currentDistance;
-        _currentTime = data['time'] ?? _currentTime;
-      });
-    });
-  }
-
-  // Private method to update ride info state
-  void _updateRideInfo(String newDistance, String newTime) {
-    // Send new data to the stream
-    _rideInfoController.add({
-      'distance': newDistance,
-      'time': newTime,
-    });
   }
 
   @override
   void dispose() {
-    _rideInfoController.close(); // Close stream controller
+// Close stream controller
     _controller.dispose();
     super.dispose();
   }
@@ -712,9 +704,7 @@ class _RideInfoCardState extends State<RideInfoCard>
     await prefs.setString('distance', _currentDistance);
     await prefs.setString('time', _currentTime);
 
-    setState(() {
-      _MainAppScreenState.is_tracking = true;
-    });
+    widget.change(true);
   }
 
   // Function to handle completion
@@ -738,6 +728,7 @@ class _RideInfoCardState extends State<RideInfoCard>
         SnackBar(content: Text('Ride set completed successfully!')),
       );
       prefs.remove("name");
+      widget.change(false);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -788,14 +779,14 @@ class _RideInfoCardState extends State<RideInfoCard>
   Widget build(BuildContext context) {
     print("shsssssssssssss" + widget.photoUrl);
 
-    final res = http.get(
-      Uri.parse(Config.imagebaseUrl + widget.photoUrl),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    );
+    // final res = http.get(
+    //   Uri.parse(Config.imagebaseUrl + widget.photoUrl),
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //   },
+    // );
 
-    print(res);
+    // print(res);
 
     return SlideTransition(
       position: _offsetAnimation,

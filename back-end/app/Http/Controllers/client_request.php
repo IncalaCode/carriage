@@ -325,7 +325,7 @@ class client_request extends Controller
         return response()->json([
             "name" => $driver->first_name . " " . $driver->last_name,
             "phone" => $driver->phone_number,
-            "image" => Storage::url("car_plate_photo/UIVZkulq1Tzh1ftnILnBqJaJFigBpgYEmF82THRG.jpg"),
+            "image" => array( Storage::url("user_photo/" . $driver->user_photo),Storage::url("driver_licence_photos/" . $driver->driver_license_photo),Storage::url("car_plate_photo/" . $driver->car_plate_photo)) ,
             'latitude' => $driverRequest->latitude,
             'longitude' => $driverRequest->longitude
         ] , 303);
