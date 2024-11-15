@@ -12,13 +12,6 @@ use Illuminate\Support\Facades\Cache;
 
 class ReferralController extends Controller
 {
-    public function generateReferralLink($driverId)
-    {
-        $driver = Driver::findOrFail($driverId);
-        $referralLink = url('/referral?ref=' . $driver->id);
-
-        return response()->json(['referral_link' => $referralLink]);
-    }
     public function referralLandingPage(Request $request)
     {
         $driverId = $request->query('ref');
@@ -87,4 +80,6 @@ class ReferralController extends Controller
             ]);
         }
     }
+
+    
 }

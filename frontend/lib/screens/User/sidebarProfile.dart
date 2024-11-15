@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:io';
@@ -41,13 +40,11 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Text('Cancel'),
             ),
             TextButton(
-              onPressed: () {
-                Future<void> logout() async {
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.remove('authToken');
-                  // After this, navigate to the login page
-                }
-
+              onPressed: () async {
+                // Delete token and navigate to login screen
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.remove('authToken');
+                
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => LoginScreen()),
@@ -101,7 +98,14 @@ class _ProfilePageState extends State<ProfilePage> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => EditProfilePage()),
+                MaterialPageRoute(
+                  builder: (context) => EditProfilePage(
+                    profileImage: _profileImage,
+                    firstName: 'Jabez',
+                    lastName: 'Hap',
+                    phoneNumber: '+251 963 488 972',
+                  ),
+                ),
               );
             },
           ),
@@ -114,25 +118,19 @@ class _ProfilePageState extends State<ProfilePage> {
           children: [
             GestureDetector(
               onTap: _pickImage,
-              child: _profileImage == null
-                  ? CircleAvatar(
-                      radius: 50,
-                      child: Icon(
+              child: CircleAvatar(
+                radius: 50,
+                backgroundImage: _profileImage != null
+                    ? FileImage(_profileImage!)
+                    : null,
+                child: _profileImage == null
+                    ? Icon(
                         FontAwesomeIcons.user,
                         size: 50,
                         color: const Color.fromARGB(255, 52, 52, 52),
-                      ),
-                    )
-                  : Container(
-                      width: double.infinity,
-                      height: MediaQuery.of(context).size.height * 0.4,
-                      decoration: BoxDecoration(
-                        image: DecorationImage(
-                          image: FileImage(_profileImage!),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
+                      )
+                    : null,
+              ),
             ),
             SizedBox(height: 20),
             Center(
@@ -142,23 +140,9 @@ class _ProfilePageState extends State<ProfilePage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      FaIcon(FontAwesomeIcons.user, size: 20, color: Colors.grey),
-                      SizedBox(width: 10),
                       Text(
                         'Jabez Hap',
                         style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      FaIcon(FontAwesomeIcons.envelope, size: 20, color: Colors.grey),
-                      SizedBox(width: 10),
-                      Text(
-                        'Jabez@gmail.com',
-                        style: TextStyle(fontSize: 18, color: Colors.grey),
                       ),
                     ],
                   ),
@@ -177,6 +161,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 ],
               ),
             ),
+            SizedBox(height: 20),
             Spacer(),
             Container(
               width: double.infinity,

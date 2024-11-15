@@ -1,13 +1,321 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../config.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import '../login_screen.dart';
 
-class WalletPagedriver extends StatelessWidget {
-  // Example data for recent transactions
-  final List<Map<String, String>> recentTransactions = [
-    {'amount': '\$200', 'date': 'Oct 5, 2024', 'type': 'withdrawal'},
-    {'amount': '\$50', 'date': 'Oct 3, 2024', 'type': 'withdrawal'},
-    {'amount': '\$150', 'date': 'Oct 1, 2024', 'type': 'deposit'},
-  ];
+class WalletDriverPage extends StatefulWidget {
+  @override
+  _WalletDriverPageState createState() => _WalletDriverPageState();
+}
+
+class _WalletDriverPageState extends State<WalletDriverPage> {
+  double balance = 0.0;
+  bool isLoading = true;
+  String? _authToken;
+  String? _paymentUrl;
+  String? _txRef;
+  List<Map<String, dynamic>> transactions = [];
+  List<Map<String, dynamic>> recentTransactions = [];
+
+  @override
+  void initState() {
+    super.initState();
+    print('🚀 initState called');
+    _initializeWallet();
+  }
+
+  Future<void> _initializeWallet() async {
+    try {
+      print('🏁 Starting wallet initialization');
+      await _loadAuthToken();
+      if (mounted) {
+        await fetchWalletBalance();
+      }
+    } catch (e) {
+      print('❌ Initialization error: $e');
+    }
+  }
+
+  Future<void> _loadAuthToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _authToken = prefs.getString('authToken');
+        print('🔑 Loaded auth token: $_authToken');
+      });
+    }
+  }
+
+  Future<void> _initiatePayment() async {
+    if (_authToken == null) {
+      print('❌ No auth token available for payment');
+      return;
+    }
+
+    try {
+      print('💳 Initiating payment process...');
+      final url = Uri.parse('${Config.baseUrl}/driver/request/initiate-payment');
+      print('🔗 Payment endpoint URL: $url');
+      print('🔑 Using Authorization Header: $_authToken');
+
+      final value = json.encode({
+        'token': _authToken,
+      });
+      print('🔑 Using Authorization Header: $value');
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: value,
+      );
+
+      print('💳 Payment Initiation Response Status: ${response.statusCode}');
+      print('💳 Payment Initiation Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('🔗 Payment URL Received: ${data['payment_url']}');
+        print('🔗 Payment URL Received: ${data['tx_ref']}');
+        setState(() {
+          _paymentUrl = data['payment_url'];
+          _txRef = data['tx_ref'];
+        });
+        _showPaymentWebView();
+      } else {
+        print('❌ Error Response: ${response.body}');
+        throw Exception('Failed to initiate payment: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Payment Initiation Error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to initiate payment. Please try again.')),
+      );
+    }
+  }
+
+  void _showPaymentWebView() async {
+    if (_paymentUrl == null) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            title: Text('Payment'),
+            backgroundColor: Colors.black,
+          ),
+          body: WebView(
+            initialUrl: _paymentUrl,
+            javascriptMode: JavascriptMode.unrestricted,
+            navigationDelegate: (NavigationRequest request) {
+              print('🔄 Navigation to: ${request.url}');
+              _confirmPayment(_txRef!);
+              return NavigationDecision.prevent;
+            },
+            onWebResourceError: (WebResourceError error) {
+              print('🚨 Web Resource Error: ${error.description}');
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmPayment(String txref) async {
+    try {
+      print('✅ Confirming payment with backend...');
+      final response = await http.post(
+        Uri.parse('${Config.baseUrl}/driver/request/confirm-payment'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'tx_ref': txref,
+          'token': _authToken!,
+        }),
+      );
+
+      print('✅ Payment Confirmation Status: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        print('✅ Payment confirmed successfully');
+        Navigator.pop(context); // Close WebView
+        
+        // Fetch updated wallet balance
+        await fetchWalletBalance();
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Payment successful! Wallet has been updated.')),
+        );
+      } else {
+        throw Exception('Payment confirmation failed');
+      }
+    } catch (e) {
+      print('❌ Payment Confirmation Error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Payment confirmation failed. Please contact support.')),
+      );
+    }
+  }
+
+  Future<void> fetchWalletBalance() async {
+    if (!mounted) return;
+
+    setState(() {
+      isLoading = true;
+    });
+    
+    if (_authToken == null) {
+      print('❌ No auth token available');
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      print('💰 Fetching wallet balance and transactions... $_authToken');
+      final url = Uri.parse('${Config.baseUrl}/driver/wallet/balance');
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'token': _authToken,
+        }),
+      );
+
+      print('📥 Response status code: ${response.statusCode}');
+      print('📥 Response body: ${response.body}');
+
+      if (!mounted) return;
+
+      if (response.statusCode == 404) {
+        setState(() {
+          isLoading = false;
+        });
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => LoginScreen()),
+        );
+        return;
+      }
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('✅ Successfully decoded JSON data: $data');
+        
+        setState(() {
+          balance = data['balance'] is String 
+              ? double.parse(data['balance']) 
+              : (data['balance'] as num).toDouble();
+          
+          if (data['transactions'] != null) {
+            transactions = List<Map<String, dynamic>>.from(data['transactions'].map((tx) => {
+              'amount': tx['amount'].toString(),
+              'date': DateTime.parse(tx['created_at']).toString().split(' ')[0],
+              'type': tx['type'],
+              'status': tx['status'] ?? 'Unknown',
+            }));
+
+            recentTransactions = transactions.take(3).toList();
+          }
+          
+          isLoading = false;
+        });
+        print('💰 Updated balance to: $balance');
+        print('📊 Updated transactions: $transactions');
+      } else {
+        throw Exception('Failed to load wallet balance: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Error fetching wallet data: $e');
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  Widget buildRecentTransactionTable() {
+    if (recentTransactions.isEmpty) {
+      return Center(child: Text('No recent transactions found'));
+    }
+
+    return Table(
+      border: TableBorder.all(width: 1.0, color: Colors.grey),
+      children: [
+        TableRow(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text('Amount'),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text('Date'),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text('Type'),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text('Status'),
+            ),
+          ],
+        ),
+        ...recentTransactions.map((transaction) {
+          IconData transactionIcon = transaction['type'] == 'deposit'
+              ? FontAwesomeIcons.arrowDown
+              : FontAwesomeIcons.arrowUp;
+          Color iconColor = transaction['type'] == 'deposit'
+              ? Colors.green
+              : Colors.red;
+
+          return TableRow(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  children: [
+                    Icon(transactionIcon, color: iconColor, size: 16),
+                    SizedBox(width: 8),
+                    Text('${transaction['amount']}'),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(transaction['date']),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(
+                  transaction['type'],
+                  style: TextStyle(
+                    color: transaction['type'] == 'deposit'
+                        ? Colors.green
+                        : Colors.red,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(
+                  transaction['status'] ?? 'Unknown',
+                ),
+              ),
+            ],
+          );
+        }).toList(),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,17 +327,19 @@ class WalletPagedriver extends StatelessWidget {
             Navigator.pop(context); // Back functionality
           },
         ),
-        title: Text('Wallet'),
+        title: Text('Wallet Driver'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Current Balance: \$1000',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
+            isLoading 
+              ? CircularProgressIndicator()
+              : Text(
+                  'Current Balance: ${balance.toStringAsFixed(2)} ETB',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
             SizedBox(height: 20),
 
             // Deposit Buttons with Gradient Backgrounds
@@ -45,16 +355,14 @@ class WalletPagedriver extends StatelessWidget {
                       borderRadius: BorderRadius.circular(5),
                     ),
                     child: ElevatedButton(
-                      onPressed: () {
-                        // Deposit via CBE functionality
-                      },
+                      onPressed: _initiatePayment,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
                         padding: EdgeInsets.symmetric(vertical: 12),
                       ),
                       child: Text(
-                        'Deposit via CBE',
+                        'Deposit Money',
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -82,7 +390,7 @@ class WalletPagedriver extends StatelessWidget {
                         padding: EdgeInsets.symmetric(vertical: 12),
                       ),
                       child: Text(
-                        'Deposit via Telebirr',
+                        'Withdraw Money',
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,),
@@ -114,48 +422,8 @@ class WalletPagedriver extends StatelessWidget {
             ),
             SizedBox(height: 10),
 
-            // Display recent 3 transactions in a table with icons
-            Table(
-              border: TableBorder.all(width: 1.0, color: Colors.grey),
-              children: recentTransactions.map((transaction) {
-                IconData transactionIcon = transaction['type'] == 'deposit'
-                    ? FontAwesomeIcons.arrowDown
-                    : FontAwesomeIcons.arrowUp;
-                Color iconColor = transaction['type'] == 'deposit'
-                    ? Colors.green
-                    : Colors.red;
-
-                return TableRow(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Row(
-                        children: [
-                          Icon(transactionIcon, color: iconColor, size: 16),
-                          SizedBox(width: 8),
-                          Text(transaction['amount']!),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text(transaction['date']!),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text(
-                        transaction['type']!,
-                        style: TextStyle(
-                          color: transaction['type'] == 'deposit'
-                              ? Colors.green
-                              : Colors.red,
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              }).toList(),
-            ),
+            // Display recent transactions in a table with icons
+            buildRecentTransactionTable(),
           ],
         ),
       ),

@@ -1,19 +1,14 @@
-import 'package:My_truck/screens/config.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'sidebarProfile.dart';
 import 'sidebarWallet.dart';
 import './sidebarMyOrder.dart';
 import 'sidebarSettings.dart';
 import 'Order_form_screen.dart';
 import 'user_map/user_map_component.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 import '../login_screen.dart';
 import 'dart:async';
@@ -21,21 +16,23 @@ import 'dart:async';
 late Function(bool) function;
 bool is_tracking = false;
 
+
 class MainAppScreen extends StatefulWidget {
   @override
   _MainAppScreenState createState() => _MainAppScreenState();
 }
 
 class _MainAppScreenState extends State<MainAppScreen> {
+
   Stream<bool>? stream;
   bool isDrawerOpen = false;
+
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
   File? _profileImage;
-  double _walletBalance = 1500.0;
-  bool _isLoading = false;
-  //   double _walletBalance = 0.0;
-  // bool _isLoading = true;
-  String? _paymentUrl;
-  String? _authToken;
+  double _buttonScale = 1.0;
+  bool _isIconRotated = false;
+
 
   bool _isRideInfoVisible =
       false; // New state to control RideInfoCard visibility
@@ -177,98 +174,19 @@ class _MainAppScreenState extends State<MainAppScreen> {
   Future<void> _initiatePayment() async {
     if (_authToken == null) return;
 
-    try {
-      final url = Uri.parse('${Config.baseUrl}/user/request/initiate-payment');
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': _authToken!,
-        },
-        body: json.encode({
-          'token': _authToken,
-        }),
-      );
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+  Future<void> _pickImage() async {
+    try {
+      final pickedFile =
+          await ImagePicker().pickImage(source: ImageSource.gallery);
+      if (pickedFile != null) {
         setState(() {
-          _paymentUrl = data['payment_url'];
+          _profileImage = File(pickedFile.path);
         });
-        _showPaymentWebView();
-      } else {
-        throw Exception('Failed to initiate payment: ${response.statusCode}');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('Failed to initiate payment. Please try again.')),
-      );
-    }
-  }
-
-  void _showPaymentWebView() async {
-    if (_paymentUrl == null) return;
-
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: Text('Payment'),
-            backgroundColor: Colors.black,
-          ),
-          body: WebView(
-            initialUrl: _paymentUrl,
-            javascriptMode: JavascriptMode.unrestricted,
-            navigationDelegate: (NavigationRequest request) {
-              print(request);
-              if (request.url.contains('success')) {
-                final uri = Uri.parse(request.url);
-                final txref = uri.queryParameters['tx_ref'];
-                final uid = uri.queryParameters['uid'];
-
-                if (txref != null && uid != null) {
-                  _confirmPayment(txref, uid);
-                  return NavigationDecision.prevent;
-                }
-              }
-              return NavigationDecision.navigate;
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _confirmPayment(String txref, String uid) async {
-    try {
-      final response = await http.post(
-        Uri.parse('${Config.baseUrl}/user/request/confirm-payment'),
-        headers: {
-          'Authorization': _authToken!,
-          'Content-Type': 'application/json',
-        },
-        body: json.encode({
-          'tx_ref': txref,
-          'token': _authToken,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        Navigator.of(context).pop(); // Close WebView
-        await _fetchWalletBalance(); // Refresh wallet balance
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Payment successful! Wallet has been updated.')),
-        );
-      } else {
-        throw Exception('Payment confirmation failed');
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content:
-                Text('Payment confirmation failed. Please contact support.')),
+        SnackBar(content: Text('Failed to pick image: $e')),
       );
     }
   }
@@ -279,6 +197,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       MaterialPageRoute(builder: (context) => OrderForm()),
     );
   }
+
 
   Widget _buildOrderButton() {
     if (_isLoading) {
@@ -354,42 +273,13 @@ class _MainAppScreenState extends State<MainAppScreen> {
     }
   }
 
+
   @override
+
+  
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF000000), Color(0xFF9A839E)],
-            ),
-          ),
-        ),
-        toolbarHeight: 80,
-        centerTitle: true,
-        title: Padding(
-          padding: const EdgeInsets.only(top: 50),
-          child: Image.asset('assets/Nave.png', height: 100),
-        ),
-        actions: [
-          Padding(
-            padding: EdgeInsets.only(top: 0, right: 16.0),
-            child: Builder(
-              builder: (context) => IconButton(
-                icon: Icon(FontAwesomeIcons.bars, color: Colors.white),
-                onPressed: () {
-                  setState(() {
-                    isDrawerOpen = true;
-                  });
-                  Scaffold.of(context).openDrawer();
-                },
-              ),
-            ),
-          ),
-        ],
-      ),
+      key: _scaffoldKey,
       drawer: Drawer(
         child: Column(
           children: [
@@ -442,65 +332,184 @@ class _MainAppScreenState extends State<MainAppScreen> {
                       ),
                     ],
                   ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Welcome,',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'User!',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
             Expanded(
               child: ListView(
                 children: [
-                  _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context,
-                      () {
-                    Navigator.pop(context); // Close the drawer
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => ProfilePage()),
-                    );
-                  }),
-                  _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context,
-                      () {
+                  _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context, () {
                     Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => WalletPage()),
-                    );
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePage()));
                   }),
-                  _buildDrawerItem(
-                      FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
+                  _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context, () {
                     Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => MyOrdersPage()),
-                    );
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => WalletPage()));
                   }),
-                  _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context,
-                      () {
+                  _buildDrawerItem(FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
                     Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => SettingsPage()),
-                    );
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => MyOrdersPage()));
+                  }),
+                  _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context, () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsPage()));
                   }),
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),
       body: Stack(
         children: [
           UserMapComponent(),
+
+          
+          // Floating Nav Menu Icon
+          Positioned(
+            top: 30,
+            left: 20,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF000000), Color(0xFF9A839E)],
+                ),
+                borderRadius: BorderRadius.circular(15),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: Offset(2, 4),
+                  ),
+                ],
+              ),
+              child: FloatingActionButton(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                hoverElevation: 0,
+                focusElevation: 0,
+                highlightElevation: 0,
+                mini: true,
+                child: Icon(
+                  FontAwesomeIcons.bars,
+                  color: Colors.white, // Set icon color to white
+                ),
+                onPressed: () {
+                  _scaffoldKey.currentState?.openDrawer();
+                },
+              ),
+            ),
+          ),
+
+          // Floating Logo with Gradient Background
+          Positioned(
+            top: 30,
+            right: 20,
+            child: Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF000000), Color(0xFF9A839E)],
+                ),
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black45,
+                    blurRadius: 10,
+                    offset: Offset(2, 2),
+                  ),
+                ],
+              ),
+              child: Image.asset(
+                'assets/NewLogo.png',
+                height: 50,
+              ),
+            ),
+          ),
+
+          // Floating Order Button
+
           Positioned(
             bottom: 20,
             right: 20,
-            child: _buildOrderButton(),
+            child: GestureDetector(
+              onTapDown: (_) {
+                setState(() {
+                  _buttonScale = 0.95; // Slightly shrink the button
+                  _isIconRotated = !_isIconRotated; // Toggle the icon animation
+                });
+              },
+              onTapUp: (_) {
+                setState(() {
+                  _buttonScale = 1.0; // Reset button size
+                });
+              },
+              child: Transform.scale(
+                scale: _buttonScale,
+                child: FloatingActionButton.extended(
+                  onPressed: () {
+                    // Navigate to the order form
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => OrderForm()),
+                    );
+                  },
+                  backgroundColor: Colors.transparent,
+                  icon: AnimatedRotation(
+                    duration: Duration(milliseconds: 300),
+                    turns: _isIconRotated ? 1.0 : 0.0, // 1 full rotation
+                    child: Icon(
+                      FontAwesomeIcons.add,
+                      color: Colors.white,
+                    ),
+                  ),
+                  label: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF000000), Color(0xFF9A839E)],
+                      ),
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Text(
+                      'Order Now',
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildDrawerItem(
-      IconData icon, String title, BuildContext context, Function onTap) {
+  Widget _buildDrawerItem(IconData icon, String title, BuildContext context, Function onTap) {
     return ListTile(
       leading: Icon(icon, color: Colors.black),
       title: Text(
@@ -515,13 +524,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       onTap: () => onTap(),
     );
   }
-}
 
-// Add payment verification function
-Future<bool> _verifyPayment() async {
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('authToken');
 
     print('Verifying payment with token: $token'); // Debug print
 
@@ -841,3 +844,4 @@ class _RideInfoCardState extends State<RideInfoCard>
     );
   }
 }
+

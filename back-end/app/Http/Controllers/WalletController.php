@@ -4,16 +4,32 @@ namespace App\Http\Controllers;
 
 use App\Models\Wallet;
 use App\Models\Transaction;
+use App\Models\DriverWallet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Models\DriverRequest;
 
 class WalletController extends Controller
 {
-    public function getBalance(Request $request)
+    public function usergetBalance(Request $request)
     {
-        $wallet = Wallet::where('user_id', $request->user()->id)->firstOrFail();
-        return response()->json(['balance' => $wallet->balance]);
+        $wallet = Wallet::where('user_id', $request->input('token'))->first();
+
+        if($wallet){
+            return response()->json(['balance' => $wallet->balance , ...$this->getTransactionHistoryUser($request)]);
+        }else{
+            return response()->json(['error' => 'Wallet not found'], 404);
+        }
+    }
+    public function drivergetBalance(Request $request)
+    {
+        $wallet = DriverWallet::where('driver_id', $request->input('token'))->first();
+        if($wallet){
+            return response()->json(['balance' => $wallet->balance, ...$this->getTransactionHistoryDriver($request)]);
+        }else{
+            return response()->json(['error' => 'Wallet not found'], 303);
+        }
     }
 
     public function deposit(Request $request)
@@ -68,39 +84,32 @@ class WalletController extends Controller
     }
 
 
-    public function transactionHistory(Request $request)
+
+    public function getTransactionHistoryUser(Request $request)
     {
-        $wallet = Wallet::where('user_id', $request->user()->id)->firstOrFail();
-        $transactions = $wallet->transactions()->latest()->get();
+        $wallet = Wallet::where('user_id', $request->input('token'))->first();
+        
+        if (!$wallet) {
+            return response()->json(['error' => 'Wallet not found for this driver'], 404);
+        }
+        $transactions = Transaction::where('wallet_id', $request->input('token'))
+            ->select('amount', 'type', 'description', 'status', 'created_at')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-        return response()->json($transactions);
+        return ['transactions' => $transactions ?? []];
     }
-    // public function deposit(Request $request)
-    // {
-    //     $request->validate([
-    //         'amount' => 'required|numeric|min:1',
-    //     ]);
 
-    //     $wallet = Wallet::firstOrCreate(['user_id' => $request->user()->id]);
-
-    //     $amount = $request->input('amount');
-    //     try {
-    //         DB::transaction(function () use ($wallet, $amount) {
-    //             $wallet->increment('balance', $amount);
-
-    //             Transaction::create([
-    //                 'wallet_id' => $wallet->id,
-    //                 'type' => 'deposit',
-    //                 'amount' => $amount,
-    //                 'description' => 'User deposit',
-    //             ]);
-    //         });
-    //     } catch (\Exception $e) {
-    //         // You may want to log the error for debugging purposes
-    //         \Log::error('Transaction failed: ' . $e->getMessage());
-    //         return response()->json(['error' => 'Transaction failed'], 500);
-    //     }
-
-    //     return response()->json(['message' => 'Deposit successful']);
-    // }
+    function getTransactionHistoryDriver(Request $request)
+    {
+        $wallet = DriverWallet::where('driver_id', $request->input('token'))->first();
+        
+        if (!$wallet) {
+            return response()->json(['error' => 'Wallet not found for this driver'], 404);
+        }
+        $transactions = Transaction::where('wallet_id', $request->input('token'))
+            ->select('amount', 'type', 'description', 'status', 'created_at')
+            ->get();
+        return ['transactions' => $transactions ?? []];
+    }
 }

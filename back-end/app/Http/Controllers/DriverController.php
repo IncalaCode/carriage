@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
 use App\Models\RequestModel;
 use Illuminate\Support\Facades\Cache;
-use App\Models\Wallet;
+use App\Models\DriverWallet;
 
 require_once "otp.php";
 
@@ -63,9 +63,11 @@ class DriverController extends Controller
             'otp' => rand(1000, 9999), // Store the OTP
         ]);
 
+        $driver = Driver::where('phone_number', $request->phone_number)->first(); 
+
         // Create wallet for the driver
-        Wallet::create([
-            'driver_id' => $driver->id,
+        DriverWallet::create([
+            'driver_id' => $driver->uid,
             'balance' => 0.00, // Initial balance
         ]);
 
@@ -74,7 +76,7 @@ class DriverController extends Controller
 
         // Return success response
         return response()->json([
-            'message' => 'OTP sent successfully!',
+            'message' => 'OTP sent successfully!' . $driver,
             'otp_response' => $response,
             "token" => $driver->uuid
         ], 200);
@@ -222,6 +224,8 @@ class DriverController extends Controller
                 // Increment the referral count
                 $driver->referral_count += 1;
                 $driver->save();
+
+                
 
                 // Optionally, remove the phone from cache after incrementing referral count
                 Cache::forget($phone);

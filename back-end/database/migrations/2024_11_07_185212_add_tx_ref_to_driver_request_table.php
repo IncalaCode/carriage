@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('driverRequest', function (Blueprint $table) {
-            $table->string('tx_ref')->nullable()->after('column_name'); // Replace 'column_name' with the column after which you want to place `tx_ref`
+            $table->string('tx_ref')->nullable(); // Replace 'column_name' with the column after which you want to place `tx_ref`
         });
     }
 

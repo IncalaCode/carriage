@@ -46,13 +46,14 @@ dependencies:
 flutter:
   assets:
     - assets/splash_video.mp4
-    - assets/logo.png  # Your logo image
+    - assets/logo.png
     - assets/app_icon.png
     - assets/Nave.png
     - assets/truck.jpg
     - assets/suv.jpg
     - assets/sedan.jpg
     - assets/van.jpg
+    - assets/NewLogo.png
 
   fonts:
     - family: NotoSans
