@@ -5,12 +5,16 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Driver;
 use Illuminate\Support\Facades\Storage; 
+use Illuminate\Support\Facades\Validator;
 
 
 class DriverProfileController extends Controller
 {
-    public function getProfile( $value)
-    {
+    public function getProfile(Request $request)
+     {
+       
+        $value = $request->input("token");
+
         $driver = Driver::where('uid', $value)->first();
         if (!$driver) {
             return response()->json(['error' => 'Driver not found'], 404);
@@ -39,14 +43,22 @@ class DriverProfileController extends Controller
 
     public function updateProfile(Request $request)
     {
-        $request->validate([
+
+        $validator = Validator::make($request->all(), [
             'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'phone_number' => 'required|string|max:15',
-            "image" =>  'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'last_name' => 'required|string|max:255', // password_confirmation field should be present
         ]);
 
-        $driver =  Driver::where('phone_number', $request->phone_number)->first();
+
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+
+
+        $driver =  Driver::where('uid', $request->token)->first();
         if (!$driver) {
             return response()->json(['error' => 'Driver not found'], 404);
         }
@@ -146,8 +158,8 @@ class DriverProfileController extends Controller
 
     public function generateReferralLink($driverId)
     {
-        $driver = Driver::findOrFail($driverId);
-        $referralLink = url('/referral?ref=' . $driver->id);
+        $driver = Driver::where("uid",$driverId);
+        $referralLink = url('/referral?ref=' . $driverId);
 
         return  $referralLink;
     }
