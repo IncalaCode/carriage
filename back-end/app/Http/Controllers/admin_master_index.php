@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Driver;
 use App\Models\User;
+use App\Models\Transaction;
 
 use function PHPUnit\Framework\isEmpty;
 
@@ -24,6 +25,32 @@ class admin_master_index extends Controller
     /**
      * Display drivers page with search and pagination functionality.
      */
+    public function dashboardPage()
+    {
+        // Fetch counts
+        $totalUsers = User::count();
+        $totalDrivers = Driver::count();
+        $totalTransactions = Transaction::count();
+        $referralDrivers = Driver::whereNotNull('referral_count')->sum('referral_count');
+
+
+        // Fetch monthly registrations
+        $userMonthlyRegistrations = User::selectRaw('MONTH(created_at) as month, COUNT(*) as count')
+            ->groupBy('month')
+            ->pluck('count', 'month');
+        $driverMonthlyRegistrations = Driver::selectRaw('MONTH(created_at) as month, COUNT(*) as count')
+            ->groupBy('month')
+            ->pluck('count', 'month');
+
+        return view('admin.dashboard', compact(
+            'totalUsers',
+            'totalDrivers',
+            'totalTransactions',
+            'referralDrivers',
+            'userMonthlyRegistrations',
+            'driverMonthlyRegistrations'
+        ));
+    }
     public function driverPage(Request $request)
     {
         $query = Driver::query();

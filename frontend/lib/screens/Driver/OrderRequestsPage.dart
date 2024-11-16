@@ -17,6 +17,7 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
   late DriverHook driverHook;
   List<Map<String, dynamic>> orderRequests = [];
   bool loading = false;
+  bool is_submit = false;
 
   @override
   void initState() {
@@ -56,7 +57,11 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
         setState(() {
           if (data['requests'] != null) {
             orderRequests = List<Map<String, dynamic>>.from(data['requests']);
-            loading = false;
+            if (!orderRequests.isEmpty) {
+              loading = false;
+            } else {
+              loading = true;
+            }
           }
           if (data['message'] != null) {
             message = data['message'];
@@ -69,6 +74,7 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
   Future<void> _acceptOrder(int index, String price, String requestId) async {
     try {
       setState(() => loading = true);
+      setState(() => is_submit = false);
 
       await driverHook.acceptRequest(requestId, price);
 
@@ -79,6 +85,7 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
       );
     } finally {
       setState(() => loading = false);
+      setState(() => is_submit = false);
     }
   }
 
@@ -153,8 +160,9 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
                           order['is_accepted_by_driver'] ?? ""),
                     ),
                     onTap: () {
-                      order['is_accepted_by_driver'] ??
-                          _showOrderDetails(context, order, index);
+                      if (order['is_accepted_by_driver'] == false) {
+                        _showOrderDetails(context, order, index);
+                      }
                     },
                   ),
                 );
@@ -231,18 +239,21 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
             ],
           ),
           actions: [
-            TextButton(
-              onPressed: () {
-                if (price != null && price!.isNotEmpty) {
-                  _acceptOrder(index, price!, order['request_id'].toString());
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Please enter a price')),
-                  );
-                }
-              },
-              child: Text('Submit'),
-            ),
+            is_submit
+                ? Center(child: CircularProgressIndicator())
+                : TextButton(
+                    onPressed: () {
+                      if (price != null && price!.isNotEmpty) {
+                        _acceptOrder(
+                            index, price!, order['request_id'].toString());
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Please enter a price')),
+                        );
+                      }
+                    },
+                    child: Text('Submit'),
+                  ),
           ],
         );
       },

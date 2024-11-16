@@ -11,10 +11,13 @@ class ProfileController extends Controller
 {
     // Method to show the user profile
     public function show(Request $request)
+    public function show(Request $request)
     {
+        $value = $request->input("token");
        $value=$request->input("token");
        $user=User::where('uid',$value)->first();
 
+        $user = User::where('uid', $value)->first();
         if (!$user) {
             return response()->json(['error' => 'User not found'], 404);
         }

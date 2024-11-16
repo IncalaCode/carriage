@@ -133,7 +133,7 @@
                         </ul>
                     </nav>
                     @else
-                    <div>No results found.</div>
+                    <!-- <div>No results found.</div> -->
                     @endif
                 </div>
 

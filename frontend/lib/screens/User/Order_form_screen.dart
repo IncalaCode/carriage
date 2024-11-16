@@ -1,4 +1,3 @@
-import 'package:My_truck/screens/config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -7,6 +6,9 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'user_map/user_hook.dart';
+import 'package:geolocator/geolocator.dart';
+import '../config.dart';
+import './main_app_screen.dart';
 
 class OrderForm extends StatefulWidget {
   @override
@@ -18,7 +20,6 @@ class _OrderFormState extends State<OrderForm> {
   final TextEditingController destinationController = TextEditingController();
   final TextEditingController materialTypeController = TextEditingController();
   final TextEditingController carTypeController = TextEditingController();
-  String? loadType;
   Timer? _debounce;
 
   final List<Map<String, String>> carTypes = [
@@ -31,11 +32,14 @@ class _OrderFormState extends State<OrderForm> {
   final Map<String, List<String>> _locationCache = {};
   String? selectedCarType;
 
-  late UserHook _userHook;
+  UserHook? _userHook;
   List<Map<String, dynamic>> drivers = [];
   bool _isSubmitting = false;
-  bool _isLoading = false;
-  bool _showForm = false; // Track whether to show the form or the default view
+  bool _isLoading = true;
+  bool _showForm = false; // Start with the form shown
+  String? _errorMessage; // Variable to hold the error message
+  bool _hasActiveOrder = false; // New variable to track active order status
+  bool is_accept = false;
 
   @override
   void initState() {
@@ -45,16 +49,47 @@ class _OrderFormState extends State<OrderForm> {
 
   Future<void> _initializeHook() async {
     final prefs = await SharedPreferences.getInstance();
-    _userHook = UserHook(prefs, 'YOUR_GEBETA_API_KEY');
-    await _fetchDrivers();
-  }
+    _userHook = UserHook(prefs);
+    _userHook!.driverStream.listen((data) {
+      if (data['statusCode'] == 200) {
+        // Update drivers list when new data is received
+        if (mounted) {
+          setState(() {
+            drivers = List<Map<String, dynamic>>.from(data['drivers'] ?? []);
+            _hasActiveOrder = drivers.isNotEmpty;
+            _isLoading = false; // Update active order status
+          });
+        }
+      } else if (data['statusCode'] == 303) {
+        Navigator.pop(context);
 
-  Future<void> _fetchDrivers() async {
-    List<Map<String, dynamic>> fetchedDrivers =
-        await _userHook.fetchDriverRequests();
-    setState(() {
-      drivers = fetchedDrivers;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          print(data['drivers']['image']);
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            builder: (context) => RideInfoCard(
+                name: data['drivers']['name'] ?? "",
+                phone: data['drivers']['phone'] ?? "",
+                photoUrl: data['drivers']['image'] ?? "",
+                distance: "calculating..",
+                time: "calculating..",
+                change: function),
+          );
+        });
+      } else if (data['statusCode'] == 401) {
+        _showError(data['error'] ?? "An unknown error occurred.");
+        setState(() {
+          _errorMessage = data['error'] ?? "An unknown error occurred.";
+          _isLoading = false;
+          _hasActiveOrder = false;
+          _userHook!.stoppolling();
+          // Store the error message
+        });
+      }
     });
+    // Start polling for driver requests
+    _userHook!.startPolling();
   }
 
   @override
@@ -64,12 +99,14 @@ class _OrderFormState extends State<OrderForm> {
     materialTypeController.dispose();
     carTypeController.dispose();
     _debounce?.cancel(); // Cancel debounce timer
-    _userHook.dispose();
+    _userHook?.dispose();
     super.dispose();
   }
 
   Future<List<String>> fetchLocationSuggestions(String query) async {
-    if (query.isEmpty) return [];
+    if (query.isEmpty)
+      return ["Loading..."]; // Return "Loading..." if query is empty
+
     if (_locationCache.containsKey(query)) return _locationCache[query]!;
 
     return await Future.delayed(Duration(milliseconds: 300), () async {
@@ -85,46 +122,41 @@ class _OrderFormState extends State<OrderForm> {
                 final address = item['address'];
                 return [
                   address['residential'] ?? '',
-                  address['state_district'] ?? '',
+                  address['road'] ?? '', // Use 'road' for street names
+                  address['suburb'] ?? '',
                   address['ISO3166-2-lvl4'] ?? '',
                   address['state'] ?? '',
                 ].where((element) => element.isNotEmpty).join(", ");
               })
-              .where((location) => location != null)
+              .where((location) =>
+                  location != null &&
+                  location.isNotEmpty) // Filter out empty locations
               .map((location) => location!)
               .toList();
 
-          _locationCache[query] = locations;
-          return locations;
+          _locationCache[query] = locations.isNotEmpty
+              ? locations
+              : ["Loading..."]; // Return "Loading..." if no locations found
+          return _locationCache[query]!;
         } else {
-          _showErrorDialog("Failed to load location suggestions");
-          return ["places not found under ethiopia"];
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Failed to load location suggestions"),
+              backgroundColor: Colors.red,
+            ),
+          ); // Using Flutter's built-in error display
+          return ["Loading..."]; // Return "Loading..." on error
         }
       } catch (e) {
-        _showErrorDialog("Error fetching location suggestions: $e");
-        return ["places not found under ethiopia"];
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error fetching location suggestions: no internet  "),
+            backgroundColor: Colors.red,
+          ),
+        ); // Using Flutter's built-in error display
+        return ["Loading..."]; // Return "Loading..." on exception
       }
     });
-  }
-
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Error'),
-          content: Text(message),
-          actions: [
-            TextButton(
-              child: Text('OK'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
   }
 
   void _selectCarType() async {
@@ -242,34 +274,40 @@ class _OrderFormState extends State<OrderForm> {
     });
 
     try {
+      final position = await getCurrentPosition(); // Get current position
       final response = await http.post(
         Uri.parse('${Config.baseUrl}/client/handle-request'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
+          _hasActiveOrder ? "update" : "create": null,
           "token": getToken(),
           'from': from,
           'destination': destination,
           'material_type': materialType,
           'car_type': carType,
+          'latitude': position.latitude.toString(), // Add latitude
+          'longitude': position.longitude.toString(), // Add longitude
         }),
       );
 
       if (response.statusCode == 200) {
         _showSuccessDialog("Order submitted successfully!");
+        _initializeHook();
         // Start tracking after successful submission
         final data = json.decode(response.body);
         if (data['request_id'] != null) {
-          _userHook.startTracking(data['request_id']);
+          // do somrthing here
         }
-      } else if (response.statusCode == 303) {
+      } else if (response.statusCode == 303 || response.statusCode == 400) {
         // Handle existing active request
         final data = json.decode(response.body);
         _showActiveRequestDialog(data);
       } else {
-        _showError("Failed to submit order: ${response.body}");
+        final data = json.decode(response.body);
+        _showError("Failed to submit order: ${data}");
       }
     } catch (e) {
-      _showError("Network error: $e");
+      _showError("Network error");
     } finally {
       setState(() {
         _isSubmitting = false;
@@ -290,6 +328,11 @@ class _OrderFormState extends State<OrderForm> {
               child: Text('OK'),
               onPressed: () {
                 Navigator.of(context).pop();
+                setState(() {
+                  _showForm = false;
+                  _isLoading = true;
+                  // Redirect to _buildDefaultView
+                });
               },
             ),
           ],
@@ -312,7 +355,6 @@ class _OrderFormState extends State<OrderForm> {
             TextButton(
               child: Text('View Status'),
               onPressed: () {
-                Navigator.of(context).pop();
                 // Navigate to tracking screen
               },
             ),
@@ -329,6 +371,69 @@ class _OrderFormState extends State<OrderForm> {
         backgroundColor: Colors.red,
       ),
     );
+  }
+
+  Future<Position> getCurrentPosition() async {
+    return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+  }
+
+  void accept(String driverId) async {
+    setState(() {
+      is_accept = true;
+    });
+    print("Accept button pressed for driver ID: ${driverId}");
+    final String token = getToken(); // Get the token
+    final String url = '${Config.baseUrl}/client/handle-request'; // Backend URL
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'driver_id': driverId,
+          'token': token,
+// Indicate that this is an update request
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        // Handle successful response
+        final data = json.decode(response.body);
+        // Assuming the response contains driver's details
+        String driverName = data['driver']['name'] ?? "";
+        String driverPhone = data['driver']['phone'] ?? "";
+        String driverImage = data['driver']['image'] ?? "";
+
+        Navigator.pop(context);
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            builder: (context) => RideInfoCard(
+                name: driverName,
+                phone: driverPhone,
+                photoUrl: driverImage,
+                distance: "calculating..",
+                time: "calculating..",
+                change: function),
+          );
+        });
+
+        // Navigate to tracking screen with driver's details
+      } else {
+        // Handle error response
+        final data = json.decode(response.body);
+        _showError(data['error'] ?? 'An error occurred'); // Show error message
+      }
+    } catch (e) {
+      _showError("Network error"); // Handle network errors
+    } finally {
+      setState(() {
+        is_accept = false;
+      });
+    }
   }
 
   @override
@@ -372,53 +477,70 @@ class _OrderFormState extends State<OrderForm> {
   }
 
   Widget _buildDefaultView() {
+    if (_isLoading) {
+      return Center(
+          child: CircularProgressIndicator()); // Show loading indicator
+    }
+
+    if (_errorMessage != null) {
+      return Center(
+        child: Text(
+          _errorMessage!,
+          style: TextStyle(color: Colors.red, fontSize: 18),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
     return ListView.builder(
       itemCount: drivers.length,
       itemBuilder: (context, index) {
         final driver = drivers[index];
         return Card(
-          margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          margin: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           elevation: 4,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
           child: ListTile(
-            contentPadding: EdgeInsets.all(16),
+            contentPadding: EdgeInsets.all(20),
             title: Text(
               driver['name'],
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
             ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Location: ${driver['location']}'),
-                Text('Price: \$${driver['price']}'),
-                Text('Phone: ${driver['phone']}'),
+                Text('Name: ${driver['name'] ?? 'Unknown driver'}'),
+                Text('Price: ${driver['price']} birr'),
+                Text('Car Type: ${driver['car_type'] ?? 'UNKNOWN'}'),
+                FutureBuilder<String>(
+                  future: calculateDistance(
+                      driver['latitude'], driver['longitude']),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Text("Calculating distance...");
+                    } else if (snapshot.hasError || !snapshot.hasData) {
+                      return Text("Distance: unknown");
+                    } else {
+                      return Text("Distance: ${snapshot.data}");
+                    }
+                  },
+                ),
               ],
             ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    // Handle action when the Accept button is pressed
-                    // For example, call a method to accept the request
-                  },
-                  child: Text('Accept'),
-                ),
-                SizedBox(width: 8), // Add some spacing between buttons
-                ElevatedButton(
-                  onPressed: () {
-                    // Handle action when the Cancel button is pressed
-                    // For example, call a method to cancel the request
-                  },
-                  child: Text('Cancel'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        Colors.red, // Change color to indicate cancellation
-                  ),
-                ),
-              ],
+            trailing: ElevatedButton(
+              onPressed: () {
+                final driverId = driver['driver_id']?.toString() ??
+                    ''; // Safely convert to string or use an empty string
+                accept(driverId); // Pass the driverId to the accept function
+              },
+              child: !is_accept
+                  ? Text('Accept')
+                  : CircularProgressIndicator(strokeWidth: 2),
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
             ),
           ),
         );
@@ -548,7 +670,9 @@ class _OrderFormState extends State<OrderForm> {
                         valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       )
                     : Text(
-                        'Request',
+                        _hasActiveOrder
+                            ? 'Update Request'
+                            : 'Request', // Change button text based on active order
                         style: TextStyle(
                             color: Colors.white, fontWeight: FontWeight.bold),
                       ),
@@ -558,6 +682,40 @@ class _OrderFormState extends State<OrderForm> {
         ),
       ),
     );
+  }
+
+  Future<String> calculateDistance(
+      double endLatitude, double endLongitude) async {
+    try {
+      // Get the current position of the device
+      Position position = await Geolocator.getCurrentPosition();
+
+      double startLatitude = position.latitude;
+      double startLongitude = position.longitude;
+
+      // Calculate the distance between the current position and the driver's location
+      double distance = Geolocator.distanceBetween(
+          startLatitude, startLongitude, endLatitude, endLongitude);
+
+      // Estimate travel time based on an average speed (e.g., 50 km/h)
+      const double averageSpeedKmPerHour = 30.0; // Adjust based on use case
+      double timeInHours = (distance / 1000) / averageSpeedKmPerHour;
+
+      // Convert time to hours and minutes
+      int hours = timeInHours.floor();
+      int minutes = ((timeInHours - hours) * 60).round();
+
+      // Format the distance and time
+      String formattedDistance = "${(distance / 1000).toStringAsFixed(2)} km";
+      String formattedTime = (hours > 0)
+          ? "$hours h ${minutes} m"
+          : "$minutes m"; // Display only minutes if < 1 hour
+
+      return "$formattedDistance, Time: $formattedTime";
+    } catch (e) {
+      // Handle location errors
+      return "unknown";
+    }
   }
 }
 

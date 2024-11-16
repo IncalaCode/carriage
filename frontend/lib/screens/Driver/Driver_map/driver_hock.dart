@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart' as prefs;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../config.dart';
+import '../Driver_main_screen.dart';
 
 class DriverHook {
   final StreamController<Map<String, dynamic>> _ordersStreamController =
@@ -76,7 +77,7 @@ class DriverHook {
       }
       final data = json.decode(response.body);
       if (data.containsKey('locked') && data['locked'] == true) {
-        _startRouteTracking(data['request_id']);
+        _startRouteTracking(data);
         isLocked = true;
       } else {
         _handleNewRequests(data);
@@ -206,8 +207,19 @@ class DriverHook {
     });
   }
 
-  void _startRouteTracking(String requestId) {
-    // Implement route tracking logic
+  void _startRouteTracking(final data) {
+    Navigator.of(context).pop();
+    showUserInfoBottomSheet(
+      cont,
+      {
+        "name": data['name'] ?? "unknown",
+        "phone": data['phone'] ?? "123-456-7890",
+        "locked": true,
+        "from": data['from'] ?? "unknown",
+        "material_type": data['material_type'] ?? "unknown",
+        "destination": data['destination'] ?? "unknown",
+      },
+    );
   }
 
   void _handleError(String error) {
