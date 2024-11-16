@@ -31,7 +31,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
 
   File? _profileImage;
   double _buttonScale = 1.0;
-  bool _isIconRotated = false;
+  bool _isIconRotated = false;z
 
 
   bool _isRideInfoVisible =
