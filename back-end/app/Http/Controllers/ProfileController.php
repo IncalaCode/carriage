@@ -10,10 +10,11 @@ use Illuminate\Support\Facades\Hash;
 class ProfileController extends Controller
 {
     // Method to show the user profile
-    public function show($id)
+    public function show(Request $request)
     {
-        $user = User::find($id);
+        $value = $request->input("token");
 
+        $user = User::where('uid', $value)->first();
         if (!$user) {
             return response()->json(['error' => 'User not found'], 404);
         }

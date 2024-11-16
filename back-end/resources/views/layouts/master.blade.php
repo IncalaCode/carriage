@@ -17,6 +17,9 @@
      <link href="../assets/css/now-ui-dashboard.css?v=1.0.0" rel="stylesheet" />
      <!-- CSS Just for demo purpose, don't include it in your project -->
      <link href="../assets/demo/demo.css" rel="stylesheet" />
+     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+     
+
      <style>
      .notification-dot {
          position: absolute;
@@ -27,6 +30,26 @@
          background-color: red;
          border-radius: 50%;
      }
+
+    /* Ensure all cards have the same height */
+    .equal-card {
+        height: 200px; /* Adjust height as needed */
+    }
+
+    /* Center-align text and make the text size consistent */
+    .equal-card .card-body {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    /* Add some spacing between rows and cards */
+    .mb-3 {
+        margin-bottom: 1.5rem;
+    }
+    
+
      </style>
 
  </head>
@@ -154,7 +177,9 @@
              <div class="content">
                  @yield('content')
 
-
+                 @if(Request::is('admin/dashboard'))
+                     <canvas id="registrationChart"></canvas>
+                 @endif
              </div>
 
              <!-- <footer class="footer">
@@ -193,6 +218,85 @@
 
      @yield('scripts')
  </body>
+ <script>
+    // Only execute chart code if we're on the dashboard page
+    if (window.location.pathname === '/admin/dashboard') {
+        // Convert PHP variables to JavaScript safely
+        const userRegistrations = @json($userMonthlyRegistrations ?? []);
+        const driverRegistrations = @json($driverMonthlyRegistrations ?? []);
+
+        // Month names array
+        const monthNames = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+
+        // Create array of all months (1-12)
+        const months = Array.from({length: 12}, (_, i) => (i + 1).toString());
+
+        // Combine data for User and Driver Registration Chart
+        var ctx = document.getElementById('registrationChart').getContext('2d');
+        var registrationChart = new Chart(ctx, {    
+            type: 'bar',
+            data: {
+                labels: monthNames,
+                datasets: [
+                    {
+                        label: 'User Registrations',
+                        data: months.map(month => userRegistrations[month] || 0),
+                        backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Driver Registrations',
+                        data: months.map(month => driverRegistrations[month] || 0),
+                        backgroundColor: 'rgba(53, 162, 235, 0.7)',
+                        borderColor: 'rgba(53, 162, 235, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Monthly Registration Statistics'
+                    }
+                },
+                scales: {
+                    y: {
+                        min: 0,
+                        max: 100,
+                        ticks: {
+                            stepSize: 10,
+                            callback: function(value) {
+                                return value.toFixed(0);
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Number of Registrations'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month'
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+
+
+
  <!--   Core JS Files   -->
  <script src="../assets/js/core/jquery.min.js"></script>
  <script src="../assets/js/core/popper.min.js"></script>
