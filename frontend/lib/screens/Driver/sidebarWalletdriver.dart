@@ -317,6 +317,104 @@ class _WalletDriverPageState extends State<WalletDriverPage> {
     );
   }
 
+  // Add this method to show the withdrawal dialog
+  void _showWithdrawDialog() {
+    double availableAmount = balance - 1500; // Calculate available amount for withdrawal
+    TextEditingController accountNameController = TextEditingController();
+    TextEditingController accountNumberController = TextEditingController();
+    TextEditingController amountController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Withdraw Money'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Current Balance: ${balance.toStringAsFixed(2)} ETB'),
+              Text('Available Amount for Withdrawal: ${availableAmount.toStringAsFixed(2)} ETB'),
+              TextField(
+                controller: accountNameController,
+                decoration: InputDecoration(labelText: 'Account Name'),
+              ),
+              TextField(
+                controller: accountNumberController,
+                decoration: InputDecoration(labelText: 'Account Number'),
+              ),
+              TextField(
+                controller: amountController,
+                decoration: InputDecoration(labelText: 'Amount'),
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                // Handle withdrawal logic here
+                double amountToWithdraw = double.tryParse(amountController.text) ?? 0;
+                if (amountToWithdraw > 0 && amountToWithdraw <= availableAmount) {
+                  // Call the backend API to process the withdrawal
+                  await _processWithdrawal(accountNameController.text, accountNumberController.text, amountToWithdraw);
+                  Navigator.of(context).pop(); // Close the dialog
+                } else {
+                  // Show error message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Invalid withdrawal amount.')),
+                  );
+                }
+              },
+              child: Text('Withdraw'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Add this method to process the withdrawal
+  Future<void> _processWithdrawal(String accountName, String accountNumber, double amount) async {
+    try {
+      print('💳 Processing withdrawal of $amount ETB to $accountName ($accountNumber)');
+      // Call your backend API here
+      final response = await http.post(
+        Uri.parse('${Config.baseUrl}/driver/request/withdraw'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'token': _authToken,
+          'account_name': accountName,
+          'account_number': accountNumber,
+          'amount': amount,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        print('✅ Withdrawal successful');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Withdrawal in progress.')),
+        );
+        // Optionally, refresh wallet balance
+        await fetchWalletBalance();
+      } else {
+        throw Exception('Failed to process withdrawal: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Withdrawal Error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error processing withdrawal. Please try again.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -381,9 +479,7 @@ class _WalletDriverPageState extends State<WalletDriverPage> {
                       borderRadius: BorderRadius.circular(5),
                     ),
                     child: ElevatedButton(
-                      onPressed: () {
-                        // Deposit via Telebirr functionality
-                      },
+                      onPressed: _showWithdrawDialog,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,

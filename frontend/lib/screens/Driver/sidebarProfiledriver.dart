@@ -1,3 +1,4 @@
+import 'package:My_truck/screens/config.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:io';
@@ -5,6 +6,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart';
 import 'sidebarProfileEditdriver.dart';
 import '../login_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class ProfilePagedriver extends StatefulWidget {
   @override
@@ -15,8 +19,21 @@ class _ProfilePageState extends State<ProfilePagedriver> {
   File? _profileImage;
   bool isApproved = true;
   String referralCode = "ABC123";
-  List<String> referrals = ["Yabets Ds", "Kaleb Ad", "Roba TS", "Yab TS"];
+  List<String> referrals = [];
   final int referralReward = 1000;
+  String? _authToken;
+  String _displayName = 'Jabez Hap';
+  String _phoneNumber = '+251 963 488 972';
+  int referralCount = 0;
+  String _status ='';
+  String _referralCode = '';
+  String? _profileImageUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuthentication();
+  }
 
   Future<void> _pickImage() async {
     final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
@@ -24,6 +41,61 @@ class _ProfilePageState extends State<ProfilePagedriver> {
       setState(() {
         _profileImage = File(pickedFile.path);
       });
+    }
+  }
+
+  Future<void> _checkAuthentication() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('authToken');
+    if (token == null) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+      );
+    } else {
+      setState(() {
+        _authToken = token;
+      });
+      _fetchUserProfile();
+    }
+  }
+
+  Future<void> _fetchUserProfile() async {
+    if (_authToken == null) return;
+
+    final driverId = _authToken; // Replace with actual driver ID if different from token
+    final url = Uri.parse('${Config.baseUrl}/driver/profile');
+
+    print('🔑 Driver ID: $driverId');
+    print('🔗 Profile endpoint URL: $url');
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'token': driverId,
+      }),
+    );
+
+    print('💳 Profile Response Status: ${response.statusCode}');
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      setState(() {
+        _displayName = data['first_name'] ?? _displayName;
+        _phoneNumber = data['phone_number'] ?? _phoneNumber;
+        
+        isApproved = data['status'] == 'Verified'; // Set to true if status is 'Verified', else false
+        
+        referralCode = data['referral_code'] ?? referralCode;
+        
+        referrals = List<String>.from(data['my_referrals'] ?? []);
+        referralCount = referrals.length;
+
+        _profileImageUrl = data['image'];
+      });
+    } else {
+      print('Failed to load profile data: ${response.statusCode}');
     }
   }
 
@@ -52,7 +124,10 @@ class _ProfilePageState extends State<ProfilePagedriver> {
                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF000000), Color(0xFF9A839E)],
+                    colors: [
+                      Color(0xFF000000),
+                      Color(0xFF9A839E),
+                    ],
                   ),
                   borderRadius: BorderRadius.circular(5),
                 ),
@@ -76,6 +151,10 @@ class _ProfilePageState extends State<ProfilePagedriver> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Referral code copied to clipboard")),
     );
+  }
+
+  String get displayReferralCode {
+    return referralCode.length > 4 ? referralCode.substring(referralCode.length - 4) : referralCode;
   }
 
   @override
@@ -119,8 +198,8 @@ class _ProfilePageState extends State<ProfilePagedriver> {
                 radius: 50,
                 backgroundImage: _profileImage != null
                     ? FileImage(_profileImage!)
-                    : null,
-                child: _profileImage == null
+                    : _profileImageUrl != null ? NetworkImage(_profileImageUrl!) : null,
+                child: _profileImage == null && _profileImageUrl == null
                     ? Icon(
                         FontAwesomeIcons.user,
                         size: 50,
@@ -138,7 +217,7 @@ class _ProfilePageState extends State<ProfilePagedriver> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Jabez Hap',
+                        _displayName,
                         style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -150,7 +229,7 @@ class _ProfilePageState extends State<ProfilePagedriver> {
                       FaIcon(FontAwesomeIcons.phone, size: 20, color: Colors.grey),
                       SizedBox(width: 10),
                       Text(
-                        '+251 963 488 972',
+                        _phoneNumber,
                         style: TextStyle(fontSize: 18, color: Colors.grey),
                       ),
                     ],
@@ -183,12 +262,14 @@ class _ProfilePageState extends State<ProfilePagedriver> {
               children: [
                 Text("Referral Code: "),
                 Text(
-                  referralCode,
+                  displayReferralCode,
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 IconButton(
                   icon: Icon(FontAwesomeIcons.copy),
-                  onPressed: _copyReferralCode,
+                  onPressed: () {
+                    _copyReferralCode();
+                  },
                 ),
               ],
             ),
@@ -243,7 +324,10 @@ class _ProfilePageState extends State<ProfilePagedriver> {
               width: double.infinity,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFF000000), Color(0xFF9A839E)],
+                  colors: [
+                    Color(0xFF000000),
+                    Color(0xFF9A839E),
+                  ],
                 ),
                 borderRadius: BorderRadius.circular(5),
               ),
@@ -270,3 +354,4 @@ class _ProfilePageState extends State<ProfilePagedriver> {
     );
   }
 }
+

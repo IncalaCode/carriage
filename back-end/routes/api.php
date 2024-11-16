@@ -66,7 +66,7 @@ Route::post('/client/order/confirm-payment', [ClientOrderController::class, 'con
 
 Route::post('/driver/request/initiate-payment', [DriverRequestController::class, 'initiateRequestPayment']);
 Route::post('/driver/request/confirm-payment', [DriverRequestController::class, 'confirmRequestPayment']);
-Route::get('/payment/callback', [PaymentController::class, 'callback'])->name('payment.callback');
+//Route::get('/payment/callback', [PaymentController::class, 'callback'])->name('payment.callback');
 Route::get('/transactions/{walletId}', [WalletController::class, 'getTransactionHistory']);
 
 
@@ -84,9 +84,9 @@ Route::post('/driver/cache-phone', [DriverController::class, 'cachePhoneNumber']
 Route::post('/driver/referral-check/{phone}', [DriverController::class, 'referralCheck']);
 
 
-Route::post('/payment/validate', [PaymentController::class, 'validatePayment']);
+//Route::post('/payment/validate', [PaymentController::class, 'validatePayment']);
 
-Route::post('/payment/validate', [PaymentController::class, 'validatePayment']);
+//Route::post('/payment/validate', [PaymentController::class, 'validatePayment']);
 
 Route::post("/client/getorder", [client_request::class, 'getOrder']);
 Route::post("/driver/getorder", [driver_request::class, 'getOrder']);
