@@ -1,9 +1,26 @@
+import 'package:My_truck/screens/config.dart';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class EditProfilePage extends StatefulWidget {
+  final File? profileImage;
+  final String firstName;
+  final String lastName;
+  final String phoneNumber;
+
+  EditProfilePage({
+    Key? key,
+    required this.profileImage,
+    required this.firstName,
+    required this.lastName,
+    required this.phoneNumber,
+  }) : super(key: key);
+
   @override
   _EditProfilePageState createState() => _EditProfilePageState();
 }
@@ -11,13 +28,24 @@ class EditProfilePage extends StatefulWidget {
 class _EditProfilePageState extends State<EditProfilePage> {
   File? _profileImage;
   final _formKey = GlobalKey<FormState>();
+  bool isNewPhoneNumber = false;
+  bool showOTPField = false;
 
   // TextEditingControllers for the form fields
-  TextEditingController _fullNameController = TextEditingController();
-  TextEditingController _emailController = TextEditingController();
+  TextEditingController _firstNameController = TextEditingController();
+  TextEditingController _lastNameController = TextEditingController();
   TextEditingController _phoneController = TextEditingController();
+  TextEditingController _otpController = TextEditingController();
 
-  // Function to pick an image from the gallery
+  @override
+  void initState() {
+    super.initState();
+    _firstNameController.text = widget.firstName;
+    _lastNameController.text = widget.lastName;
+    _phoneController.text = widget.phoneNumber;
+    _profileImage = widget.profileImage;
+  }
+
   Future<void> _pickImage() async {
     final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
@@ -27,13 +55,189 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
 
+  void _onPhoneNumberChanged(String newPhoneNumber) {
+    setState(() {
+      isNewPhoneNumber = newPhoneNumber != widget.phoneNumber;
+      showOTPField = isNewPhoneNumber;
+    });
+  }
+
   @override
   void dispose() {
-    // Dispose the controllers when the widget is disposed
-    _fullNameController.dispose();
-    _emailController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     _phoneController.dispose();
+    _otpController.dispose();
     super.dispose();
+  }
+
+  // New method to send OTP
+  Future<void> _sendOTP() async {
+    final String newPhoneNumber = _phoneController.text;
+
+    if (newPhoneNumber.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please enter a valid phone number.')),
+      );
+      return;
+    }
+
+    // Prepare the request body
+    final Map<String, dynamic> requestBody = {
+      "phone_number": newPhoneNumber,
+    };
+
+    // Print the request body for debugging
+    print('Sending OTP Request Body: $requestBody');
+
+    // Send the request to the backend
+    final response = await http.post(
+      Uri.parse(Config.baseUrl + '/profile/send-otp'), // Replace with your actual backend URL for sending OTP
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(requestBody),
+    );
+
+    // Print the response status code for debugging
+    print('Send OTP Response Status Code: ${response.statusCode}');
+
+    // Handle the response
+    if (response.statusCode == 200) {
+      // Assuming the response contains the OTP or a success message
+      final responseBody = jsonDecode(response.body);
+      print('Send OTP Response Body: $responseBody'); // Print the response body for debugging
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('OTP Sent!')),
+      );
+      print('OTP sent successfully.');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to send OTP. Status: ${response.statusCode}')),
+      );
+      print('Failed to send OTP. Response: ${response.body}');
+    }
+  }
+
+  // New method to confirm OTP
+  Future<void> _confirmOTP() async {
+    final String newPhoneNumber = _phoneController.text;
+    final String otp = _otpController.text;
+     final prefs = await SharedPreferences.getInstance();
+      final String? userId = prefs.getString('authToken'); // Assuming 'authToken' is the key used to store the token
+
+
+    if (newPhoneNumber.isEmpty || otp.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please enter a valid phone number and OTP.')),
+      );
+      return;
+    }
+
+    // Prepare the request body
+    final Map<String, dynamic> requestBody = {
+    
+      "token": userId,
+      "new_phone_number": newPhoneNumber,
+      "otp": otp,
+    };
+
+    // Print the request body for debugging
+    print('Confirming OTP Request Body: $requestBody');
+
+    // Send the request to the backend
+    final response = await http.post(
+      Uri.parse(Config.baseUrl + '/profile/confirm-otp'), // Replace with your actual backend URL for confirming OTP
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(requestBody),
+    );
+
+    // Print the response status code for debugging
+    print('Confirm OTP Response Status Code: ${response.statusCode}');
+
+    // Handle the response
+    if (response.statusCode == 200) {
+      // Assuming the response contains a success message
+      final responseBody = jsonDecode(response.body);
+      print('Confirm OTP Response Body: $responseBody'); // Print the response body for debugging
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Phone number updated successfully!')),
+      );
+      print('Phone number updated successfully.');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to confirm OTP. Status: ${response.statusCode}')),
+      );
+      print('Failed to confirm OTP. Response: ${response.body}');
+    }
+  }
+
+  // New method to handle profile update
+  Future<void> _updateProfile() async {
+    if (_formKey.currentState!.validate()) {
+      // Retrieve the user ID (token) from shared preferences
+      final prefs = await SharedPreferences.getInstance();
+      final String? userId = prefs.getString('authToken'); // Assuming 'authToken' is the key used to store the token
+
+      if (userId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('User ID not found. Please log in again.')),
+        );
+        return; // Exit if user ID is not found
+      }
+
+      // Prepare the data to send
+      final String firstName = _firstNameController.text;
+      final String lastName = _lastNameController.text;
+
+      // Fetch the phone number from shared preferences
+      final String? phoneNumber = prefs.getString('phoneNumber'); // Assuming 'phoneNumber' is the key used to store the phone number
+      final String profilePicture = _profileImage != null ? _profileImage!.path : "null"; // Use the path or "null"
+
+      // Create the request body
+      final Map<String, dynamic> requestBody = {
+        "token": userId, // Use the retrieved user ID
+        "first_name": firstName,
+        "last_name": lastName,
+        "phone_number": phoneNumber ?? "+251953289595", // Use the fetched phone number or "null"
+        "profile_picture": profilePicture,
+      };
+
+      // Print the request body for debugging
+      print('Request Body: $requestBody');
+
+      // Send the request to the backend
+      final response = await http.post(
+        Uri.parse(Config.baseUrl + '/profile/update'), // Replace with your actual backend URL
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(requestBody),
+      );
+
+      // Print the response status code for debugging
+      print('Response Status Code: ${response.statusCode}');
+
+      // Handle the response
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Profile Updated!')),
+        );
+        print('Profile updated successfully.');
+        Navigator.pop(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update profile. Status: ${response.statusCode}')),
+        );
+        print('Failed to update profile. Response: ${response.body}');
+      }
+    } else {
+      print('Form validation failed.');
+    }
   }
 
   @override
@@ -43,25 +247,24 @@ class _EditProfilePageState extends State<EditProfilePage> {
         leading: IconButton(
           icon: FaIcon(FontAwesomeIcons.arrowLeft),
           onPressed: () {
-            Navigator.pop(context); // Back functionality
+            Navigator.pop(context);
           },
         ),
-        title: Text('Edit Profile'),
+        title: Text("Edit Profile"),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: Column(
             children: [
-              // Profile Image
               GestureDetector(
-                onTap: _pickImage, // Tap to upload image
+                onTap: _pickImage,
                 child: _profileImage == null
                     ? CircleAvatar(
                         radius: 50,
                         backgroundColor: Colors.grey.shade300,
-                        child: Icon(
+                        child: FaIcon(
                           FontAwesomeIcons.user,
                           size: 50,
                           color: Colors.grey.shade700,
@@ -74,132 +277,119 @@ class _EditProfilePageState extends State<EditProfilePage> {
               ),
               SizedBox(height: 20),
 
-              // Full Name Input
               TextFormField(
-                controller: _fullNameController,
+                controller: _firstNameController,
                 decoration: InputDecoration(
-                  labelText: 'Full Name',
-                  prefixIcon: FaIcon(FontAwesomeIcons.user),
-                  border: OutlineInputBorder(),
+                  labelText: 'First Name',
+                  hintText: widget.firstName,
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your full name';
-                  }
-                  return null;
-                },
               ),
               SizedBox(height: 16),
 
-              // Email Input
               TextFormField(
-                controller: _emailController,
+                controller: _lastNameController,
                 decoration: InputDecoration(
-                  labelText: 'Email',
-                  prefixIcon: FaIcon(FontAwesomeIcons.envelope),
-                  border: OutlineInputBorder(),
+                  labelText: 'Last Name',
+                  hintText: widget.lastName,
                 ),
-                keyboardType: TextInputType.emailAddress,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your email';
-                  } else if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                    return 'Please enter a valid email';
-                  }
-                  return null;
-                },
               ),
               SizedBox(height: 16),
 
-              // Phone Number Input
               TextFormField(
                 controller: _phoneController,
                 decoration: InputDecoration(
                   labelText: 'Phone Number',
-                  prefixIcon: FaIcon(FontAwesomeIcons.phone),
-                  border: OutlineInputBorder(),
+                  hintText: widget.phoneNumber,
+                  suffixIcon: isNewPhoneNumber
+                      ? SizedBox(
+                          width: 80,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Color.fromARGB(255, 80, 80, 80), Color.fromARGB(255, 192, 163, 197)],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                              ),
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            child: TextButton(
+                              onPressed: _sendOTP, // Call the new method to send OTP
+                              child: Text('Send OTP', style: TextStyle(color: Colors.white)),
+                              style: TextButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                padding: EdgeInsets.symmetric(vertical: 12.0),
+                              ),
+                            ),
+                          ),
+                        )
+                      : null,
                 ),
-                keyboardType: TextInputType.phone,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your phone number';
-                  }
-                  return null;
-                },
+                onChanged: _onPhoneNumberChanged,
               ),
               SizedBox(height: 16),
 
-              // Buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Cancel Button
-                  ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context); // Cancel and go back
-                      },
+              if (showOTPField)
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _otpController,
+                        decoration: InputDecoration(
+                          labelText: 'Enter OTP',
+                          hintText: 'Enter OTP',
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 80,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [
-                              const Color.fromARGB(255, 0, 0, 0),
-                              const Color.fromARGB(255, 154, 131, 158)
-                            ],
+                            colors: [Color.fromARGB(255, 80, 80, 80), Color.fromARGB(255, 192, 163, 197)],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
                           ),
                           borderRadius: BorderRadius.circular(5),
                         ),
-                        child: Text(
-                          'Cancel',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
+                        child: TextButton(
+                          onPressed: _confirmOTP, // Call the new method to confirm OTP
+                          child: Text('Confirm', style: TextStyle(color: Colors.white)),
+                          style: TextButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            padding: EdgeInsets.symmetric(vertical: 12.0),
                           ),
                         ),
                       ),
-                      style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                      )),
-
-                  // Update Button with Gradient
-                  ElevatedButton(
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        // Submit updated profile data
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Profile Updated!')),
-                        );
-                        Navigator.pop(context);
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            const Color.fromARGB(255, 0, 0, 0),
-                            const Color.fromARGB(255, 154, 131, 158)
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(5),
-                      ),
-                      child: Text(
-                        'Update',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
                     ),
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
+                  ],
+                ),
+              SizedBox(height: 16),
+
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF000000), Color(0xFF9A839E)],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: ElevatedButton(
+                  onPressed: _updateProfile, // Call the new method
+                  child: Text(
+                    'Update',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: 16.0),
+                    shadowColor: Colors.transparent,
+                    backgroundColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(5),
                     ),
                   ),
-                ],
+                ),
               ),
             ],
           ),

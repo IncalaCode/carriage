@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/services.dart';
 import 'sidebarProfileEditdriver.dart';
 import '../login_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,9 +17,17 @@ class ProfilePagedriver extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePagedriver> {
   File? _profileImage;
+  bool isApproved = true;
+  String referralCode = "ABC123";
+  List<String> referrals = [];
+  final int referralReward = 1000;
   String? _authToken;
   String _displayName = 'Jabez Hap';
   String _phoneNumber = '+251 963 488 972';
+  int referralCount = 0;
+  String _status ='';
+  String _referralCode = '';
+  String? _profileImageUrl;
 
   @override
   void initState() {
@@ -53,7 +62,6 @@ class _ProfilePageState extends State<ProfilePagedriver> {
   Future<void> _fetchUserProfile() async {
     if (_authToken == null) return;
 
-    // Assuming driverId is stored as part of _authToken or fetched separately
     final driverId = _authToken; // Replace with actual driver ID if different from token
     final url = Uri.parse('${Config.baseUrl}/driver/profile');
 
@@ -63,7 +71,6 @@ class _ProfilePageState extends State<ProfilePagedriver> {
     final response = await http.post(
       url,
       headers: {
-       // 'Authorization': 'Bearer $_authToken',
         'Content-Type': 'application/json',
       },
       body: jsonEncode({
@@ -77,6 +84,15 @@ class _ProfilePageState extends State<ProfilePagedriver> {
       setState(() {
         _displayName = data['first_name'] ?? _displayName;
         _phoneNumber = data['phone_number'] ?? _phoneNumber;
+        
+        isApproved = data['status'] == 'Verified'; // Set to true if status is 'Verified', else false
+        
+        referralCode = data['referral_code'] ?? referralCode;
+        
+        referrals = List<String>.from(data['my_referrals'] ?? []);
+        referralCount = referrals.length;
+
+        _profileImageUrl = data['image'];
       });
     } else {
       print('Failed to load profile data: ${response.statusCode}');
@@ -123,16 +139,22 @@ class _ProfilePageState extends State<ProfilePagedriver> {
                   ),
                 ),
               ),
-              style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.zero,
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-              ),
             ),
           ],
         );
       },
     );
+  }
+
+  void _copyReferralCode() {
+    Clipboard.setData(ClipboardData(text: referralCode));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Referral code copied to clipboard")),
+    );
+  }
+
+  String get displayReferralCode {
+    return referralCode.length > 4 ? referralCode.substring(referralCode.length - 4) : referralCode;
   }
 
   @override
@@ -152,7 +174,14 @@ class _ProfilePageState extends State<ProfilePagedriver> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => EditProfilePagedriver()),
+                MaterialPageRoute(
+                  builder: (context) => EditProfilePagedriver(
+                    profileImage: _profileImage,
+                    firstName: 'Jabez',
+                    lastName: 'Hap',
+                    phoneNumber: '+251 963 488 972',
+                  ),
+                ),
               );
             },
           ),
@@ -165,25 +194,19 @@ class _ProfilePageState extends State<ProfilePagedriver> {
           children: [
             GestureDetector(
               onTap: _pickImage,
-              child: _profileImage == null
-                  ? CircleAvatar(
-                      radius: 50,
-                      child: Icon(
+              child: CircleAvatar(
+                radius: 50,
+                backgroundImage: _profileImage != null
+                    ? FileImage(_profileImage!)
+                    : _profileImageUrl != null ? NetworkImage(_profileImageUrl!) : null,
+                child: _profileImage == null && _profileImageUrl == null
+                    ? Icon(
                         FontAwesomeIcons.user,
                         size: 50,
                         color: const Color.fromARGB(255, 52, 52, 52),
-                      ),
-                    )
-                  : Container(
-                      width: double.infinity,
-                      height: MediaQuery.of(context).size.height * 0.4,
-                      decoration: BoxDecoration(
-                        image: DecorationImage(
-                          image: FileImage(_profileImage!),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
+                      )
+                    : null,
+              ),
             ),
             SizedBox(height: 20),
             Center(
@@ -193,8 +216,6 @@ class _ProfilePageState extends State<ProfilePagedriver> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      FaIcon(FontAwesomeIcons.user, size: 20, color: Colors.grey),
-                      SizedBox(width: 10),
                       Text(
                         _displayName,
                         style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
@@ -214,6 +235,88 @@ class _ProfilePageState extends State<ProfilePagedriver> {
                     ],
                   ),
                 ],
+              ),
+            ),
+            SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text("Status: "),
+                Icon(
+                  isApproved ? FontAwesomeIcons.check : FontAwesomeIcons.times,
+                  color: isApproved ? Colors.green : Colors.red,
+                  size: 20,
+                ),
+                Text(
+                  isApproved ? " Approved" : " Not Approved",
+                  style: TextStyle(
+                    color: isApproved ? Colors.green : Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text("Referral Code: "),
+                Text(
+                  displayReferralCode,
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  icon: Icon(FontAwesomeIcons.copy),
+                  onPressed: () {
+                    _copyReferralCode();
+                  },
+                ),
+              ],
+            ),
+            SizedBox(height: 20),
+            Text(
+              "My Referrals",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Total Referrals: ${referrals.length}",
+                  style: TextStyle(fontSize: 16),
+                ),
+                Text(
+                  "Total Gain: ${referrals.length * referralReward} Birr",
+                  style: TextStyle(fontSize: 16),
+                ),
+              ],
+            ),
+            SizedBox(height: 15),
+            Expanded(
+              child: Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.4),
+                      spreadRadius: 2,
+                      blurRadius: 5,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: ListView.builder(
+                  itemCount: referrals.length,
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                      leading: Icon(FontAwesomeIcons.user, color: Colors.grey),
+                      title: Text(referrals[index]),
+                    );
+                  },
+                ),
               ),
             ),
             Spacer(),
@@ -251,3 +354,4 @@ class _ProfilePageState extends State<ProfilePagedriver> {
     );
   }
 }
+

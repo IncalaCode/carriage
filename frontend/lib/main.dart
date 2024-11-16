@@ -1,7 +1,7 @@
 import 'package:My_truck/screens/Driver/Driver_main_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'screens/login_screen.dart';
+//import 'screens/login_screen.dart';
 import 'package:My_truck/screens/User/main_app_screen.dart';
 // import 'screens/login_screen.dart'; // Commented out for direct navigation
 
@@ -50,7 +50,7 @@ class MyApp extends StatelessWidget {
             );
           } else if (snapshot.hasError) {
             print('Error during token check: ${snapshot.error}'); // Debug print
-            return LoginScreen(); // Fallback to login screen on error
+            return DriverMainScreen(); // Fallback to login screen on error
           } else if (snapshot.hasData && snapshot.data!['token'] != null) {
             final userType = snapshot.data!['userType'];
             if (userType == 'driver') {
@@ -63,12 +63,12 @@ class MyApp extends StatelessWidget {
               return MainAppScreen();
             } else {
               print(
-                  'Unknown userType - Navigating to LoginScreen'); // Debug print
-              return LoginScreen();
+                  'Unknown userType - Navigating to DriverMainScreen'); // Debug print
+              return DriverMainScreen();
             }
           } else {
-            print('No token found - Navigating to LoginScreen'); // Debug print
-             return LoginScreen();
+            print('No token found - Navigating to DriverMainScreen'); // Debug print
+             return DriverMainScreen();
             //return MainAppScreen();
           }
         },

@@ -3,9 +3,13 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'sidebarProfileEdit.dart';
-
+import '../config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../login_screen.dart';
+import 'dart:convert';
+import 'dart:async';
+import 'package:http/http.dart' as http;
+import 'package:flutter/services.dart';
 
 class ProfilePage extends StatefulWidget {
   @override
@@ -14,6 +18,67 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   File? _profileImage;
+  String _firstName = 'Jabez'; // Default value
+  String _lastName = 'Hap'; // Default value
+  String _phoneNumber = '+251 963 488 972'; // Default value
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData(); // Fetch user data when the profile page is initialized
+  }
+
+  // New method to fetch user data
+  Future<void> _fetchUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? userId = prefs.getString('authToken'); // Assuming 'authToken' is the key used to store the token
+
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('User ID not found. Please log in again.')),
+      );
+      return; // Exit if user ID is not found
+    }
+
+    // Prepare the request body
+    final Map<String, dynamic> requestBody = {
+      "token": userId,
+    };
+
+    // Send the request to the backend
+    final response = await http.post(
+      Uri.parse(Config.baseUrl + '/profile'), // Replace with your actual backend URL for fetching user data
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(requestBody),
+    );
+
+    // Print the response status code for debugging
+    print('Fetch User Data Response Status Code: ${response.statusCode}');
+
+    // Handle the response
+    if (response.statusCode == 200) {
+      final responseBody = jsonDecode(response.body);
+      print('Fetch User Data Response Body: $responseBody'); // Print the response body for debugging
+
+      // Update the state with the fetched data
+      setState(() {
+        _firstName = responseBody['first_name'] ?? 'Jabez'; // Update with fetched first name
+        _lastName = responseBody['last_name'] ?? 'Hap'; // Update with fetched last name
+        _phoneNumber = responseBody['phone_number'] ?? '+251 963 488 972'; // Update with fetched phone number
+        String profilePicturePath = responseBody['profile_picture'] ?? ''; // Update with fetched profile picture path
+        if (profilePicturePath.isNotEmpty) {
+          _profileImage = File(profilePicturePath); // Load the profile image if available
+        }
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to fetch user data. Status: ${response.statusCode}')),
+      );
+      print('Failed to fetch user data. Response: ${response.body}');
+    }
+  }
 
   Future<void> _pickImage() async {
     final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
@@ -98,7 +163,14 @@ class _ProfilePageState extends State<ProfilePage> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => EditProfilePage()),
+                MaterialPageRoute(
+                  builder: (context) => EditProfilePage(
+                    profileImage: _profileImage,
+                    firstName: _firstName,
+                    lastName: _lastName,
+                    phoneNumber: _phoneNumber,
+                  ),
+                ),
               );
             },
           ),
@@ -111,25 +183,19 @@ class _ProfilePageState extends State<ProfilePage> {
           children: [
             GestureDetector(
               onTap: _pickImage,
-              child: _profileImage == null
-                  ? CircleAvatar(
-                      radius: 50,
-                      child: Icon(
+              child: CircleAvatar(
+                radius: 50,
+                backgroundImage: _profileImage != null
+                    ? FileImage(_profileImage!)
+                    : null,
+                child: _profileImage == null
+                    ? Icon(
                         FontAwesomeIcons.user,
                         size: 50,
                         color: const Color.fromARGB(255, 52, 52, 52),
-                      ),
-                    )
-                  : Container(
-                      width: double.infinity,
-                      height: MediaQuery.of(context).size.height * 0.4,
-                      decoration: BoxDecoration(
-                        image: DecorationImage(
-                          image: FileImage(_profileImage!),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
+                      )
+                    : null,
+              ),
             ),
             SizedBox(height: 20),
             Center(
@@ -139,23 +205,9 @@ class _ProfilePageState extends State<ProfilePage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      FaIcon(FontAwesomeIcons.user, size: 20, color: Colors.grey),
-                      SizedBox(width: 10),
                       Text(
-                        'Jabez Hap',
+                        '$_firstName $_lastName', // Use fetched name
                         style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      FaIcon(FontAwesomeIcons.envelope, size: 20, color: Colors.grey),
-                      SizedBox(width: 10),
-                      Text(
-                        'Jabez@gmail.com',
-                        style: TextStyle(fontSize: 18, color: Colors.grey),
                       ),
                     ],
                   ),
@@ -166,7 +218,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       FaIcon(FontAwesomeIcons.phone, size: 20, color: Colors.grey),
                       SizedBox(width: 10),
                       Text(
-                        '+251 963 488 972',
+                        _phoneNumber, // Use fetched phone number
                         style: TextStyle(fontSize: 18, color: Colors.grey),
                       ),
                     ],
@@ -174,6 +226,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 ],
               ),
             ),
+            SizedBox(height: 20),
             Spacer(),
             Container(
               width: double.infinity,
