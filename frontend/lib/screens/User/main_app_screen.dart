@@ -14,12 +14,11 @@ import 'sidebarSettings.dart';
 import 'Order_form_screen.dart';
 import 'user_map/user_map_component.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../login_screen.dart';  
+import '../login_screen.dart';
 import '../config.dart';
 
 late Function(bool) function;
 bool is_tracking = false;
-
 
 class MainAppScreen extends StatefulWidget {
   @override
@@ -27,7 +26,6 @@ class MainAppScreen extends StatefulWidget {
 }
 
 class _MainAppScreenState extends State<MainAppScreen> {
-
   Stream<bool>? stream;
   bool isDrawerOpen = false;
 
@@ -36,18 +34,16 @@ class _MainAppScreenState extends State<MainAppScreen> {
   File? _profileImage;
   double _buttonScale = 1.0;
   bool _isIconRotated = false;
-    
- 
+
   // double _walletBalance = 1500.0;
   // bool _isLoading = false;
-    double _walletBalance = 0.0;
+  double _walletBalance = 0.0;
   bool _isLoading = true;
   String? _paymentUrl;
   String? _authToken;
   String? _txRef;
    String?  username = "";
    String? image = "";
-
 
 
   bool _isRideInfoVisible =
@@ -132,10 +128,10 @@ class _MainAppScreenState extends State<MainAppScreen> {
 
   Future<void> _initializeScreen() async {
     try {
-       await _checkAuthentication();
-       if (_authToken != null) {
-         await _fetchWalletBalance();
-       }
+      await _checkAuthentication();
+      if (_authToken != null) {
+        await _fetchWalletBalance();
+      }
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -151,9 +147,9 @@ class _MainAppScreenState extends State<MainAppScreen> {
 
     if (token == null) {
       print('❌ No token found - Redirecting to login');
-       Navigator.of(context).pushReplacement(
-         MaterialPageRoute(builder: (context) => LoginScreen()),
-       );
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+      );
     } else {
       print('✅ Token found - Proceeding with authentication');
       setState(() {
@@ -219,19 +215,18 @@ class _MainAppScreenState extends State<MainAppScreen> {
       final value = json.encode({
         'token': _authToken,
       });
-         print('🔑 Using Authorization Header: $value');
+      print('🔑 Using Authorization Header: $value');
 
-final response = await http.post(
-  url, // Make sure to parse the URL into a Uri object
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: value,
-);
+      final response = await http.post(
+        url, // Make sure to parse the URL into a Uri object
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: value,
+      );
 
       print('💳 Payment Initiation Response Status: ${response.statusCode}');
       print('💳 Payment Initiation Response Body: ${response.body}');
-
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -254,6 +249,7 @@ final response = await http.post(
       );
     }
   }
+
   void _showPaymentWebView() async {
     if (_paymentUrl == null) return;
 
@@ -285,6 +281,7 @@ final response = await http.post(
       ),
     );
   }
+
   Future<void> _confirmPayment(String txref) async {
     try {
       print('✅ Confirming payment with backend...');
@@ -303,10 +300,10 @@ final response = await http.post(
       if (response.statusCode == 200) {
         print('✅ Payment confirmed successfully');
         Navigator.pop(context); // Close WebView
-        
+
         // Fetch updated wallet balance
         await _fetchWalletBalance();
-        
+
         // Check if wallet balance is now sufficient
         // if (_walletBalance >= 1500) {
         //   // Navigate to order form if balance is sufficient
@@ -315,7 +312,7 @@ final response = await http.post(
         //     MaterialPageRoute(builder: (context) => OrderForm()),
         //   );
         // }
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content: Text('Payment successful! Wallet has been updated.')),
@@ -333,16 +330,12 @@ final response = await http.post(
     }
   }
 
-
-
-
   void _showOrderForm() {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => OrderForm()),
     );
   }
-
 
   Widget _buildOrderButton() {
     if (_isLoading) {
@@ -424,10 +417,7 @@ final response = await http.post(
     }
   }
 
-
   @override
-
-  
   Widget build(BuildContext context) {
     print('🔄 Building UI with wallet balance: $_walletBalance');
 
@@ -479,21 +469,33 @@ final response = await http.post(
             Expanded(
               child: ListView(
                 children: [
-                  _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context, () {
+                  _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context,
+                      () {
                     Navigator.pop(context);
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePage()));
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (context) => ProfilePage()));
                   }),
-                  _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context, () {
+                  _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context,
+                      () {
                     Navigator.pop(context);
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => WalletPage()));
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (context) => WalletPage()));
                   }),
-                  _buildDrawerItem(FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
+                  _buildDrawerItem(
+                      FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
                     Navigator.pop(context);
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => MyOrdersPage()));
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => MyOrdersPage()));
                   }),
-                  _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context, () {
+                  _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context,
+                      () {
                     Navigator.pop(context);
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsPage()));
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => SettingsPage()));
                   }),
                 ],
               ),
@@ -505,7 +507,6 @@ final response = await http.post(
         children: [
           UserMapComponent(),
 
-          
           // Floating Nav Menu Icon
           Positioned(
             top: 30,
@@ -581,21 +582,22 @@ final response = await http.post(
   }
 }
 
-  Widget _buildDrawerItem(IconData icon, String title, BuildContext context, Function onTap) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.black),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontSize: 18,
-          color: Colors.black,
-          fontWeight: FontWeight.bold,
-        ),
+Widget _buildDrawerItem(
+    IconData icon, String title, BuildContext context, Function onTap) {
+  return ListTile(
+    leading: Icon(icon, color: Colors.black),
+    title: Text(
+      title,
+      style: TextStyle(
+        fontSize: 18,
+        color: Colors.black,
+        fontWeight: FontWeight.bold,
       ),
-      tileColor: Colors.grey[200],
-      onTap: () => onTap(),
-    );
-  }
+    ),
+    tileColor: Colors.grey[200],
+    onTap: () => onTap(),
+  );
+}
 
 // Add payment verification function
 Future<bool> _verifyPayment() async {
@@ -628,7 +630,6 @@ Future<bool> _verifyPayment() async {
   }
 }
 
-   
 // Update the PaymentWebView to handle verification
 class PaymentWebView extends StatelessWidget {
   final String paymentUrl;
@@ -959,4 +960,3 @@ void _showImageDialog(BuildContext context) {
 }
 
 }
-

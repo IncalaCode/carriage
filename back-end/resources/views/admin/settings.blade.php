@@ -5,8 +5,6 @@ Dashboard
 @endsection
 
 @section('content')
-
-
 <div style="margin-top: 60px; align-content: center">
     <!DOCTYPE html>
     <html lang="en">
@@ -39,6 +37,12 @@ Dashboard
         .btn-custom:hover {
             background-color: #218838;
         }
+
+        .spinner-border {
+            display: none;
+            width: 1rem;
+            height: 1rem;
+        }
         </style>
     </head>
 
@@ -51,7 +55,11 @@ Dashboard
                             <h4>Change Password & Email</h4>
                         </div>
                         <div class="card-body">
-                            <form id="changeForm" onsubmit="return validateForm()">
+                            <!-- Alert messages -->
+                            <div id="alertMessage" class="alert d-none" role="alert"></div>
+
+                            <form id="changeForm" method="POST" action="./update">
+                                @csrf
                                 <!-- Email input -->
                                 <div class="mb-3">
                                     <label for="email" class="form-label">New Email</label>
@@ -63,26 +71,31 @@ Dashboard
                                 <div class="mb-3">
                                     <label for="currentPassword" class="form-label">Current Password</label>
                                     <input type="password" class="form-control" id="currentPassword"
-                                        name="currentPassword" placeholder="Enter current password" required>
+                                        name="currentPassword" placeholder="Enter current password" minlength="8" required>
                                 </div>
 
                                 <!-- New password input -->
                                 <div class="mb-3">
                                     <label for="newPassword" class="form-label">New Password</label>
                                     <input type="password" class="form-control" id="newPassword" name="newPassword"
-                                        placeholder="Enter new password" required>
+                                        placeholder="Enter new password" minlength="8" required>
                                 </div>
 
                                 <!-- Confirm new password input -->
                                 <div class="mb-3">
                                     <label for="confirmPassword" class="form-label">Confirm New Password</label>
                                     <input type="password" class="form-control" id="confirmPassword"
-                                        name="confirmPassword" placeholder="Confirm new password" required>
+                                        name="password_confirmation" placeholder="Confirm new password" minlength="8" required>
                                 </div>
 
                                 <!-- Submit button -->
                                 <div class="text-center">
-                                    <button type="submit" class="btn btn-custom">Update</button>
+                                    <button type="submit" class="btn btn-custom" id="submitButton">
+                                        <span id="buttonText">Update</span>
+                                        <div class="spinner-border text-light" role="status" id="loadingSpinner">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </button>
                                 </div>
                             </form>
                         </div>
@@ -93,40 +106,78 @@ Dashboard
 
         <!-- Bootstrap JS -->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-        <!-- JavaScript for validation -->
         <script>
-        function validateForm() {
-            const newPassword = document.getElementById("newPassword").value;
-            const confirmPassword = document.getElementById("confirmPassword").value;
+            document.getElementById('changeForm').addEventListener('submit',async function (e) {
+                e.preventDefault(); // Prevent default form submission
 
-            if (newPassword !== confirmPassword) {
-                alert("New password and confirm password do not match.");
-                return false;
-            }
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                const alertMessage = document.getElementById('alertMessage');
+                const submitButton = document.getElementById('submitButton');
+                const buttonText = document.getElementById('buttonText');
+                const loadingSpinner = document.getElementById('loadingSpinner');
 
-            const email = document.getElementById("email").value;
-            if (!validateEmail(email)) {
-                alert("Please enter a valid email address.");
-                return false;
-            }
+                // Reset alert
+                alertMessage.classList.add('d-none');
 
-            return true; // Allow form submission
-        }
+                if (newPassword !== confirmPassword) {
+                    alertMessage.className = 'alert alert-danger';
+                    alertMessage.textContent = 'New Password and Confirm Password do not match!';
+                    alertMessage.classList.remove('d-none');
+                    return;
+                }
 
-        function validateEmail(email) {
-            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            return re.test(String(email).toLowerCase());
-        }
+                // Show loading spinner
+                buttonText.textContent = 'Updating...';
+                loadingSpinner.style.display = 'inline-block';
+                submitButton.disabled = true;
+
+                const formData = new FormData(this);
+
+                try {
+               var response =  await fetch(this.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.getElementsByName("_token"),
+                    },
+                    body: formData,
+                })
+
+                 var data = await response.json();
+        
+                    // Hide loading spinner
+                    buttonText.textContent = 'Update';
+                    loadingSpinner.style.display = 'none';
+                    submitButton.disabled = false;
+
+                    if (data.success) {
+                        alertMessage.className = 'alert alert-success';
+                        alertMessage.textContent = 'Password and Email updated successfully!';
+                        alertMessage.classList.remove('d-none');
+                    } else {
+                        alertMessage.className = 'alert alert-danger';
+                        alertMessage.textContent = data.message || 'An error occurred. Please try again.';
+                        alertMessage.classList.remove('d-none');
+                    }
+            
+                }catch(error){
+                    console.error('Error:', error);
+
+                    // Hide loading spinner
+                    buttonText.textContent = 'Update';
+                    loadingSpinner.style.display = 'none';
+                    submitButton.disabled = false;
+
+                    alertMessage.className = 'alert alert-danger';
+                    alertMessage.textContent = 'Failed to update. Please try again.';
+                    alertMessage.classList.remove('d-none');
+                };
+            });
         </script>
     </body>
 
     </html>
-
 </div>
-
-
-
 @endsection
 
 @section('scripts')

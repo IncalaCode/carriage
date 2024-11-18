@@ -25,7 +25,7 @@ class driver_request extends Controller
         $token = $request->input('token');
         $this->user = Driver::where('uid', $token)->first();
 
-        if (!$this->user) {
+        if (!$this->user  && !$this->user->verified && !$this->user->approved) {
             abort(Response::HTTP_UNAUTHORIZED, 'Unauthorized');
         }
     }

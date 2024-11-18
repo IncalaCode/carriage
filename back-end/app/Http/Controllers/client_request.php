@@ -11,6 +11,7 @@ use App\Models\RequestStatus;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Carbon\Carbon;
+use App\Models\Wallet;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 
@@ -24,7 +25,7 @@ class client_request extends Controller
         $token = $request->input('token');
         $this->user = User::where('uid', $token)->first();
 
-        if (!$this->user) {
+        if (!$this->user &&  !$this->user->verified ) {
             abort(Response::HTTP_UNAUTHORIZED, 'Unauthorized');
         }
     }
@@ -288,9 +289,9 @@ class client_request extends Controller
             $value  = [
                 "name" => $driverinfo->first_name . " " . $driverinfo->last_name,
                 "phone" => $driverinfo->phone_number,
-                "user_photo" =>  Storage::url( $driver->user_photo),
-                 "driver_licence_photos" => Storage::url( $driver->driver_license_photo),
-                 "car_plate_photo" => Storage::url( $driver->car_plate_photo),
+                "user_photo" =>  Storage::url( $driverinfo->user_photo),
+                 "driver_licence_photos" => Storage::url( $driverinfo->driver_license_photo),
+                 "car_plate_photo" => Storage::url( $driverinfo->car_plate_photo),
                 "latitude" =>  driverRequest::where('driver_id' , $validated['driver_id'])->first()->latitude ?? "",
                 "longitude" => driverRequest::where('driver_id' ,  $validated['driver_id'])->first()->longitude ?? ""
             ];
