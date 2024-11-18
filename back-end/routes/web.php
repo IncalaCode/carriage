@@ -31,6 +31,8 @@ Route::put('/admin/approve-driver/{id}', [AdminAuthController::class, 'approveDr
 Route::put('/admin/reject-driver/{id}', [AdminAuthController::class, 'rejectDriver'])->name('admin.reject_driver');
 Route::get('/admin/drivers/{driver}/details', [AdminAuthController::class, 'showDriverDetails'])->name('admin.driver_details');
 
+Route::get('/admin/update', [AdminAuthController::class, 'updateAdmin'])->name('admin.settings');
+Route::get('/admin/logout', [AdminAuthController::class, 'logout'])->name('admin.settings');
 
 
 // // Protected Routes Using Controller Constructor Logic

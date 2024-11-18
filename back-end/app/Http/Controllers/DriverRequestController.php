@@ -142,9 +142,10 @@ class DriverRequestController extends Controller
             ];
     
             try {
+                $api = env('CHAPA') ?? "CHASECK_TEST-Awm7QAxqXPLWOBnfMpTlqGHCIU5xABvM";
                 // Make the API request
                 $response = Http::withHeaders([
-                    'Authorization' => 'Bearer ' . env('CHAPA_SECRET_KEY')
+                    'Authorization' => 'Bearer ' . $api
                 ])->timeout(120)->post("https://api.chapa.co/v1/transfers", $payload);
 
                 $txRef_data = Transaction::where('tx_ref', $txRef)->first();
@@ -165,6 +166,7 @@ class DriverRequestController extends Controller
                     ], 400);
                 }
             } catch (\Exception $e) {
+                Transaction::where('tx_ref', $txRef)->delete();
                 // Handle errors during the API request
                 return response()->json([
                     'error' => 'Error processing withdrawal',
