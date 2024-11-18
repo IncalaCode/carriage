@@ -55,10 +55,10 @@ class _EditProfilePageState extends State<EditProfilePagedriver> {
 
   // Method to fetch the old phone number from shared preferences
   Future<void> _fetchOldPhoneNumber() async {
-   // final prefs = await SharedPreferences.getInstance();
+    final prefs = await SharedPreferences.getInstance();
     setState(() {
-      //_oldPhoneNumber = prefs.getString('phoneNumber'); // Assuming 'phoneNumber' is the key used to store the phone number
-      _oldPhoneNumber = '+251953289595';
+      _oldPhoneNumber = prefs.getString('user_phone_number'); // Assuming 'phoneNumber' is the key used to store the phone number
+      //_oldPhoneNumber = '+251953289595';
     });
     print('Fetched old phone number: $_oldPhoneNumber'); // Debug: Print the old phone number
   }
@@ -348,7 +348,7 @@ class _EditProfilePageState extends State<EditProfilePagedriver> {
                 controller: _phoneController,
                 decoration: InputDecoration(
                   labelText: 'Phone Number',
-                  hintText: widget.phoneNumber,
+                  hintText: _oldPhoneNumber ?? widget.phoneNumber,
                   suffixIcon: isNewPhoneNumber
                       ? SizedBox(
                           width: 80,

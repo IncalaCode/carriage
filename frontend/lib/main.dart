@@ -81,35 +81,3 @@ class MyApp extends StatelessWidget {
     //      home: LoginScreen(), // Uncomment this line to restore login navigation
   }
 }
-
-// Function to initiate user payment
-// void initiateUserPayment(BuildContext context) {
-//   final chapaUserPaymentUrl = 'https://api.chapa.co/v1/user-payment-url'; // Replace with actual Chapa URL
-
-//   Navigator.push(
-//     context,
-//     MaterialPageRoute(
-//       builder: (context) => PaymentPage(chapaPaymentUrl: chapaUserPaymentUrl),
-//     ),
-//   ).then((result) {
-//     if (result != null) {
-//       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result)));
-//     }
-//   });
-// }
-
-// // Function to initiate driver payment
-// void initiateDriverPayment(BuildContext context) {
-//   final chapaDriverPaymentUrl = 'https://api.chapa.co/v1/driver-payment-url'; // Replace with actual Chapa URL
-
-//   Navigator.push(
-//     context,
-//     MaterialPageRoute(
-//       builder: (context) => PaymentPage(chapaPaymentUrl: chapaDriverPaymentUrl),
-//     ),
-//   ).then((result) {
-//     if (result != null) {
-//       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result)));
-//     }
-//   });
-// }

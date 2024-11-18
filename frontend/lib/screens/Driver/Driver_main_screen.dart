@@ -30,13 +30,15 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   File? _profileImage;
   String? _authToken;
-  // double _walletBalance = 0.0;
-  // bool _isLoading = true;
-  double _walletBalance = 1600.0;
-  bool _isLoading = false;
+  double _walletBalance = 0.0;
+  bool _isLoading = true;
+
   String? _paymentUrl;
   String? _txRef;
   bool is_tracking = false;
+
+   String?  username = "";
+   String? image = "";
 
   @override
   void initState() {
@@ -45,6 +47,7 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
     _initializeScreen();
     cont = context;
     function = change;
+    checkData();
   }
 
   void change(bool value) {
@@ -55,19 +58,10 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
 
   Future<void> checkData() async {
     final prefs = await SharedPreferences.getInstance();
-    if (prefs.containsKey('username')) {
-      showUserInfoBottomSheet(
-        cont,
-        {
-          "name": prefs.getString('username') ?? "unknown",
-          "phone": prefs.getString('userphone') ?? "123-456-7890",
-          "locked": true,
-          "from": prefs.getString('userfrom') ?? '' ?? "unknown",
-          "material_type": prefs.getString('usermaterial_type') ?? "unknown",
-          "destination": prefs.getString('userdestination') ?? "unknown",
-        },
-      );
-    }
+      username = await prefs.getString("username") ?? "";
+      image = await prefs.getString("user_image") ??  "";
+       print('Image URL: ${image != null && image!.isNotEmpty ? Config.imagebaseUrl + image! : 'No image available'}');
+
   }
 
   Future<void> _initializeScreen() async {
@@ -208,19 +202,23 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
   void _showPaymentWebView() async {
     if (_paymentUrl == null) return;
 
-    Navigator.of(context).push(
+     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => Scaffold(
           appBar: AppBar(
-            title: Text('Payment'),
-            backgroundColor: Colors.black,
-          ),
+        title: Text('Payment'),
+        leading: IconButton(
+          icon: Icon(FontAwesomeIcons.xmark),
+          color: const Color.fromARGB(255, 0, 0, 0),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
           body: WebView(
             initialUrl: _paymentUrl,
             javascriptMode: JavascriptMode.unrestricted,
             navigationDelegate: (NavigationRequest request) {
               print('🔄 Navigation to: ${request.url}');
-             // Navigator.pop(context);
+              //Navigator.pop(context);
               _confirmPayment(_txRef!);
               return NavigationDecision.prevent;
             },
@@ -366,22 +364,13 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
               ),
               child: Row(
                 children: [
-                  GestureDetector(
-                    onTap: _pickImage,
-                    child: CircleAvatar(
-                      radius: 40,
-                      backgroundColor: Colors.white,
-                      child: _profileImage == null
-                          ? Icon(FontAwesomeIcons.user, size: 40, color: Colors.grey)
-                          : ClipOval(
-                              child: Image.file(
-                                _profileImage!,
-                                fit: BoxFit.cover,
-                                width: 80,
-                                height: 80,
-                              ),
-                            ),
-                    ),
+                  // Debugging: Print the image URL to the console
+                 
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundImage: image != null && image!.isNotEmpty
+                        ? NetworkImage(Config.imagebaseUrl +"/storage/"+ image!)
+                        : AssetImage('path/to/placeholder/image.png') as ImageProvider, // Provide a placeholder image path
                   ),
                   SizedBox(width: 15),
                   Column(
@@ -397,7 +386,7 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
                         ),
                       ),
                       Text(
-                        'Driver!',
+                        username!,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 20,
@@ -540,6 +529,8 @@ void showUserInfoBottomSheet(
     await prefs.setString('userdestination', userData['destination']);
   }
 
+
+
   saveData();
 
   showModalBottomSheet(
@@ -613,7 +604,7 @@ void showUserInfoBottomSheet(
                         }
                       },
                       child: const Center(
-                        child: Text(
+                        child:  Text(
                           "cancel Request",
                           style: TextStyle(
                             fontSize: 16,

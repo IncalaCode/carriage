@@ -30,6 +30,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final _formKey = GlobalKey<FormState>();
   bool isNewPhoneNumber = false;
   bool showOTPField = false;
+  String? oldPhoneNumber;
 
   // TextEditingControllers for the form fields
   TextEditingController _firstNameController = TextEditingController();
@@ -42,8 +43,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
     super.initState();
     _firstNameController.text = widget.firstName;
     _lastNameController.text = widget.lastName;
-    _phoneController.text = widget.phoneNumber;
+
+    // Fetch the old phone number from shared preferences
+    _loadOldPhoneNumber();
+    
     _profileImage = widget.profileImage;
+  }
+
+  Future<void> _loadOldPhoneNumber() async {
+    final prefs = await SharedPreferences.getInstance();
+    oldPhoneNumber = prefs.getString('user_phone_number'); // Fetch the old phone number
+    _phoneController.text = oldPhoneNumber ?? ''; // Set the phone controller text
   }
 
   Future<void> _pickImage() async {
@@ -299,7 +309,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 controller: _phoneController,
                 decoration: InputDecoration(
                   labelText: 'Phone Number',
-                  hintText: widget.phoneNumber,
+                  hintText: oldPhoneNumber ?? 'Enter your phone number',
                   suffixIcon: isNewPhoneNumber
                       ? SizedBox(
                           width: 80,

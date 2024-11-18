@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart' as prefs;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../config.dart';
 import '../Driver_main_screen.dart';
@@ -30,7 +31,6 @@ class DriverHook {
   DriverHook(this.context, this._localStorage, this.gebetaApiKey);
 //  Initialize with offline data if available and load environment variables
   Future<void> initialize() async {
-    await dotenv.load(); // Load environment variables
     final cachedData = await _getCachedData();
     if (cachedData != null) {
       _ordersStreamController.add({
@@ -60,13 +60,14 @@ class DriverHook {
   // Method to create a request
   Future<void> createRequest_getrequest() async {
     try {
+      final _authToken = await getToken();
       Position position = await _getCurrentLocation();
       print("started polling");
       final response = await http.post(
         Uri.parse('${Config.baseUrl}/driver/handle-request'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
-          'token': getToken(),
+          'token': _authToken,
           'latitude': position.latitude.toString(),
           'longitude': position.longitude.toString(),
         }),
@@ -76,6 +77,7 @@ class DriverHook {
         _handleError('Request creation failed:');
       }
       final data = json.decode(response.body);
+      print(data);
       if (data.containsKey('locked') && data['locked'] == true) {
         _startRouteTracking(data);
         isLocked = true;
@@ -90,6 +92,9 @@ class DriverHook {
   // Method to accept a request
   Future<void> acceptRequest(String requestId, String price) async {
     try {
+      print("acceotance started ${requestId}");
+      stopPolling();
+      final _authToken = await getToken();
       Position position = await _getCurrentLocation();
       final response = await http.post(
         Uri.parse('${Config.baseUrl}/driver/handle-request'),
@@ -97,18 +102,20 @@ class DriverHook {
         body: json.encode({
           "user_request_id": requestId,
           "price": price,
-          'token': getToken(),
+          'token': _authToken ,
           'latitude': position.latitude.toString(),
           'longitude': position.longitude.toString(),
         }),
       );
 
       if (response.statusCode != 200) {
+        print(response.body);
         _showMessage('Request sent failed');
         return;
       }
-
+      startPolling();
       final data = json.decode(response.body);
+
       _handleNewRequests(data);
       _showMessage('Request sent successfully!');
     } catch (e) {
@@ -253,7 +260,11 @@ class DriverHook {
     return null;
   }
 
-  String getToken() => "1w"; // Replace with actual token logic
+  Future getToken() async {
+        final prefs = await SharedPreferences.getInstance();
+        final token  = await prefs.getString('authToken');
+        return token ;
+  } 
 
   void dispose() {
     stopPolling();

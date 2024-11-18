@@ -108,7 +108,7 @@ class _ProfilePageState extends State<ProfilePage> {
               onPressed: () async {
                 // Delete token and navigate to login screen
                 final prefs = await SharedPreferences.getInstance();
-                await prefs.remove('authToken');
+                await prefs.clear(); // Clear all stored shared preferences
                 
                 Navigator.pushReplacement(
                   context,
