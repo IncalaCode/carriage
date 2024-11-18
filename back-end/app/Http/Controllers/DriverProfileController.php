@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Validator;
 
 class DriverProfileController extends Controller
 {
+
     public function getProfile(Request $request)
      {
        
@@ -33,6 +34,7 @@ class DriverProfileController extends Controller
         return response()->json([
             'first_name' => $driver->first_name,
             'last_name' => $driver->last_name,
+            "image" => url(Storage::url( $driver->user_photo)),
             'phone_number' => $driver->phone_number,
             'status' => $driver->verified ? 'Verified' : 'Unverified',
             'referral_code' => $this->generateReferralLink($driver->uid),
@@ -43,6 +45,8 @@ class DriverProfileController extends Controller
 
     public function updateProfile(Request $request)
     {
+
+       
 
         $validator = Validator::make($request->all(), [
             'first_name' => 'required|string|max:255',
@@ -55,9 +59,11 @@ class DriverProfileController extends Controller
                 'errors' => $validator->errors(),
             ], 422);
         }
+ 
 
 
 
+        $driver =  Driver::where('uid', $request->token)->first();
         $driver =  Driver::where('uid', $request->token)->first();
         if (!$driver) {
             return response()->json(['error' => 'Driver not found'], 404);
@@ -70,7 +76,7 @@ class DriverProfileController extends Controller
             if ($request->hasFile('image')) {
                 // Delete old image if exists
                 if ($driver->image) {
-                    Storage::disk('user_photo')->delete($driver->image);
+                    Storage::disk('user_photo')->delete($driver->user_photo);
                 }
                 
                 // Store the new image
@@ -87,7 +93,6 @@ class DriverProfileController extends Controller
             
         ]);
     }
-
     public function sendOtp(Request $request)
     {
         $request->validate(['oldphone_number' => 'required', 'newphone_number' => 'required']);
@@ -158,6 +163,8 @@ class DriverProfileController extends Controller
 
     public function generateReferralLink($driverId)
     {
+        $driver = Driver::where("uid",$driverId);
+        $referralLink = url('/referral?ref=' . $driverId);
         $driver = Driver::where("uid",$driverId);
         $referralLink = url('/referral?ref=' . $driverId);
 
