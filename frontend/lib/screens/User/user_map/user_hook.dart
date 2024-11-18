@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart' as prefs;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../config.dart';
 
 class UserHook {
@@ -40,12 +41,13 @@ class UserHook {
               body: jsonEncode({'token': token}));
 
       final dynamic data = json.decode(response.body);
+      print(response.body);
       if (response.statusCode == 404 || response.statusCode == 401) {
         return {
           'error': data['error'] ?? 'Unknown error',
           "statusCode": response.statusCode
         };
-      } else if (data['image'] != null && response.statusCode == 303) {
+      } else if (data['user_photo'] != null && response.statusCode == 201) {
         return {"drivers": data ?? [], "statusCode": response.statusCode};
       }
       return {
@@ -66,7 +68,10 @@ class UserHook {
     _isPolling = false;
   }
 
-  String getToken() {
-    return "1u"; // Replace with actual token logic
+  Future getToken() async {
+        final prefs = await SharedPreferences.getInstance();
+        final token  = await prefs.getString('authToken');
+        return token ;
+
   }
 }
