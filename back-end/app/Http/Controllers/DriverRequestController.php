@@ -47,11 +47,15 @@ class DriverRequestController extends Controller
 
         $data = [
             'amount' => $amount,
-            'currency' => 'ETB',
+            'currency' => "ETB",
+            'first_name' =>  $this->user->first_name,
+            'last_name' => $this->user->last_name,
+            'phone_number' => $this->user->phone_number,
             'tx_ref' => $txRef,
-            'callback_url' => route('payment.callback', ['tx_ref' => $txRef]),
             'customization' => [
                 'title' => 'Request Payment',
+                'descripition' => 'This is a payment for a Request order for mytruck.'
+
             ],
         ];
 

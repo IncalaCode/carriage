@@ -25,7 +25,7 @@ class driver_request extends Controller
         $token = $request->input('token');
         $this->user = Driver::where('uid', $token)->first();
 
-        if (!$this->user) {
+        if (!$this->user  && !$this->user->verified && !$this->user->approved) {
             abort(Response::HTTP_UNAUTHORIZED, 'Unauthorized');
         }
     }
@@ -35,7 +35,7 @@ class driver_request extends Controller
  
 
         // Get current driver request status
-        $driverRequest = driverRequest::where('driver_id', $this->user->id)
+        $driverRequest = driverRequest::where('driver_id', $this->user->uid)
             ->whereIn('status', ['pending', 'locked'])
             ->first();
 
@@ -105,7 +105,7 @@ class driver_request extends Controller
 
     // Create a new driver request
     $driverRequest = driverRequest::create([
-        'driver_id' => $this->user->id,
+        'driver_id' => $this->user->uid,
         'longitude' => $validated['longitude'],
         'latitude' => $validated['latitude'],
         'car_type' => $this->user->car_type,
@@ -126,7 +126,7 @@ private function getRequests(Request $request)
             ->where('status', 'pending')
             ->get()
             ->map(function ($request) {
-                $user = \App\Models\User::find($request->user_id);
+                $user = \App\Models\User::where('uid',$request->user_id)->first();
 
                 $acceptedUsers = json_decode($request->accepted_driver_ids ?? "[]") ?? []; // Get accepted driver IDs
 
@@ -134,7 +134,7 @@ private function getRequests(Request $request)
                 $isAcceptedByDriver = in_array($this->user->uid, $acceptedUsers);
 
                 return [
-                    'request_id' => $request->id,
+                    'request_id' => $request->user_id,
                     'from' => $request->from,
                     'destination' => $request->destination,
                     'material_type' => $request->material_type,
@@ -170,18 +170,19 @@ private function getRequests(Request $request)
 private function acceptRide(Request $request,$driverrequest) 
 {
     $validated = $request->validate([
-        'user_request_id' => 'required|exists:user_requests,id',
+        'user_request_id' => 'required|exists:user_requests,user_id',
         'price' => 'required|numeric'
     ]);
 
-    $userRequest = user_Request::findOrFail($validated['user_request_id']);
+
+    $userRequest = user_Request::where("user_id",$validated['user_request_id'])->first();
 
     if ($userRequest->status !== 'pending') {
         return response()->json(['error' => 'Request no longer available'], 400);
     }
 
     // Retrieve or initialize the accepted drivers list
-    $acceptedDrivers = json_decode($userRequest->accepted_driver_ids) ?? [];
+    $acceptedDrivers = json_decode($userRequest->accepted_driver_ids ?? "[]") ?? [];
     
     // Check if the driver is not already in the accepted list, then add them
     if (!in_array($this->user->uid, $acceptedDrivers)) {
@@ -192,7 +193,7 @@ private function acceptRide(Request $request,$driverrequest)
     RidePrice::updateOrCreate(
         [
             'request_id' => $validated['user_request_id'],
-            'driver_id' => $this->user->id
+            'driver_id' => $this->user->uid
         ],
         ['price' => $validated['price']]
     );
@@ -236,7 +237,7 @@ private function acceptRide(Request $request,$driverrequest)
         $driverRequest->update(['status' => 'cancelled']);
         $dwallet = Wallet::where('user_id', $driverRequest->driver_id)->first();
 
-        return response()->json([,'status' => true]);
+        return response()->json(['status' => true]);
     }
 
     private function determineAction($driverRequest, $request)

@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Validator;
 
 class DriverProfileController extends Controller
 {
-
     public function getProfile(Request $request)
      {
        
@@ -46,7 +45,6 @@ class DriverProfileController extends Controller
     public function updateProfile(Request $request)
     {
 
-       
 
         $validator = Validator::make($request->all(), [
             'first_name' => 'required|string|max:255',
@@ -59,8 +57,6 @@ class DriverProfileController extends Controller
                 'errors' => $validator->errors(),
             ], 422);
         }
- 
-
 
 
         $driver =  Driver::where('uid', $request->token)->first();

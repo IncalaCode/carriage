@@ -33,6 +33,8 @@ class Driver extends Authenticatable
         'otp',
         'referral_count',
         'referred_by',
+        'is_online',
+        'last_active'
     ];
 
     /**

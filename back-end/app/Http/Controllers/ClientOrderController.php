@@ -40,16 +40,21 @@ class ClientOrderController extends Controller
 
         $data = [
             'amount' => $amount,
+            'currency' => "ETB",
+            'first_name' =>  $this->user->first_name,
+            'last_name' => $this->user->last_name,
+            'phone_number' => $this->user->phone_number,
             'currency' => 'ETB',
             'tx_ref' => $txRef,
-            'callback_url' => route('payment.callback', ['tx_ref' => $txRef]),
             'customization' => [
                 'title' => 'Order Payment',
+                'descripition' => 'This is a payment for a Request order for mytruck.'
+
             ],
         ];
 
         $response = Http::withToken(env('CHAPA_SECRET_KEY'))
-            ->timeout(60)
+            ->timeout(120)
             ->post('https://api.chapa.co/v1/transaction/initialize', $data);
 
         if ($response->successful()) {

@@ -99,7 +99,7 @@ class _ProfilePageState extends State<ProfilePagedriver> {
     }
   }
 
-  void _showLogoutConfirmation() {
+    void _showLogoutConfirmation() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -114,7 +114,11 @@ class _ProfilePageState extends State<ProfilePagedriver> {
               child: Text('Cancel'),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
+                // Delete token and navigate to login screen
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.clear(); // Clear all stored shared preferences
+                
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => LoginScreen()),
@@ -126,7 +130,7 @@ class _ProfilePageState extends State<ProfilePagedriver> {
                   gradient: LinearGradient(
                     colors: [
                       Color(0xFF000000),
-                      Color(0xFF9A839E),
+                      Color(0xFF9A839E)
                     ],
                   ),
                   borderRadius: BorderRadius.circular(5),
@@ -138,6 +142,11 @@ class _ProfilePageState extends State<ProfilePagedriver> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+              ),
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.zero,
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
               ),
             ),
           ],

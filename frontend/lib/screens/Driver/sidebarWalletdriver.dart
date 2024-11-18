@@ -379,7 +379,44 @@ class _WalletDriverPageState extends State<WalletDriverPage> {
     );
   }
 
-  // Add this method to process the withdrawal
+  // Add this method to confirm the withdrawal
+  Future<void> _confirmWithdrawal() async {
+    try {
+      print('✅ Confirming withdrawal with backend...');
+      final response = await http.post(
+        Uri.parse('${Config.baseUrl}/driver/request/confirm-withdrawal'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'token': _authToken,
+        }),
+      );
+
+      print('✅ Withdrawal Confirmation Status: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'success') {
+          print('✅ Withdrawal confirmed successfully');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Withdrawal successful! Wallet has been updated.')),
+          );
+          await fetchWalletBalance(); // Update the wallet balance
+        } else {
+          throw Exception('Withdrawal confirmation failed');
+        }
+      } else {
+        throw Exception('Failed to confirm withdrawal: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Withdrawal Confirmation Error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error confirming withdrawal. Please try again.')),
+      );
+    }
+  }
+
+  // Update the _processWithdrawal method to call _confirmWithdrawal after a successful withdrawal
   Future<void> _processWithdrawal(String accountName, String accountNumber, double amount) async {
     try {
       print('💳 Processing withdrawal of $amount ETB to $accountName ($accountNumber)');
@@ -402,8 +439,7 @@ class _WalletDriverPageState extends State<WalletDriverPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Withdrawal in progress.')),
         );
-        // Optionally, refresh wallet balance
-        await fetchWalletBalance();
+        await _confirmWithdrawal(); // Confirm the withdrawal
       } else {
         throw Exception('Failed to process withdrawal: ${response.statusCode}');
       }

@@ -11,6 +11,7 @@ use App\Models\RequestStatus;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Carbon\Carbon;
+use App\Models\Wallet;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 
@@ -24,7 +25,7 @@ class client_request extends Controller
         $token = $request->input('token');
         $this->user = User::where('uid', $token)->first();
 
-        if (!$this->user) {
+        if (!$this->user &&  !$this->user->verified ) {
             abort(Response::HTTP_UNAUTHORIZED, 'Unauthorized');
         }
     }
@@ -32,7 +33,7 @@ class client_request extends Controller
     public function handleRequest(Request $request)
     {
         // Get current user request if exists
-        $currentRequest = user_Request::where('user_id', $this->user->id)
+        $currentRequest = user_Request::where('user_id', $this->user->uid)
             ->whereIn('status', [
                 RequestStatus::PENDING,
                 RequestStatus::DRIVER_ACCEPTED,
@@ -173,7 +174,7 @@ class client_request extends Controller
         }
 
         $request = user_Request::create([
-            'user_id' => $this->user->id,
+            'user_id' => $this->user->uid,
             'from' => $validated['from'],
             'destination' => $validated['destination'],
             'material_type' => $validated['material_type'],
@@ -202,8 +203,6 @@ class client_request extends Controller
         $drivers = [];
     
         while ($timeout > 0) {
-            // Refresh request data
-            $currentRequest->refresh();
     
             // Get accepted drivers from the request
             $acceptedDriverIds = json_decode($currentRequest->accepted_driver_ids ?? "[]");
@@ -215,10 +214,10 @@ class client_request extends Controller
                     ->get()
                     ->map(function ($driver) use ($currentRequest) {
                         // Get price from the prices table
-                        $priceRecord = RidePrice::where('request_id', $currentRequest->id)
-                            ->where('driver_id', $driver->id)
+                        $priceRecord = RidePrice::where('request_id', $currentRequest->uid)
+                            ->where('driver_id', $driver->uid)
                             ->first();
-                        $requestDriver = driverRequest::where('driver_id', $driver->id)
+                        $requestDriver = driverRequest::where('driver_id', $driver->uid)
                             ->where('status', "pending")
                             ->first();
     
@@ -290,7 +289,9 @@ class client_request extends Controller
             $value  = [
                 "name" => $driverinfo->first_name . " " . $driverinfo->last_name,
                 "phone" => $driverinfo->phone_number,
-                "image" => Storage::url($driverinfo->user_photo),
+                "user_photo" =>  Storage::url( $driverinfo->user_photo),
+                 "driver_licence_photos" => Storage::url( $driverinfo->driver_license_photo),
+                 "car_plate_photo" => Storage::url( $driverinfo->car_plate_photo),
                 "latitude" =>  driverRequest::where('driver_id' , $validated['driver_id'])->first()->latitude ?? "",
                 "longitude" => driverRequest::where('driver_id' ,  $validated['driver_id'])->first()->longitude ?? ""
             ];
@@ -325,10 +326,12 @@ class client_request extends Controller
         return response()->json([
             "name" => $driver->first_name . " " . $driver->last_name,
             "phone" => $driver->phone_number,
-            "image" => array( Storage::url("user_photo/" . $driver->user_photo),Storage::url("driver_licence_photos/" . $driver->driver_license_photo),Storage::url("car_plate_photo/" . $driver->car_plate_photo)) ,
-            'latitude' => $driverRequest->latitude,
-            'longitude' => $driverRequest->longitude
-        ] , 303);
+           "user_photo" =>  Storage::url( $driver->user_photo),
+            "driver_licence_photos" => Storage::url( $driver->driver_license_photo),
+            "car_plate_photo" => Storage::url( $driver->car_plate_photo),
+            'longitude' => $driverRequest->longitude ?? "",
+            'latitude' => $driverRequest->latitude ?? ""
+        ] , 201);
     }
     
     private function cancelRequest($currentRequest)
@@ -358,6 +361,11 @@ class client_request extends Controller
 
         $currentRequest->update(['status' => 'completed']);
         $driverRequest->update(['status' => 'completed']);
+
+       $userwallet =  wallet::where('user_id',$this->user->uid)->frist();
+       $userwallet->update([
+        'balance' => $userwallet->balance - 1500
+       ]);
 
         return response()->json(['message' => 'Ride completed successfully']);
     }

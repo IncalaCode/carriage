@@ -42,6 +42,9 @@ class _MainAppScreenState extends State<MainAppScreen> {
   String? _paymentUrl;
   String? _authToken;
   String? _txRef;
+   String?  username = "";
+   String? image = "";
+
 
   bool _isRideInfoVisible =
       false; // New state to control RideInfoCard visibility
@@ -51,6 +54,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
   @override
   void initState() {
     super.initState();
+    _fetchWalletBalance();
     _initializeScreen();
     checkData(); // make it to check frist
     function = change;
@@ -74,11 +78,18 @@ class _MainAppScreenState extends State<MainAppScreen> {
       rideInfoCard = RideInfoCard(
         name: prefs.getString('name') ?? '',
         phone: prefs.getString('phone') ?? '',
-        photoUrl: prefs.getString('photoUrl') ?? '',
+        user_photo: prefs.getString('user_photo') ?? '',
+           driver_licence_photos: prefs.getString('driver_licence_photos') ?? '',
+              car_plate_photo: prefs.getString('car_plate_photo') ?? '',
         distance: prefs.getString('distance') ?? '0',
         time: prefs.getString('time') ?? '',
         change: function,
       );
+
+      
+
+      username = await prefs.getString("username") ?? "";
+      image = await prefs.getString("user_image") ?? "";
 
       // change();
 
@@ -104,11 +115,15 @@ class _MainAppScreenState extends State<MainAppScreen> {
         builder: (_) => rideInfoCard = RideInfoCard(
               name: prefs.getString('name') ?? '',
               phone: prefs.getString('phone') ?? '',
-              photoUrl: prefs.getString('photoUrl') ?? '',
+             user_photo : prefs.getString('user_photo') ?? '',
+                driver_licence_photos : prefs.getString('driver_licence_photos') ?? '',
+                   car_plate_photo : prefs.getString('car_plate_photo') ?? '',
+              
               distance: prefs.getString('distance') ?? '0',
               time: prefs.getString('time') ?? '',
               change: function,
             ));
+
   }
 
   Future<void> _initializeScreen() async {
@@ -148,7 +163,9 @@ class _MainAppScreenState extends State<MainAppScreen> {
     if (_authToken == null) return;
 
     try {
-      final url = Uri.parse('${Config.baseUrl}/wallet/balance');
+      print('🔄 Fetching wallet balance...');
+      
+      final url = Uri.parse('${Config.baseUrl}/user/wallet/balance');
       final response = await http.post(
         url,
         headers: {
@@ -161,10 +178,12 @@ class _MainAppScreenState extends State<MainAppScreen> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        print('💰 Wallet balance received: ${data['balance']}');
         if (mounted) {
           setState(() {
             _walletBalance = double.parse(data['balance'].toString());
             _isLoading = false;
+            print('🔄 Updated wallet balance: $_walletBalance');
           });
         }
       } else {
@@ -172,6 +191,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
             'Failed to load wallet balance: ${response.statusCode}');
       }
     } catch (e) {
+      print('❌ Error fetching wallet balance: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -237,9 +257,13 @@ class _MainAppScreenState extends State<MainAppScreen> {
       MaterialPageRoute(
         builder: (context) => Scaffold(
           appBar: AppBar(
-            title: Text('Payment'),
-            backgroundColor: Colors.black,
-          ),
+        title: Text('Payment'),
+        leading: IconButton(
+          icon: Icon(FontAwesomeIcons.xmark),
+          color: const Color.fromARGB(255, 0, 0, 0),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
           body: WebView(
             initialUrl: _paymentUrl,
             javascriptMode: JavascriptMode.unrestricted,
@@ -330,9 +354,11 @@ class _MainAppScreenState extends State<MainAppScreen> {
     }
 
     if (_walletBalance >= 1500) {
+      print(is_tracking);
       return FloatingActionButton.extended(
-        onPressed: is_tracking ? _toggleRideInfoCard : _showOrderForm,
-        backgroundColor: Colors.transparent,
+       onPressed: is_tracking ? _toggleRideInfoCard : _showOrderForm,
+          //  onPressed: _showOrderForm,
+     backgroundColor: Colors.green,
         icon: Icon(FontAwesomeIcons.bell, color: Colors.white),
         label: Container(
           decoration: BoxDecoration(
@@ -343,15 +369,19 @@ class _MainAppScreenState extends State<MainAppScreen> {
           ),
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Text(
-            is_tracking ? "See your order" : "Order Now",
+           is_tracking ? "See your order" : "Order Now",
+            // "Access Orders",
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
         ),
       );
     } else {
       return FloatingActionButton.extended(
-        onPressed: _initiatePayment,
-        backgroundColor: Colors.transparent,
+        onPressed: () {
+          print('🔴 Insufficient balance. Initiating payment...');
+          _initiatePayment();
+        },
+        backgroundColor: Colors.red,
         icon: Icon(FontAwesomeIcons.lock, color: Colors.white),
         label: Container(
           decoration: BoxDecoration(
@@ -389,6 +419,8 @@ class _MainAppScreenState extends State<MainAppScreen> {
 
   @override
   Widget build(BuildContext context) {
+    print('🔄 Building UI with wallet balance: $_walletBalance');
+
     return Scaffold(
       key: _scaffoldKey,
       drawer: Drawer(
@@ -402,23 +434,11 @@ class _MainAppScreenState extends State<MainAppScreen> {
               ),
               child: Row(
                 children: [
-                  GestureDetector(
-                    onTap: _pickImage,
-                    child: CircleAvatar(
-                      radius: 40,
-                      backgroundColor: Colors.white,
-                      child: _profileImage == null
-                          ? Icon(FontAwesomeIcons.user,
-                              size: 40, color: Colors.grey)
-                          : ClipOval(
-                              child: Image.file(
-                                _profileImage!,
-                                fit: BoxFit.cover,
-                                width: 80,
-                                height: 80,
-                              ),
-                            ),
-                    ),
+           CircleAvatar(
+                    radius: 30,
+                    backgroundImage: image != null && image!.isNotEmpty
+                        ? NetworkImage(Config.imagebaseUrl +"/storage/"+ image!)
+                        : AssetImage('path/to/placeholder/image.png') as ImageProvider, // Provide a placeholder image path
                   ),
                   SizedBox(width: 15),
                   Column(
@@ -434,29 +454,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
                         ),
                       ),
                       Text(
-                        'User!',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Welcome,',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        'User!',
+                        username!,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 20,
@@ -576,54 +574,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
           Positioned(
             bottom: 20,
             right: 20,
-            child: GestureDetector(
-              onTapDown: (_) {
-                setState(() {
-                  _buttonScale = 0.95; // Slightly shrink the button
-                  _isIconRotated = !_isIconRotated; // Toggle the icon animation
-                });
-              },
-              onTapUp: (_) {
-                setState(() {
-                  _buttonScale = 1.0; // Reset button size
-                });
-              },
-              child: Transform.scale(
-                scale: _buttonScale,
-                child: FloatingActionButton.extended(
-                  onPressed: () {
-                    // Navigate to the order form
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => OrderForm()),
-                    );
-                  },
-                  backgroundColor: Colors.transparent,
-                  icon: AnimatedRotation(
-                    duration: Duration(milliseconds: 300),
-                    turns: _isIconRotated ? 1.0 : 0.0, // 1 full rotation
-                    child: Icon(
-                      FontAwesomeIcons.add,
-                      color: Colors.white,
-                    ),
-                  ),
-                  label: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Color(0xFF000000), Color(0xFF9A839E)],
-                      ),
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Text(
-                      'Order Now',
-                      style: TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            child: _buildOrderButton(),
           ),
         ],
       ),
@@ -738,13 +689,6 @@ class PaymentWebView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Payment'),
-        leading: IconButton(
-          icon: Icon(Icons.close),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
       body: WebView(
         initialUrl: paymentUrl,
         javascriptMode: JavascriptMode.unrestricted,
@@ -752,7 +696,7 @@ class PaymentWebView extends StatelessWidget {
           print('Navigation to: ${request.url}'); // Debug print
           if (request.url.contains('success')) {
             _handlePaymentSuccess(context);
-            return NavigationDecision.prevent;
+            // return NavigationDecision.prevent;
           }
           return NavigationDecision.navigate;
         },
@@ -766,7 +710,9 @@ class PaymentWebView extends StatelessWidget {
 class RideInfoCard extends StatefulWidget {
   final String name;
   final String phone;
-  final String photoUrl;
+  final String user_photo;
+  final String driver_licence_photos;
+  final String car_plate_photo;
   final String distance;
   final String time;
   final Function(bool) change;
@@ -774,7 +720,9 @@ class RideInfoCard extends StatefulWidget {
   RideInfoCard({
     required this.name,
     required this.phone,
-    required this.photoUrl,
+    required this.user_photo,
+    required this.driver_licence_photos,
+    required this.car_plate_photo,
     required this.distance,
     required this.time,
     required this.change,
@@ -791,6 +739,7 @@ class _RideInfoCardState extends State<RideInfoCard>
 
   late String _currentDistance;
   late String _currentTime;
+  bool iscompleted = false;
 
   // StreamController to update distance and time
 
@@ -831,7 +780,9 @@ class _RideInfoCardState extends State<RideInfoCard>
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('name', widget.name);
     await prefs.setString('phone', widget.phone);
-    await prefs.setString('photoUrl', widget.photoUrl);
+    await prefs.setString('user_photo', widget.user_photo);
+    await prefs.setString('driver_licence_photos', widget.driver_licence_photos);
+    await prefs.setString('car_plate_photo', widget.car_plate_photo);
     await prefs.setString('distance', _currentDistance);
     await prefs.setString('time', _currentTime);
 
@@ -841,8 +792,12 @@ class _RideInfoCardState extends State<RideInfoCard>
   // Function to handle completion
   void _completeRide() async {
     final token = await getToken();
-    final prefs = await SharedPreferences
-        .getInstance(); // Retrieve token dynamically if async
+    final prefs = await SharedPreferences.getInstance(); 
+    
+    setState(() {
+      iscompleted = true;
+    });
+    // Retrieve token dynamically if async
     final response =
         await http.post(Uri.parse('${Config.baseUrl}/client/handle-request'),
             headers: {
@@ -853,6 +808,9 @@ class _RideInfoCardState extends State<RideInfoCard>
     final dynamic data = json.decode(response.body);
 
     _toggleVisibility();
+    setState(() {
+      iscompleted = false;
+    });
 
     if (response.statusCode == 200) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -868,8 +826,6 @@ class _RideInfoCardState extends State<RideInfoCard>
         ),
       );
     }
-
-    // Logic for completing the ride
   }
 
   // Function to show warning before completing
@@ -907,68 +863,100 @@ class _RideInfoCardState extends State<RideInfoCard>
   }
 
   @override
-  Widget build(BuildContext context) {
-    print("shsssssssssssss" + widget.photoUrl);
-
-    // final res = http.get(
-    //   Uri.parse(Config.imagebaseUrl + widget.photoUrl),
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //   },
-    // );
-
-    // print(res);
-
-    return SlideTransition(
-      position: _offsetAnimation,
-      child: _isOpen // Check the visibility state
-          ? Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              padding: const EdgeInsets.all(8),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      CircleAvatar(
+ @override
+Widget build(BuildContext context) {
+  return SlideTransition(
+    position: _offsetAnimation,
+    child: _isOpen
+        ? Container(
+            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        _showImageDialog(context);
+                      },
+                      child: CircleAvatar(
                         radius: 30,
-                        //  backgroundImage: NetworkImage(''),
+                        backgroundImage: NetworkImage( Config.imagebaseUrl + widget.user_photo),
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.name,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.name,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              "+" + widget.phone,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[600],
-                              ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "+" + widget.phone,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  ElevatedButton(
-                    onPressed: _showCompletionWarning,
-                    child: Text('Complete Ride'),
-                  ),
-                ],
-              ),
-            )
-          : SizedBox.shrink(), // Return an empty widget when closed
-    );
-  }
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: _showCompletionWarning,
+                  child: iscompleted ? CircularProgressIndicator() :  Text('Complete Ride'),
+                ),
+              ],
+            ),
+          )
+        : SizedBox.shrink(),
+  );
+}
+void _showImageDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Driver Infromation Images '),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('User Photo'),
+              SizedBox(height: 10),
+              Image.network(Config.imagebaseUrl +widget.user_photo), // Display user photo
+              SizedBox(height: 20),
+              Text('Driver License Photo'),
+              SizedBox(height: 10),
+              Image.network(Config.imagebaseUrl + widget.driver_licence_photos), // Display driver license photo
+              SizedBox(height: 20),
+              Text('Car Plate Photo'),
+              SizedBox(height: 10),
+              Image.network( Config.imagebaseUrl + widget.car_plate_photo), // Display car plate photo
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Close the dialog
+            },
+            child: Text('Close'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
 }
