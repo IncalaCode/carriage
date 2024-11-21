@@ -18,12 +18,12 @@ class ProfilePagedriver extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePagedriver> {
   File? _profileImage;
   bool isApproved = true;
-  String referralCode = "ABC123";
+  String referralCode = "";
   List<String> referrals = [];
   final int referralReward = 1000;
   String? _authToken;
-  String _displayName = 'Jabez Hap';
-  String _phoneNumber = '+251 963 488 972';
+  String _displayName = '';
+  String _phoneNumber = '';
   int referralCount = 0;
   String _status ='';
   String _referralCode = '';

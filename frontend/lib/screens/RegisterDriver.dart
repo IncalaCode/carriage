@@ -19,7 +19,7 @@ class _RegisterDriverState extends State<RegisterDriver> {
   String lastName = '';
   String password = '';
   String confirmPassword = '';
-  String carType = '';
+  String? selectedCarType;
   bool isPasswordVisible = false;
   bool isConfirmPasswordVisible = false;
   Uint8List? drivingLicensePhotoBytes;
@@ -29,6 +29,9 @@ class _RegisterDriverState extends State<RegisterDriver> {
   String _errorMessage = '';
 
   final ImagePicker _picker = ImagePicker();
+
+  // List of car types
+  final List<String> carTypes = ['Sedan', 'SUV', 'Truck', 'Van'];
 
   Future<void> _takePhoto(Function(Uint8List?) onPhotoTaken) async {
     final XFile? image = await _picker.pickImage(source: ImageSource.camera);
@@ -69,12 +72,11 @@ class _RegisterDriverState extends State<RegisterDriver> {
               lastName: lastName,
               password: password,
               confirm_password: _passwordController.text,
-
-              carType: carType,
-              drivingLicensePhoto: drivingLicensePhotoBytes, // Updated field name
-              carPlatePhoto: carPlatePhotoBytes, // Updated field name
-              idCardPhoto: idCardPhotoBytes, // Updated field name
-              driverPhoto: driverPhotoBytes, // Updated field name
+              carType: selectedCarType ?? '',
+              drivingLicensePhoto: drivingLicensePhotoBytes,
+              carPlatePhoto: carPlatePhotoBytes,
+              idCardPhoto: idCardPhotoBytes,
+              driverPhoto: driverPhotoBytes,
             ),
           ),
         );
@@ -201,21 +203,30 @@ class _RegisterDriverState extends State<RegisterDriver> {
               ),
               SizedBox(height: 16),
 
-              // Car Type Field
-              TextFormField(
+              // Car Type Dropdown
+              DropdownButtonFormField<String>(
                 decoration: InputDecoration(
                   labelText: 'Car Type',
                   filled: true,
                   fillColor: Colors.white,
                 ),
+                value: selectedCarType,
+                items: carTypes.map((String carType) {
+                  return DropdownMenuItem<String>(
+                    value: carType,
+                    child: Text(carType),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    selectedCarType = newValue;
+                  });
+                },
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your car type';
+                  if (value == null) {
+                    return 'Please select your car type';
                   }
                   return null;
-                },
-                onSaved: (value) {
-                  carType = value!;
                 },
               ),
               SizedBox(height: 16),
