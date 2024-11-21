@@ -43,7 +43,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
   String? _paymentUrl;
   String? _authToken;
   String? _txRef;
-   String?  username = "";
+   String?  username = "user";
    String? image = "";
 
 
