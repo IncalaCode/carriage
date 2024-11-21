@@ -132,7 +132,7 @@ class _UserOTPState extends State<UserOTP> {
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Error sending OTP: $e';
+        //_errorMessage = 'Error sending OTP: $e';
       });
     } finally {
       setState(() {

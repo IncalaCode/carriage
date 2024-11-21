@@ -18,9 +18,9 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   File? _profileImage;
-  String _firstName = 'Jabez'; // Default value
-  String _lastName = 'Hap'; // Default value
-  String _phoneNumber = '+251 963 488 972'; // Default value
+  String _firstName = ''; // Default value
+  String _lastName = ''; // Default value
+  String _phoneNumber = ''; // Default value
 
   @override
   void initState() {
@@ -64,9 +64,9 @@ class _ProfilePageState extends State<ProfilePage> {
 
       // Update the state with the fetched data
       setState(() {
-        _firstName = responseBody['first_name'] ?? 'Jabez'; // Update with fetched first name
-        _lastName = responseBody['last_name'] ?? 'Hap'; // Update with fetched last name
-        _phoneNumber = responseBody['phone_number'] ?? '+251 963 488 972'; // Update with fetched phone number
+        _firstName = responseBody['first_name'] ?? ''; // Update with fetched first name
+        _lastName = responseBody['last_name'] ?? ''; // Update with fetched last name
+        _phoneNumber = responseBody['phone_number'] ?? ''; // Update with fetched phone number
         String profilePicturePath = responseBody['profile_picture'] ?? ''; // Update with fetched profile picture path
         if (profilePicturePath.isNotEmpty) {
           _profileImage = File(profilePicturePath); // Load the profile image if available

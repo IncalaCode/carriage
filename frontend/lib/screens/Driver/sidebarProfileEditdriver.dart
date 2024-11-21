@@ -10,7 +10,7 @@ import 'dart:convert';
 
 class EditProfilePagedriver extends StatefulWidget {
   final File? profileImage;
-  final String firstName;
+  final String firstName ;
   final String lastName;
   final String phoneNumber;
 

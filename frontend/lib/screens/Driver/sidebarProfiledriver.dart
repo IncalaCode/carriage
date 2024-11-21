@@ -18,12 +18,12 @@ class ProfilePagedriver extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePagedriver> {
   File? _profileImage;
   bool isApproved = true;
-  String referralCode = "ABC123";
+  String referralCode = "";
   List<String> referrals = [];
   final int referralReward = 1000;
   String? _authToken;
-  String _displayName = 'Jabez Hap';
-  String _phoneNumber = '+251 963 488 972';
+  String _displayName = '';
+  String _phoneNumber = '';
   int referralCount = 0;
   String _status ='';
   String _referralCode = '';
@@ -81,6 +81,7 @@ class _ProfilePageState extends State<ProfilePagedriver> {
     print('💳 Profile Response Status: ${response.statusCode}');
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
+      print(response.body);
       setState(() {
         _displayName = data['first_name'] ?? _displayName;
         _phoneNumber = data['phone_number'] ?? _phoneNumber;
@@ -93,6 +94,7 @@ class _ProfilePageState extends State<ProfilePagedriver> {
         referralCount = referrals.length;
 
         _profileImageUrl = data['image'];
+        
       });
     } else {
       print('Failed to load profile data: ${response.statusCode}');
@@ -186,9 +188,9 @@ class _ProfilePageState extends State<ProfilePagedriver> {
                 MaterialPageRoute(
                   builder: (context) => EditProfilePagedriver(
                     profileImage: _profileImage,
-                    firstName: 'Jabez',
-                    lastName: 'Hap',
-                    phoneNumber: '+251 963 488 972',
+                    firstName: '',
+                    lastName: '',
+                    phoneNumber: '',
                   ),
                 ),
               );

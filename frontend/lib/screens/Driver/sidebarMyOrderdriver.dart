@@ -49,7 +49,7 @@ class _MyOrdersPagedriverState extends State<MyOrdersPagedriver> {
 
   Future<void> getOrders() async {
     try {
-            final token = getToken();
+            final token = await getToken();
 
 
       final response = await http.post(

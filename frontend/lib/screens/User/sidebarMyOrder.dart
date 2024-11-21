@@ -61,7 +61,7 @@ class _MyOrdersPagedriverState extends State<MyOrdersPage> {
 
   Future<void> getOrders() async {
     try {
-      final token = getToken();
+      final token =  await getToken();
 
       final response = await http.post(
         Uri.parse('${Config.baseUrl}/client/getorder'),

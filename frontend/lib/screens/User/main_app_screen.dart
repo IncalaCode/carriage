@@ -16,6 +16,7 @@ import 'user_map/user_map_component.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../login_screen.dart';
 import '../config.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 late Function(bool) function;
 bool is_tracking = false;
@@ -42,7 +43,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
   String? _paymentUrl;
   String? _authToken;
   String? _txRef;
-   String?  username = "";
+   String?  username = "user";
    String? image = "";
 
 
@@ -51,13 +52,43 @@ class _MainAppScreenState extends State<MainAppScreen> {
 
   RideInfoCard? rideInfoCard;
 
+  bool _isOffline = false; // Added to track offline status
+
   @override
   void initState() {
     super.initState();
+    _checkConnectivity(); // Check connectivity on initialization
     _fetchWalletBalance();
     _initializeScreen();
     checkData(); // make it to check frist
     function = change;
+  }
+
+  // New function to check internet connectivity
+  Future<void> _checkConnectivity() async {
+    var connectivityResult = await (Connectivity().checkConnectivity());
+    if (connectivityResult == ConnectivityResult.none) {
+      setState(() {
+        _isOffline = true; // Set offline status
+      });
+    } else {
+      setState(() {
+        _isOffline = false; // Set online status
+      });
+    }
+
+    // Listen for connectivity changes
+    Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
+      if (result == ConnectivityResult.none) {
+        setState(() {
+          _isOffline = true; // Set offline status
+        });
+      } else {
+        setState(() {
+          _isOffline = false; // Set online status
+        });
+      }
+    });
   }
 
   void change(bool value) {
@@ -576,6 +607,21 @@ class _MainAppScreenState extends State<MainAppScreen> {
             right: 20,
             child: _buildOrderButton(),
           ),
+          if (_isOffline) // Show offline message if offline
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                color: Colors.red,
+                padding: EdgeInsets.all(8),
+                child: Text(
+                  'You are currently offline. Please check your internet connection.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
         ],
       ),
     );

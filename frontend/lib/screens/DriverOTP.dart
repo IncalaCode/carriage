@@ -42,6 +42,7 @@ class _DriverOTPState extends State<DriverOTP> {
   String phoneNumber = '';
   String otp = '';
   bool otpVisible = false;
+  bool isLoading = false; // Track loading state
   Timer? countdownTimer;
   int countdownSeconds = 120; // 2 minutes countdown
 
@@ -73,6 +74,14 @@ class _DriverOTPState extends State<DriverOTP> {
   Future<void> sendDriverDataAndRequestOtp() async {
     final url = Uri.parse(Config.baseUrl + '/driver/register'); // Your Laravel API
 
+    setState(() {
+      isLoading = true; // Set loading state to true
+      otpVisible = true; // Make OTP field visible immediately
+      countdownSeconds = 120; // Reset countdown seconds
+    });
+
+    startCountdown(); // Start the countdown timer immediately
+
     try {
       var request = http.MultipartRequest('POST', url);
 
@@ -83,7 +92,6 @@ class _DriverOTPState extends State<DriverOTP> {
       request.fields['password_confirmation'] = widget.confirm_password;
       request.fields['car_type'] = widget.carType;
       request.fields['phone_number'] = phoneNumber;
-      // request.fields['driver_id'] = widget.driverId; // Driver ID is added
 
       // Add image files if available and not null
       if (widget.drivingLicensePhoto != null) {
@@ -131,19 +139,16 @@ class _DriverOTPState extends State<DriverOTP> {
       var response = await http.Response.fromStream(streamedResponse);
 
       // Hide loading indicator
-      //Navigator.pop(context);
+      setState(() {
+        isLoading = false; // Reset loading state
+      });
+
       print('Status Code: ${response.statusCode}');
       print('Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         var jsonResponse = json.decode(response.body);
         print('OTP sent: ${jsonResponse['otp']}'); // Print the OTP if it's in the response
-        
-        setState(() {
-          otpVisible = true;
-          countdownSeconds = 120;
-        });
-        startCountdown();
         
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
@@ -158,9 +163,9 @@ class _DriverOTPState extends State<DriverOTP> {
       }
     } catch (e) {
       // Hide loading indicator if still showing
-      if (context.mounted) {
-        Navigator.pop(context);
-      }
+      setState(() {
+        isLoading = false; // Reset loading state
+      });
       
       // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
@@ -248,13 +253,15 @@ class _DriverOTPState extends State<DriverOTP> {
 
                   // Send OTP Button
                   ElevatedButton.icon(
-                    onPressed: () async {
+                    onPressed: isLoading ? null : () async { // Disable button if loading
                       if (_formKey.currentState!.validate()) {
                         _formKey.currentState!.save();
                         await sendDriverDataAndRequestOtp();
                       }
                     },
-                    icon: FaIcon(FontAwesomeIcons.solidPaperPlane, color: Colors.blue),
+                    icon: isLoading 
+                      ? CircularProgressIndicator(color: Colors.blue) // Show loading indicator
+                      : FaIcon(FontAwesomeIcons.solidPaperPlane, color: Colors.blue),
                     label: Text('Send OTP', style: TextStyle(color: Colors.blue)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black,

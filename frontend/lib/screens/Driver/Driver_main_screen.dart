@@ -17,6 +17,7 @@ import 'package:My_truck/screens/Driver/sidebarWalletdriver.dart';
 import 'sidebarMyOrderdriver.dart';
 import 'sidebarSettingsdriver.dart';
 import './Driver_map/driver_map_component.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 late BuildContext cont;
 late Function(bool) function;
@@ -39,6 +40,7 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
 
    String?  username = "";
    String? image = "";
+   bool _isOffline = false;
 
   @override
   void initState() {
@@ -48,6 +50,7 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
     cont = context;
     function = change;
     checkData();
+    _checkConnectivity();
   }
 
   void change(bool value) {
@@ -230,6 +233,15 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
       ),
     );
   }
+    void _showPaymentNotification(String message, Color backgroundColor) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: backgroundColor,
+        duration: Duration(seconds: 3), // Duration for the SnackBar
+      ),
+    );
+  }
 
   Future<void> _confirmPayment(String txref) async {
     try {
@@ -250,10 +262,12 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
         print('✅ Payment confirmed successfully');
         Navigator.pop(context); // Close WebView
         await _fetchWalletBalance(); // Refresh wallet balance
+      
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content: Text('Payment successful! Wallet has been updated.')),
         );
+         
       } else {
         throw Exception('Payment confirmation failed');
       }
@@ -347,6 +361,31 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
         _profileImage = File(pickedFile.path);
       });
     }
+  }
+
+  Future<void> _checkConnectivity() async {
+    var connectivityResult = await (Connectivity().checkConnectivity());
+    if (connectivityResult == ConnectivityResult.none) {
+      setState(() {
+        _isOffline = true;
+      });
+    } else {
+      setState(() {
+        _isOffline = false;
+      });
+    }
+
+    Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
+      if (result == ConnectivityResult.none) {
+        setState(() {
+          _isOffline = true;
+        });
+      } else {
+        setState(() {
+          _isOffline = false;
+        });
+      }
+    });
   }
 
   @override
@@ -495,6 +534,21 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
             right: 20,
             child: _buildOrderRequestsButton(),
           ),
+          if (_isOffline)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                color: Colors.red,
+                padding: EdgeInsets.all(8),
+                child: Text(
+                  'You are currently offline. Please check your internet connection.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
         ],
       ),
     );
