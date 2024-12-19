@@ -60,3 +60,7 @@ Route::get('/request/deposit/callback/{id}', [DriverRequestController::class, 'h
 
 
 Route::get('/referral', [ReferralController::class, 'referralLandingPage'])->withoutMiddleware('auth');
+
+Route::get('/maintenance', function () {
+    return view('maintenance');
+});
