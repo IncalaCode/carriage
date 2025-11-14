@@ -10,10 +10,14 @@ use Illuminate\Support\Facades\Hash;
 class ProfileController extends Controller
 {
     // Method to show the user profile
-    public function show($id)
+    public function show(Request $request)
+    public function show(Request $request)
     {
-        $user = User::find($id);
+        $value = $request->input("token");
+       $value=$request->input("token");
+       $user=User::where('uid',$value)->first();
 
+        $user = User::where('uid', $value)->first();
         if (!$user) {
             return response()->json(['error' => 'User not found'], 404);
         }
@@ -31,18 +35,17 @@ class ProfileController extends Controller
      public function update(Request $request)
 {
     $validator = Validator::make($request->all(), [
-        'user_id' => 'required|exists:users,id',
+        'token' => 'required|exists:users,uid',
         'first_name' => 'sometimes|string|max:255',
         'last_name' => 'sometimes|string|max:255',
         'phone_number' => 'sometimes|string|max:15',
-        'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
     ]);
 
     if ($validator->fails()) {
         return response()->json(['errors' => $validator->errors()], 422);
     }
 
-    $user = User::find($request->user_id);
+    $user = User::where("uid", $request->token)->first();
 
     if (!$user) {
         return response()->json(['error' => 'User not found'], 404);
@@ -60,8 +63,8 @@ class ProfileController extends Controller
     if ($request->has('phone_number') && $request->phone_number !== $user->phone_number) {
         // Generate OTP for phone number verification
         $otp = rand(100000, 999999);
-        $user->otp_code = Hash::make($otp);
-        $user->otp_expires_at = now()->addMinutes(5);
+        $user->otp = Hash::make($otp);
+        // $user->otp_expires_at = now()->addMinutes(5);
         $user->save();
 
         // Send OTP to the user's new phone number
@@ -114,7 +117,7 @@ class ProfileController extends Controller
     public function verifyPhoneNumberChange(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'user_id' => 'required|exists:users,id',
+            'token' => 'required|exists:users,uid',
             'otp' => 'required|numeric',
             'new_phone_number' => 'required|string|max:15',  // Add this to indicate the new phone number
         ]);
@@ -123,7 +126,7 @@ class ProfileController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
     
-        $user = User::find($request->user_id);
+        $user = User::where("uid", $request->token)->first();
     
         if (!$user) {
             return response()->json(['error' => 'User not found'], 404);

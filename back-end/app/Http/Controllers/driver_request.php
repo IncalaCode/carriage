@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\user_Request;
 use App\Models\driverRequest;
 use App\Models\RidePrice;
+use App\Models\Wallet;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Carbon\Carbon;
@@ -43,8 +44,10 @@ class driver_request extends Controller
 
         }
 
+        if(($request->has(['cancel']) && $driverRequest) ){
+            return response()->json($this-> cancelRequest($request));
+        }
 
-               // Update last_active timestamp and location
         
         if(($request->has(['completed']) && $driverRequest) ){
             return response()->json($this->completrequest($request , $driverRequest));
@@ -62,7 +65,7 @@ class driver_request extends Controller
             case 'accept_ride':
                 return $this->acceptRide($request,$driverRequest);
             case 'update_location':
-                return $this->updateLocation($request);
+                return $this->updateLocation($request,$driverRequest);
             default:
                 return response()->json([
                     'error' => 'System cannot determine next action',
@@ -128,7 +131,7 @@ private function getRequests(Request $request)
                 $acceptedUsers = json_decode($request->accepted_driver_ids ?? "[]") ?? []; // Get accepted driver IDs
 
                 // Check if the current driver is in the accepted users
-                $isAcceptedByDriver = in_array($this->user->id, $acceptedUsers);
+                $isAcceptedByDriver = in_array($this->user->uid, $acceptedUsers);
 
                 return [
                     'request_id' => $request->id,
@@ -181,8 +184,8 @@ private function acceptRide(Request $request,$driverrequest)
     $acceptedDrivers = json_decode($userRequest->accepted_driver_ids) ?? [];
     
     // Check if the driver is not already in the accepted list, then add them
-    if (!in_array($this->user->id, $acceptedDrivers)) {
-        $acceptedDrivers[] = $this->user->id;
+    if (!in_array($this->user->uid, $acceptedDrivers)) {
+        $acceptedDrivers[] = $this->user->uid;
     }
 
     // Store the price in the RidePrice table
@@ -212,19 +215,28 @@ private function acceptRide(Request $request,$driverrequest)
 }
 
 
-    private function updateLocation(Request $request)
+    private function updateLocation(Request $request, $driverRequest)
     {
-        return response()->json([ "locked" => true]);
+        $user = user_Request::where('user_id', $driverRequest->locked_user_id)->where("status" ,"locked")->first();
+        $userdata = User::where('uid', $user->user_id)->first();
+
+        return response()->json([ 
+        "name" => $userdata->first_name . " "  . $userdata->last_name ?? "",
+        "phone" => $userdata->phone_number ?? "",
+        "locked" => true,
+        "from" =>  $user->from ?? "",
+        "material_type"=> $user->material_type ?? "",
+        "destination" => $user->destination ?? "",
+    ]);
     }
 
     private function cancelRequest($driverRequest)
     {
-        if (!$driverRequest || $driverRequest->status !== 'pending') {
-            return response()->json(['error' => 'Can only cancel pending requests'], 400);
-        }
 
         $driverRequest->update(['status' => 'cancelled']);
-        return response()->json(['message' => 'Request cancelled successfully']);
+        $dwallet = Wallet::where('user_id', $driverRequest->driver_id)->first();
+
+        return response()->json([,'status' => true]);
     }
 
     private function determineAction($driverRequest, $request)

@@ -33,11 +33,12 @@ Route::get('/admin/drivers/{driver}/details', [AdminAuthController::class, 'show
 
 
 
-// Protected Routes Using Controller Constructor Logic
-Route::get('/admin/dashboard', function () {
-    return view('admin.dashboard', ['adminId' => session('admin_id')]);
-})->name('admin.dashboard');
+// // Protected Routes Using Controller Constructor Logic
+// Route::get('/admin/dashboard', function () {
+//     return view('admin.dashboard', ['adminId' => session('admin_id')]);
+// })->name('admin.dashboard');
 
+Route::get('/admin/dashboard', [admin_master_index::class, 'dashboardPage'])->name('admin.dashboard');
 Route::get('/admin/drivers', [admin_master_index::class, 'driverPage'])->name('admin.drivers');
 
 Route::get('/admin/settings', [admin_master_index::class, 'settingsPage'])->name('admin.settings');
