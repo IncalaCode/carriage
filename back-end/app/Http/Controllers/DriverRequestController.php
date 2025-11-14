@@ -47,11 +47,15 @@ class DriverRequestController extends Controller
 
         $data = [
             'amount' => $amount,
-            'currency' => 'ETB',
+            'currency' => "ETB",
+            'first_name' =>  $this->user->first_name,
+            'last_name' => $this->user->last_name,
+            'phone_number' => $this->user->phone_number,
             'tx_ref' => $txRef,
-            'callback_url' => route('payment.callback', ['tx_ref' => $txRef]),
             'customization' => [
                 'title' => 'Request Payment',
+                'descripition' => 'This is a payment for a Request order for mytruck.'
+
             ],
         ];
 
@@ -107,32 +111,75 @@ class DriverRequestController extends Controller
     }
 
 
-    public function withdrawFunds(Request $request)
+    public function withdraw(Request $request)
     {
-        $driverId = $this->user->id;
-        $driverRequest = DriverRequest::where('driver_id', $driverId)
-            ->where('status', 'completed')
-            ->first();
-
-        if ($driverRequest) {
-            // Transfer funds back to the driver’s wallet or initiate withdrawal process
-            // Here we could implement a logic to deduct from the driver’s balance, etc.
-            $withdrawalAmount = $driverRequest->amount; // Example: withdrawing the full amount
-
-            // Update the driver request to withdrawn
-            $driverRequest->update(['status' => 'withdrawn']);
-
+        $wallet = DriverWallet::where('driver_id', $this->user->uid)->first();
+    
+        if (!$wallet) {
+            return response()->json(['error' => 'Wallet not found'], 404);
+        }
+    
+        $withdrawAmount = $request->input('amount');
+        $minimumBalance = 1500;
+    
+        if (($wallet->balance - $minimumBalance) >= $withdrawAmount) {
             // Log the withdrawal transaction
+            $txRef = uniqid('_transfers');
             Transaction::create([
-                'wallet_id' => $this->user->wallet_id, // Ensure this is the correct wallet ID
-                'amount' => $withdrawalAmount,
-                'type' => 'withdrawal',  // Set type to withdrawal
-                'description' => 'Driver withdrawal',  // Optional description
+                'wallet_id'   => $wallet->driver_id,  // Ensure this references the correct wallet ID
+                'amount'      => $withdrawAmount,
+                'type'        => 'pending',  
+                'tx_ref' => $txRef,
+                'description' => 'Driver withdrawal',
             ]);
 
-            return response()->json(['message' => 'Withdrawal successful']);
+          
+    
+            // Prepare payload for Chapa transfer
+            $payload = [
+                "account_name"   => $request->account_name, // Replace with dynamic data if needed
+                "account_number" => $request->account_number,
+                "amount"         => $withdrawAmount,
+                "currency"       => "ETB",
+                "reference"      => $txRef, // Generate unique reference dynamically
+                "bank_code"      => 946,
+            ];
+    
+            try {
+                $api = env('CHAPA') ?? "CHASECK_TEST-Awm7QAxqXPLWOBnfMpTlqGHCIU5xABvM";
+                // Make the API request
+                $response = Http::withHeaders([
+                    'Authorization' => 'Bearer ' . $api
+                ])->timeout(120)->post("https://api.chapa.co/v1/transfers", $payload);
+
+                $txRef_data = Transaction::where('tx_ref', $txRef)->first();
+                // Validate response
+                if ($response->successful() && $response->json('status') === 'success') {
+                 
+                    $txRef_data->update(['status' => 'completed']);
+
+                    return response()->json([
+                        'reference' => $response->json('data'), 
+                        'message' => $response->json('message'),
+                    ]);
+                } else {
+                    Transaction::where('tx_ref', $txRef)->delete();
+                    return response()->json([
+                        'error' => 'Failed to process withdrawal',
+                        'details' => $response->json(),
+                    ], 400);
+                }
+            } catch (\Exception $e) {
+                Transaction::where('tx_ref', $txRef)->delete();
+                // Handle errors during the API request
+                return response()->json([
+                    'error' => 'Error processing withdrawal',
+                    'details' => $e->getMessage(),
+                ], 500);
+            }
         } else {
-            return response()->json(['error' => 'Withdrawal not allowed'], 403);
+            return response()->json(['error' => 'Insufficient balance for withdrawal'], 403);
         }
     }
+    
 }

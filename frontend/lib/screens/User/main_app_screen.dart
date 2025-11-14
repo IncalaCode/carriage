@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -17,6 +19,12 @@ import '../config.dart';
 late Function(bool) function;
 bool is_tracking = false;
 
+import '../login_screen.dart';
+import '../config.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+
+late Function(bool) function;
+bool is_tracking = false;
 
 class MainAppScreen extends StatefulWidget {
   @override
@@ -44,6 +52,17 @@ class _MainAppScreenState extends State<MainAppScreen> {
   String? _txRef;
 
 
+  // double _walletBalance = 1500.0;
+  // bool _isLoading = false;
+  double _walletBalance = 0.0;
+  bool _isLoading = true;
+  String? _paymentUrl;
+  String? _authToken;
+  String? _txRef;
+   String?  username = "user";
+   String? image = "";
+
+
   bool _isRideInfoVisible =
       false; // New state to control RideInfoCard visibility
 
@@ -52,9 +71,43 @@ class _MainAppScreenState extends State<MainAppScreen> {
   @override
   void initState() {
     super.initState();
+  bool _isOffline = false; // Added to track offline status
+
+  @override
+  void initState() {
+    super.initState();
+    _checkConnectivity(); // Check connectivity on initialization
+    _fetchWalletBalance();
     _initializeScreen();
     checkData(); // make it to check frist
     function = change;
+  }
+
+  // New function to check internet connectivity
+  Future<void> _checkConnectivity() async {
+    var connectivityResult = await (Connectivity().checkConnectivity());
+    if (connectivityResult == ConnectivityResult.none) {
+      setState(() {
+        _isOffline = true; // Set offline status
+      });
+    } else {
+      setState(() {
+        _isOffline = false; // Set online status
+      });
+    }
+
+    // Listen for connectivity changes
+    Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
+      if (result == ConnectivityResult.none) {
+        setState(() {
+          _isOffline = true; // Set offline status
+        });
+      } else {
+        setState(() {
+          _isOffline = false; // Set online status
+        });
+      }
+    });
   }
 
   void change(bool value) {
@@ -76,10 +129,18 @@ class _MainAppScreenState extends State<MainAppScreen> {
         name: prefs.getString('name') ?? '',
         phone: prefs.getString('phone') ?? '',
         photoUrl: prefs.getString('photoUrl') ?? '',
+        user_photo: prefs.getString('user_photo') ?? '',
+           driver_licence_photos: prefs.getString('driver_licence_photos') ?? '',
+              car_plate_photo: prefs.getString('car_plate_photo') ?? '',
         distance: prefs.getString('distance') ?? '0',
         time: prefs.getString('time') ?? '',
         change: function,
       );
+
+      
+
+      username = await prefs.getString("username") ?? "";
+      image = await prefs.getString("user_image") ?? "";
 
       // change();
 
@@ -106,10 +167,15 @@ class _MainAppScreenState extends State<MainAppScreen> {
               name: prefs.getString('name') ?? '',
               phone: prefs.getString('phone') ?? '',
               photoUrl: prefs.getString('photoUrl') ?? '',
+             user_photo : prefs.getString('user_photo') ?? '',
+                driver_licence_photos : prefs.getString('driver_licence_photos') ?? '',
+                   car_plate_photo : prefs.getString('car_plate_photo') ?? '',
+              
               distance: prefs.getString('distance') ?? '0',
               time: prefs.getString('time') ?? '',
               change: function,
             ));
+
   }
 
   Future<void> _initializeScreen() async {
@@ -118,6 +184,10 @@ class _MainAppScreenState extends State<MainAppScreen> {
        if (_authToken != null) {
          await _fetchWalletBalance();
        }
+      await _checkAuthentication();
+      if (_authToken != null) {
+        await _fetchWalletBalance();
+      }
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -136,6 +206,9 @@ class _MainAppScreenState extends State<MainAppScreen> {
        Navigator.of(context).pushReplacement(
          MaterialPageRoute(builder: (context) => LoginScreen()),
        );
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+      );
     } else {
       print('✅ Token found - Proceeding with authentication');
       setState(() {
@@ -150,6 +223,9 @@ class _MainAppScreenState extends State<MainAppScreen> {
 
     try {
       final url = Uri.parse('${Config.baseUrl}/wallet/balance');
+      print('🔄 Fetching wallet balance...');
+      
+      final url = Uri.parse('${Config.baseUrl}/user/wallet/balance');
       final response = await http.post(
         url,
         headers: {
@@ -162,10 +238,12 @@ class _MainAppScreenState extends State<MainAppScreen> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        print('💰 Wallet balance received: ${data['balance']}');
         if (mounted) {
           setState(() {
             _walletBalance = double.parse(data['balance'].toString());
             _isLoading = false;
+            print('🔄 Updated wallet balance: $_walletBalance');
           });
         }
       } else {
@@ -176,7 +254,55 @@ class _MainAppScreenState extends State<MainAppScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
+      print('❌ Error fetching wallet balance: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
         });
+      }
+    }
+  }
+
+  Future<void> _initiatePayment() async {
+    if (_authToken == null) {
+      print('❌ No auth token available for payment');
+      return;
+    }
+
+    try {
+      print('💳 Initiating payment process...');
+      final url = Uri.parse('${Config.baseUrl}/client/order/initiate-payment');
+      print('🔗 Payment endpoint URL: $url');
+      print('🔑 Using Authorization Header: $_authToken');
+
+      final value = json.encode({
+        'token': _authToken,
+      });
+      print('🔑 Using Authorization Header: $value');
+
+      final response = await http.post(
+        url, // Make sure to parse the URL into a Uri object
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: value,
+      );
+
+      print('💳 Payment Initiation Response Status: ${response.statusCode}');
+      print('💳 Payment Initiation Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('🔗 Payment URL Received: ${data['payment_url']}');
+        print('🔗 Payment URL Received: ${data['tx_ref']}');
+        setState(() {
+          _paymentUrl = data['payment_url'];
+          _txRef = data['tx_ref'];
+        });
+        _showPaymentWebView();
+      } else {
+        print('❌ Error Response: ${response.body}');
+        throw Exception('Failed to initiate payment: ${response.statusCode}');
       }
     }
   }
@@ -228,6 +354,86 @@ final response = await http.post(
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             content: Text('Failed to initiate payment. Please try again.')),
+      );
+    }
+  }
+
+  void _showPaymentWebView() async {
+    if (_paymentUrl == null) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+        title: Text('Payment'),
+        leading: IconButton(
+          icon: Icon(FontAwesomeIcons.xmark),
+          color: const Color.fromARGB(255, 0, 0, 0),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+          body: WebView(
+            initialUrl: _paymentUrl,
+            javascriptMode: JavascriptMode.unrestricted,
+            navigationDelegate: (NavigationRequest request) {
+              print('🔄 Navigation to: ${request.url}');
+              //Navigator.pop(context);
+              _confirmPayment(_txRef!);
+              return NavigationDecision.prevent;
+            },
+            onWebResourceError: (WebResourceError error) {
+              print('🚨 Web Resource Error: ${error.description}');
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmPayment(String txref) async {
+    try {
+      print('✅ Confirming payment with backend...');
+      final response = await http.post(
+        Uri.parse('${Config.baseUrl}/client/order/confirm-payment'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'tx_ref': txref,
+          'token': _authToken!,
+        }),
+      );
+
+      print('✅ Payment Confirmation Status: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        print('✅ Payment confirmed successfully');
+        Navigator.pop(context); // Close WebView
+
+        // Fetch updated wallet balance
+        await _fetchWalletBalance();
+
+        // Check if wallet balance is now sufficient
+        // if (_walletBalance >= 1500) {
+        //   // Navigate to order form if balance is sufficient
+        //   Navigator.push(
+        //     context,
+        //     MaterialPageRoute(builder: (context) => OrderForm()),
+        //   );
+        // }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Payment successful! Wallet has been updated.')),
+        );
+      } else {
+        throw Exception('Payment confirmation failed');
+      }
+    } catch (e) {
+      print('❌ Payment Confirmation Error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content:
+                Text('Payment confirmation failed. Please contact support.')),
       );
     }
   }
@@ -394,8 +600,74 @@ final response = await http.post(
 
   @override
 
-  
+    if (_walletBalance >= 1500) {
+      print(is_tracking);
+      return FloatingActionButton.extended(
+       onPressed: is_tracking ? _toggleRideInfoCard : _showOrderForm,
+          //  onPressed: _showOrderForm,
+     backgroundColor: Colors.green,
+        icon: Icon(FontAwesomeIcons.bell, color: Colors.white),
+        label: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF000000), Color(0xFF9A839E)],
+            ),
+            borderRadius: BorderRadius.circular(30),
+          ),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Text(
+           is_tracking ? "See your order" : "Order Now",
+            // "Access Orders",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
+    } else {
+      return FloatingActionButton.extended(
+        onPressed: () {
+          print('🔴 Insufficient balance. Initiating payment...');
+          _initiatePayment();
+        },
+        backgroundColor: Colors.red,
+        icon: Icon(FontAwesomeIcons.lock, color: Colors.white),
+        label: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.red.shade900, Colors.red.shade700],
+            ),
+            borderRadius: BorderRadius.circular(30),
+          ),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Text(
+            'Pay 1500 ETB to Access Orders',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final pickedFile =
+          await ImagePicker().pickImage(source: ImageSource.gallery);
+      if (pickedFile != null) {
+        setState(() {
+          _profileImage = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      print('❌ Error picking image: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to pick image. Please try again.')),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    print('🔄 Building UI with wallet balance: $_walletBalance');
+
     return Scaffold(
       key: _scaffoldKey,
       drawer: Drawer(
@@ -409,23 +681,11 @@ final response = await http.post(
               ),
               child: Row(
                 children: [
-                  GestureDetector(
-                    onTap: _pickImage,
-                    child: CircleAvatar(
-                      radius: 40,
-                      backgroundColor: Colors.white,
-                      child: _profileImage == null
-                          ? Icon(FontAwesomeIcons.user,
-                              size: 40, color: Colors.grey)
-                          : ClipOval(
-                              child: Image.file(
-                                _profileImage!,
-                                fit: BoxFit.cover,
-                                width: 80,
-                                height: 80,
-                              ),
-                            ),
-                    ),
+           CircleAvatar(
+                    radius: 30,
+                    backgroundImage: image != null && image!.isNotEmpty
+                        ? NetworkImage(Config.imagebaseUrl +"/storage/"+ image!)
+                        : AssetImage('path/to/placeholder/image.png') as ImageProvider, // Provide a placeholder image path
                   ),
                   SizedBox(width: 15),
                   Column(
@@ -441,29 +701,7 @@ final response = await http.post(
                         ),
                       ),
                       Text(
-                        'User!',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Welcome,',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        'User!',
+                        username!,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 20,
@@ -478,21 +716,33 @@ final response = await http.post(
             Expanded(
               child: ListView(
                 children: [
-                  _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context, () {
+                  _buildDrawerItem(FontAwesomeIcons.user, 'Profile', context,
+                      () {
                     Navigator.pop(context);
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePage()));
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (context) => ProfilePage()));
                   }),
-                  _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context, () {
+                  _buildDrawerItem(FontAwesomeIcons.wallet, 'Wallet', context,
+                      () {
                     Navigator.pop(context);
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => WalletPage()));
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (context) => WalletPage()));
                   }),
-                  _buildDrawerItem(FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
+                  _buildDrawerItem(
+                      FontAwesomeIcons.shoppingCart, 'My Orders', context, () {
                     Navigator.pop(context);
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => MyOrdersPage()));
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => MyOrdersPage()));
                   }),
-                  _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context, () {
+                  _buildDrawerItem(FontAwesomeIcons.cog, 'Settings', context,
+                      () {
                     Navigator.pop(context);
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsPage()));
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => SettingsPage()));
                   }),
                 ],
               ),
@@ -572,75 +822,131 @@ final response = await http.post(
           Positioned(
             bottom: 20,
             right: 20,
-            child: GestureDetector(
-              onTapDown: (_) {
-                setState(() {
-                  _buttonScale = 0.95; // Slightly shrink the button
-                  _isIconRotated = !_isIconRotated; // Toggle the icon animation
-                });
-              },
-              onTapUp: (_) {
-                setState(() {
-                  _buttonScale = 1.0; // Reset button size
-                });
-              },
-              child: Transform.scale(
-                scale: _buttonScale,
-                child: FloatingActionButton.extended(
-                  onPressed: () {
-                    // Navigate to the order form
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => OrderForm()),
-                    );
-                  },
-                  backgroundColor: Colors.transparent,
-                  icon: AnimatedRotation(
-                    duration: Duration(milliseconds: 300),
-                    turns: _isIconRotated ? 1.0 : 0.0, // 1 full rotation
-                    child: Icon(
-                      FontAwesomeIcons.add,
-                      color: Colors.white,
-                    ),
-                  ),
-                  label: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Color(0xFF000000), Color(0xFF9A839E)],
-                      ),
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Text(
-                      'Order Now',
-                      style: TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.bold),
-                    ),
-                  ),
+            child: _buildOrderButton(),
+          ),
+          if (_isOffline) // Show offline message if offline
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                color: Colors.red,
+                padding: EdgeInsets.all(8),
+                child: Text(
+                  'You are currently offline. Please check your internet connection.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
   }
 }
 
-  Widget _buildDrawerItem(IconData icon, String title, BuildContext context, Function onTap) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.black),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontSize: 18,
-          color: Colors.black,
-          fontWeight: FontWeight.bold,
-        ),
+Widget _buildDrawerItem(
+    IconData icon, String title, BuildContext context, Function onTap) {
+  return ListTile(
+    leading: Icon(icon, color: Colors.black),
+    title: Text(
+      title,
+      style: TextStyle(
+        fontSize: 18,
+        color: Colors.black,
+        fontWeight: FontWeight.bold,
       ),
-      tileColor: Colors.grey[200],
-      onTap: () => onTap(),
+    ),
+    tileColor: Colors.grey[200],
+    onTap: () => onTap(),
+  );
+}
+
+// Add payment verification function
+Future<bool> _verifyPayment() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('authToken');
+
+    print('Verifying payment with token: $token'); // Debug print
+
+    final response = await http.get(
+      Uri.parse('${Config.baseUrl}/driver/payment/verify'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
     );
+
+    print(
+        'Payment verification response status: ${response.statusCode}'); // Debug print
+    print('Payment verification response: ${response.body}'); // Debug print
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return data['payment_verified'] == true;
+    }
+    return false;
+  } catch (e) {
+    print('Error verifying payment: $e'); // Debug print
+    return false;
+  }
+}
+
+// Update the PaymentWebView to handle verification
+class PaymentWebView extends StatelessWidget {
+  final String paymentUrl;
+  final String token;
+
+  const PaymentWebView({
+    required this.paymentUrl,
+    required this.token,
+  });
+
+  Future<void> _handlePaymentSuccess(BuildContext context) async {
+    Navigator.pop(context); // Close payment webview
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Verifying payment...')
+            ],
+          ),
+        );
+      },
+    );
+
+    // Wait a bit for backend to process payment
+    await Future.delayed(Duration(seconds: 2));
+
+    // Verify payment
+    final bool isVerified = await _verifyPayment();
+
+    Navigator.pop(context); // Close loading dialog
+
+    if (isVerified) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Payment verified successfully!')));
+      // Refresh wallet balance and proceed
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => OrderForm()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(
+            'Payment verification failed. Please contact support if money was deducted.'),
+        duration: Duration(seconds: 5),
+      ));
+    }
   }
 
 // Add payment verification function
@@ -741,6 +1047,9 @@ class PaymentWebView extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
       body: WebView(
         initialUrl: paymentUrl,
         javascriptMode: JavascriptMode.unrestricted,
@@ -749,6 +1058,7 @@ class PaymentWebView extends StatelessWidget {
           if (request.url.contains('success')) {
             _handlePaymentSuccess(context);
             return NavigationDecision.prevent;
+            // return NavigationDecision.prevent;
           }
           return NavigationDecision.navigate;
         },
@@ -763,6 +1073,9 @@ class RideInfoCard extends StatefulWidget {
   final String name;
   final String phone;
   final String photoUrl;
+  final String user_photo;
+  final String driver_licence_photos;
+  final String car_plate_photo;
   final String distance;
   final String time;
   final Function(bool) change;
@@ -771,6 +1084,9 @@ class RideInfoCard extends StatefulWidget {
     required this.name,
     required this.phone,
     required this.photoUrl,
+    required this.user_photo,
+    required this.driver_licence_photos,
+    required this.car_plate_photo,
     required this.distance,
     required this.time,
     required this.change,
@@ -787,6 +1103,7 @@ class _RideInfoCardState extends State<RideInfoCard>
 
   late String _currentDistance;
   late String _currentTime;
+  bool iscompleted = false;
 
   // StreamController to update distance and time
 
@@ -828,6 +1145,9 @@ class _RideInfoCardState extends State<RideInfoCard>
     await prefs.setString('name', widget.name);
     await prefs.setString('phone', widget.phone);
     await prefs.setString('photoUrl', widget.photoUrl);
+    await prefs.setString('user_photo', widget.user_photo);
+    await prefs.setString('driver_licence_photos', widget.driver_licence_photos);
+    await prefs.setString('car_plate_photo', widget.car_plate_photo);
     await prefs.setString('distance', _currentDistance);
     await prefs.setString('time', _currentTime);
 
@@ -839,6 +1159,12 @@ class _RideInfoCardState extends State<RideInfoCard>
     final token = await getToken();
     final prefs = await SharedPreferences
         .getInstance(); // Retrieve token dynamically if async
+    final prefs = await SharedPreferences.getInstance(); 
+    
+    setState(() {
+      iscompleted = true;
+    });
+    // Retrieve token dynamically if async
     final response =
         await http.post(Uri.parse('${Config.baseUrl}/client/handle-request'),
             headers: {
@@ -849,6 +1175,9 @@ class _RideInfoCardState extends State<RideInfoCard>
     final dynamic data = json.decode(response.body);
 
     _toggleVisibility();
+    setState(() {
+      iscompleted = false;
+    });
 
     if (response.statusCode == 200) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -969,3 +1298,100 @@ class _RideInfoCardState extends State<RideInfoCard>
   }
 }
 
+ @override
+Widget build(BuildContext context) {
+  return SlideTransition(
+    position: _offsetAnimation,
+    child: _isOpen
+        ? Container(
+            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        _showImageDialog(context);
+                      },
+                      child: CircleAvatar(
+                        radius: 30,
+                        backgroundImage: NetworkImage( Config.imagebaseUrl + widget.user_photo),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.name,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "+" + widget.phone,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: _showCompletionWarning,
+                  child: iscompleted ? CircularProgressIndicator() :  Text('Complete Ride'),
+                ),
+              ],
+            ),
+          )
+        : SizedBox.shrink(),
+  );
+}
+void _showImageDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Driver Infromation Images '),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('User Photo'),
+              SizedBox(height: 10),
+              Image.network(Config.imagebaseUrl +widget.user_photo), // Display user photo
+              SizedBox(height: 20),
+              Text('Driver License Photo'),
+              SizedBox(height: 10),
+              Image.network(Config.imagebaseUrl + widget.driver_licence_photos), // Display driver license photo
+              SizedBox(height: 20),
+              Text('Car Plate Photo'),
+              SizedBox(height: 10),
+              Image.network( Config.imagebaseUrl + widget.car_plate_photo), // Display car plate photo
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Close the dialog
+            },
+            child: Text('Close'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+}

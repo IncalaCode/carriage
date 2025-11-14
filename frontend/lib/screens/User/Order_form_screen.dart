@@ -61,6 +61,10 @@ class _OrderFormState extends State<OrderForm> {
           });
         }
       } else if (data['statusCode'] == 303) {
+            _isLoading = !drivers.isNotEmpty; // Update active order status
+          });
+        }
+      } else if (data['statusCode'] == 201) {
         Navigator.pop(context);
 
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -72,6 +76,9 @@ class _OrderFormState extends State<OrderForm> {
                 name: data['drivers']['name'] ?? "",
                 phone: data['drivers']['phone'] ?? "",
                 photoUrl: data['drivers']['image'] ?? "",
+                user_photo: data['drivers']['user_photo'] ?? "",
+                     car_plate_photo: data['drivers']['car_plate_photo'] ?? "",
+                          driver_licence_photos: data['drivers']['driver_licence_photos'] ?? "",
                 distance: "calculating..",
                 time: "calculating..",
                 change: function),
@@ -274,6 +281,8 @@ class _OrderFormState extends State<OrderForm> {
     });
 
     try {
+      final _authToken = await getToken();
+      print(_authToken);
       final position = await getCurrentPosition(); // Get current position
       final response = await http.post(
         Uri.parse('${Config.baseUrl}/client/handle-request'),
@@ -281,6 +290,7 @@ class _OrderFormState extends State<OrderForm> {
         body: json.encode({
           _hasActiveOrder ? "update" : "create": null,
           "token": getToken(),
+          "token": _authToken,
           'from': from,
           'destination': destination,
           'material_type': materialType,
@@ -384,6 +394,7 @@ class _OrderFormState extends State<OrderForm> {
     });
     print("Accept button pressed for driver ID: ${driverId}");
     final String token = getToken(); // Get the token
+    final String token = await getToken(); // Get the token
     final String url = '${Config.baseUrl}/client/handle-request'; // Backend URL
 
     try {
@@ -404,6 +415,7 @@ class _OrderFormState extends State<OrderForm> {
         String driverName = data['driver']['name'] ?? "";
         String driverPhone = data['driver']['phone'] ?? "";
         String driverImage = data['driver']['image'] ?? "";
+      
 
         Navigator.pop(context);
 
@@ -415,6 +427,9 @@ class _OrderFormState extends State<OrderForm> {
                 name: driverName,
                 phone: driverPhone,
                 photoUrl: driverImage,
+                user_photo: data['drivers']['user_photo'] ?? "",
+               car_plate_photo: data['drivers']['car_plate_photo'] ?? "",
+               driver_licence_photos: data['drivers']['driver_licence_photos'] ?? "",
                 distance: "calculating..",
                 time: "calculating..",
                 change: function),
@@ -723,6 +738,8 @@ void main() {
   runApp(MaterialApp(home: OrderForm()));
 }
 
-String getToken() {
-  return "1u";
-}
+  Future getToken() async {
+        final prefs = await SharedPreferences.getInstance();
+        final token  = await prefs.getString('authToken');
+        return token ;
+  } 

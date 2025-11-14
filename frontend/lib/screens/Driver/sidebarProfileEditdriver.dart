@@ -4,13 +4,14 @@ import 'package:image_picker/image_picker.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart'; 
 import 'package:http/http.dart' as http; // Import the http package
 // For setting content type of image
+import 'package:http_parser/http_parser.dart'; // For setting content type of image
 import '../config.dart'; 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
 class EditProfilePagedriver extends StatefulWidget {
   final File? profileImage;
-  final String firstName;
+  final String firstName ;
   final String lastName;
   final String phoneNumber;
 
@@ -59,6 +60,10 @@ class _EditProfilePageState extends State<EditProfilePagedriver> {
     setState(() {
       //_oldPhoneNumber = prefs.getString('phoneNumber'); // Assuming 'phoneNumber' is the key used to store the phone number
       _oldPhoneNumber = '+251953289595';
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _oldPhoneNumber = prefs.getString('user_phone_number'); // Assuming 'phoneNumber' is the key used to store the phone number
+      //_oldPhoneNumber = '+251953289595';
     });
     print('Fetched old phone number: $_oldPhoneNumber'); // Debug: Print the old phone number
   }
@@ -348,7 +353,7 @@ class _EditProfilePageState extends State<EditProfilePagedriver> {
                 controller: _phoneController,
                 decoration: InputDecoration(
                   labelText: 'Phone Number',
-                  hintText: widget.phoneNumber,
+                  hintText: _oldPhoneNumber ?? widget.phoneNumber,
                   suffixIcon: isNewPhoneNumber
                       ? SizedBox(
                           width: 80,

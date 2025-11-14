@@ -16,12 +16,15 @@ class LoginScreen extends StatefulWidget {
 }
 
 // code for the token storing
-Future<void> storeToken(String token, String userType) async {
-  print('🔑 Storing token: $token with userType: $userType'); // Debug print
+Future<void> storeToken(String token, String userType ,String phone_number,String  username , String image) async {
+  print('🔑 Storing token: $token with userType: $userType   $phone_number  $username $image' ); // Debug print
   try {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('authToken', token);
-    await prefs.setString('userType', userType); // Store user type
+    await prefs.setString('userType', userType); 
+    await prefs.setString('username', username);
+    await prefs.setString('user_phone_number', phone_number); 
+    await prefs.setString('user_image', image);// Store user type
     print('✅ Token and userType stored successfully'); // Debug print
   } catch (e) {
     print('❌ Error storing token and userType: $e'); // Debug print
@@ -130,13 +133,19 @@ class _LoginScreenState extends State<LoginScreen> {
 
           if (responseBody != null) {
             if (responseBody['message'] == 'OTP verified successfully') {
+              
               if (responseBody.containsKey('user') && responseBody['user'].containsKey('uid')) {
+                print(responseBody);
+                 String userType = isUserLogin ? 'user' : 'driver'; // Determine user type
                 String token = responseBody['user']['uid'].toString();
-                String userType = isUserLogin ? 'user' : 'driver'; // Determine user type
+                String username = responseBody['user']['first_name'] + " "+responseBody['user']['last_name'] ?? userType;
+                 String phone_number = responseBody['user']['phone_number'] ?? "unknown phone number";
+                 String image = responseBody['user']['user_photo'] ?? responseBody['user']['profile_picture'] ?? ""  ;  
+               
                 print('🔑 Received token: $token, userType: $userType'); // Debug print
 
                 if (token.isNotEmpty) {
-                  await storeToken(token, userType);
+                  await storeToken(token, userType,phone_number,username ,image);
 
                   // Verify token was stored
                   final prefs = await SharedPreferences.getInstance();

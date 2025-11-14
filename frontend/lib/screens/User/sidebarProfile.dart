@@ -9,6 +9,7 @@ import '../login_screen.dart';
 import 'dart:convert';
 import 'dart:async';
 import 'package:http/http.dart' as http;
+import 'package:flutter/services.dart';
 
 class ProfilePage extends StatefulWidget {
   @override
@@ -20,6 +21,9 @@ class _ProfilePageState extends State<ProfilePage> {
   String _firstName = 'Jabez'; // Default value
   String _lastName = 'Hap'; // Default value
   String _phoneNumber = '+251 963 488 972'; // Default value
+  String _firstName = ''; // Default value
+  String _lastName = ''; // Default value
+  String _phoneNumber = ''; // Default value
 
   @override
   void initState() {
@@ -66,6 +70,9 @@ class _ProfilePageState extends State<ProfilePage> {
         _firstName = responseBody['first_name'] ?? 'Jabez'; // Update with fetched first name
         _lastName = responseBody['last_name'] ?? 'Hap'; // Update with fetched last name
         _phoneNumber = responseBody['phone_number'] ?? '+251 963 488 972'; // Update with fetched phone number
+        _firstName = responseBody['first_name'] ?? ''; // Update with fetched first name
+        _lastName = responseBody['last_name'] ?? ''; // Update with fetched last name
+        _phoneNumber = responseBody['phone_number'] ?? ''; // Update with fetched phone number
         String profilePicturePath = responseBody['profile_picture'] ?? ''; // Update with fetched profile picture path
         if (profilePicturePath.isNotEmpty) {
           _profileImage = File(profilePicturePath); // Load the profile image if available
@@ -107,7 +114,7 @@ class _ProfilePageState extends State<ProfilePage> {
               onPressed: () async {
                 // Delete token and navigate to login screen
                 final prefs = await SharedPreferences.getInstance();
-                await prefs.remove('authToken');
+                await prefs.clear(); // Clear all stored shared preferences
                 
                 Navigator.pushReplacement(
                   context,

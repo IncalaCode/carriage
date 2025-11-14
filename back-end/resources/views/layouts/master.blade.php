@@ -18,6 +18,10 @@
      <!-- CSS Just for demo purpose, don't include it in your project -->
      <link href="../assets/demo/demo.css" rel="stylesheet" />
      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+
+
      
 
      <style>
@@ -158,13 +162,13 @@
 
 
                              <li class="nav-item">
-                                 <a class="nav-link" href="#pablo">
-                                     <i class="now-ui-icons users_single-02"></i>
-                                     <p>
-                                         <span class="d-lg-none d-md-block">Account</span>
-                                     </p>
-                                 </a>
-                             </li>
+    <a class="nav-link" href="./logout">
+        <i class="fas fa-sign-out-alt"></i> <!-- FontAwesome logout icon -->
+        <p>
+            <span class="d-lg-none d-md-block">Logout</span>
+        </p>
+    </a>
+</li>
                          </ul>
                      </div>
                  </div>

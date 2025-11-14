@@ -363,6 +363,17 @@ class _WalletDriverPageState extends State<WalletDriverPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Invalid withdrawal amount.')),
                   );
+                double amountToWithdraw = double.tryParse(amountController.text) ?? 0;
+                if (amountToWithdraw > 0 && amountToWithdraw <= availableAmount) {
+                  Navigator.of(context).pop(); // Close the dialog before processing withdrawal
+                  await _processWithdrawal(accountNameController.text, accountNumberController.text, amountToWithdraw);
+                } else {
+                  // Show error message
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Invalid withdrawal amount.')),
+                    );
+                  }
                 }
               },
               child: Text('Withdraw'),
@@ -384,6 +395,25 @@ class _WalletDriverPageState extends State<WalletDriverPage> {
     try {
       print('💳 Processing withdrawal of $amount ETB to $accountName ($accountNumber)');
       // Call your backend API here
+  // Update the _processWithdrawal method to handle confirmation
+  Future<void> _processWithdrawal(String accountName, String accountNumber, double amount) async {
+    try {
+      // Convert the amount to an integer or a string without decimal places
+      int formattedAmount = amount.toInt(); // or use amount.toString() if you prefer a string
+
+      print('💳 Processing withdrawal of $formattedAmount ETB to $accountName ($accountNumber)');
+      
+      // Print the data being sent to the backend for debugging
+      final withdrawalData = {
+        'token': _authToken,
+        'account_name': accountName,
+        'account_number': accountNumber,
+        'amount': formattedAmount, // Use the formatted amount here
+      };
+      print('📤 Withdrawal Data: $withdrawalData');
+
+      // Call your backend API here
+            print('💰 Fetching wallet balance and transactions... $_authToken');
       final response = await http.post(
         Uri.parse('${Config.baseUrl}/driver/request/withdraw'),
         headers: {
@@ -405,6 +435,29 @@ class _WalletDriverPageState extends State<WalletDriverPage> {
         // Optionally, refresh wallet balance
         await fetchWalletBalance();
       } else {
+        body: json.encode(withdrawalData),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        // Ensure that the response contains the expected keys
+        if (data.containsKey('message')) {
+          print('✅ Withdrawal successful: ${data['message']}');
+          
+          // Show feedback to the user only if the widget is still mounted
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Withdrawal successful! ${data['message']}')),
+            );
+          }
+        } else {
+          print('❌ Withdrawal successful but no message found in response: $data');
+        }
+
+        // Fetch updated wallet balance
+        await fetchWalletBalance(); // Update the wallet balance
+      } else {
+        print('❌ Withdrawal Error: ${response.body}'); // Print error response for debugging
         throw Exception('Failed to process withdrawal: ${response.statusCode}');
       }
     } catch (e) {
@@ -412,6 +465,12 @@ class _WalletDriverPageState extends State<WalletDriverPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error processing withdrawal. Please try again.')),
       );
+      // Show error message only if the widget is still mounted
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error processing withdrawal. Please try again.')),
+        );
+      }
     }
   }
 

@@ -16,6 +16,10 @@ import 'sidebarWalletdriver.dart';
 import 'sidebarMyOrderdriver.dart';
 import 'sidebarSettingsdriver.dart';
 import './Driver_map/driver_map_component.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+
+late BuildContext cont;
+late Function(bool) function;
 
 late BuildContext cont;
 late Function(bool) function;
@@ -33,9 +37,16 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
   // bool _isLoading = true;
   double _walletBalance = 1600.0;
   bool _isLoading = false;
+  double _walletBalance = 0.0;
+  bool _isLoading = true;
+
   String? _paymentUrl;
   String? _txRef;
   bool is_tracking = false;
+
+   String?  username = "";
+   String? image = "";
+   bool _isOffline = false;
 
   @override
   void initState() {
@@ -44,6 +55,8 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
     _initializeScreen();
     cont = context;
     function = change;
+    checkData();
+    _checkConnectivity();
   }
 
   void change(bool value) {
@@ -67,6 +80,10 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
         },
       );
     }
+      username = await prefs.getString("username") ?? "";
+      image = await prefs.getString("user_image") ??  "";
+       print('Image URL: ${image != null && image!.isNotEmpty ? Config.imagebaseUrl + image! : 'No image available'}');
+
   }
 
   Future<void> _initializeScreen() async {
@@ -207,19 +224,23 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
   void _showPaymentWebView() async {
     if (_paymentUrl == null) return;
 
-    Navigator.of(context).push(
+     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => Scaffold(
           appBar: AppBar(
-            title: Text('Payment'),
-            backgroundColor: Colors.black,
-          ),
+        title: Text('Payment'),
+        leading: IconButton(
+          icon: Icon(FontAwesomeIcons.xmark),
+          color: const Color.fromARGB(255, 0, 0, 0),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
           body: WebView(
             initialUrl: _paymentUrl,
             javascriptMode: JavascriptMode.unrestricted,
             navigationDelegate: (NavigationRequest request) {
               print('🔄 Navigation to: ${request.url}');
-             // Navigator.pop(context);
+              //Navigator.pop(context);
               _confirmPayment(_txRef!);
               return NavigationDecision.prevent;
             },
@@ -228,6 +249,15 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
             },
           ),
         ),
+      ),
+    );
+  }
+    void _showPaymentNotification(String message, Color backgroundColor) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: backgroundColor,
+        duration: Duration(seconds: 3), // Duration for the SnackBar
       ),
     );
   }
@@ -251,10 +281,12 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
         print('✅ Payment confirmed successfully');
         Navigator.pop(context); // Close WebView
         await _fetchWalletBalance(); // Refresh wallet balance
+      
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content: Text('Payment successful! Wallet has been updated.')),
         );
+         
       } else {
         throw Exception('Payment confirmation failed');
       }
@@ -350,6 +382,31 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
     }
   }
 
+  Future<void> _checkConnectivity() async {
+    var connectivityResult = await (Connectivity().checkConnectivity());
+    if (connectivityResult == ConnectivityResult.none) {
+      setState(() {
+        _isOffline = true;
+      });
+    } else {
+      setState(() {
+        _isOffline = false;
+      });
+    }
+
+    Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
+      if (result == ConnectivityResult.none) {
+        setState(() {
+          _isOffline = true;
+        });
+      } else {
+        setState(() {
+          _isOffline = false;
+        });
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -365,22 +422,13 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
               ),
               child: Row(
                 children: [
-                  GestureDetector(
-                    onTap: _pickImage,
-                    child: CircleAvatar(
-                      radius: 40,
-                      backgroundColor: Colors.white,
-                      child: _profileImage == null
-                          ? Icon(FontAwesomeIcons.user, size: 40, color: Colors.grey)
-                          : ClipOval(
-                              child: Image.file(
-                                _profileImage!,
-                                fit: BoxFit.cover,
-                                width: 80,
-                                height: 80,
-                              ),
-                            ),
-                    ),
+                  // Debugging: Print the image URL to the console
+                 
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundImage: image != null && image!.isNotEmpty
+                        ? NetworkImage(Config.imagebaseUrl +"/storage/"+ image!)
+                        : AssetImage('path/to/placeholder/image.png') as ImageProvider, // Provide a placeholder image path
                   ),
                   SizedBox(width: 15),
                   Column(
@@ -396,7 +444,7 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
                         ),
                       ),
                       Text(
-                        'Driver!',
+                        username!,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 20,
@@ -505,6 +553,21 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
             right: 20,
             child: _buildOrderRequestsButton(),
           ),
+          if (_isOffline)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                color: Colors.red,
+                padding: EdgeInsets.all(8),
+                child: Text(
+                  'You are currently offline. Please check your internet connection.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -538,6 +601,8 @@ void showUserInfoBottomSheet(
     await prefs.setString('usermaterial_type', userData['material_type']);
     await prefs.setString('userdestination', userData['destination']);
   }
+
+
 
   saveData();
 
@@ -613,6 +678,7 @@ void showUserInfoBottomSheet(
                       },
                       child: const Center(
                         child: Text(
+                        child:  Text(
                           "cancel Request",
                           style: TextStyle(
                             fontSize: 16,

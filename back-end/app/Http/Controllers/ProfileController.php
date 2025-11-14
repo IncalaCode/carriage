@@ -14,6 +14,9 @@ class ProfileController extends Controller
     public function show(Request $request)
     {
         $value = $request->input("token");
+
+    public function show(Request $request)
+    {
        $value=$request->input("token");
        $user=User::where('uid',$value)->first();
 

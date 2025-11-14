@@ -48,30 +48,40 @@ class AdminAuthController extends Controller
     {
         // Validate the form input
         $validator = Validator::make($request->all(), [
-            'currentEmail' => 'required|email',
-            'currentpassword' => 'required|string|min:8',
-            'newEmail' => 'required|email',
-            'newpassword' => 'required|string|min:8|confirmed', // confirmed checks for password_confirmation field
+            'currentPassword' => 'required|string|min:8',
+            'email' => 'required|email',
+            'newPassword' => 'required|string|min:8', // confirmed checks for password_confirmation field
         ]);
-
+    
         if ($validator->fails()) {
-            return redirect()->back()->withErrors($validator)->withInput();
+            return response()->json([
+                'errors' => $validator->errors(),
+            ], 422);
         }
-
+    
         // Get the current admin from the session
         $admin = Admin::find(session('admin_id'));
-
+    
         if (!$admin) {
-            return redirect()->back()->with('message', 'Admin not found');
+            return response()->json(['message' => "Admin not found"], 400);
         }
-
-        // Update the email and password
-        $admin->email = $request->newEmail;
-        $admin->password = Hash::make($request->newpassword);
-        $admin->save();
-
-        return redirect()->back()->with('message', 'Admin updated successfully');
+    
+        // Verify the current password
+        if (!Hash::check($request->currentPassword, $admin->password)) {
+            return response()->json([
+                'message' => "Current password is incorrect",
+            ], 401);
+        }
+    
+        // Update the admin's password and email
+        $admin->update([
+            'password' => Hash::make($request->newPassword),
+            'email' => $request->email,
+        ]);
+    
+        return response()->json(['message' => "Admin updated successfully", "success" => true], 200);
     }
+    
 
     public function showUnapprovedDrivers()
     {
