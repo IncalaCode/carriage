@@ -13,11 +13,13 @@ import '../config.dart';
 import 'OrderRequestsPage.dart';
 import 'sidebarProfiledriver.dart';
 import 'sidebarWalletdriver.dart';
-import 'package:My_truck/screens/Driver/sidebarWalletdriver.dart';
 import 'sidebarMyOrderdriver.dart';
 import 'sidebarSettingsdriver.dart';
 import './Driver_map/driver_map_component.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+
+late BuildContext cont;
+late Function(bool) function;
 
 late BuildContext cont;
 late Function(bool) function;
@@ -31,6 +33,10 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   File? _profileImage;
   String? _authToken;
+  // double _walletBalance = 0.0;
+  // bool _isLoading = true;
+  double _walletBalance = 1600.0;
+  bool _isLoading = false;
   double _walletBalance = 0.0;
   bool _isLoading = true;
 
@@ -61,6 +67,19 @@ class _DriverMainScreenState extends State<DriverMainScreen> {
 
   Future<void> checkData() async {
     final prefs = await SharedPreferences.getInstance();
+    if (prefs.containsKey('username')) {
+      showUserInfoBottomSheet(
+        cont,
+        {
+          "name": prefs.getString('username') ?? "unknown",
+          "phone": prefs.getString('userphone') ?? "123-456-7890",
+          "locked": true,
+          "from": prefs.getString('userfrom') ?? '' ?? "unknown",
+          "material_type": prefs.getString('usermaterial_type') ?? "unknown",
+          "destination": prefs.getString('userdestination') ?? "unknown",
+        },
+      );
+    }
       username = await prefs.getString("username") ?? "";
       image = await prefs.getString("user_image") ??  "";
        print('Image URL: ${image != null && image!.isNotEmpty ? Config.imagebaseUrl + image! : 'No image available'}');
@@ -658,6 +677,7 @@ void showUserInfoBottomSheet(
                         }
                       },
                       child: const Center(
+                        child: Text(
                         child:  Text(
                           "cancel Request",
                           style: TextStyle(

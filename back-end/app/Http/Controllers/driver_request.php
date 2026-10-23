@@ -237,6 +237,7 @@ private function acceptRide(Request $request,$driverrequest)
         $driverRequest->update(['status' => 'cancelled']);
         $dwallet = Wallet::where('user_id', $driverRequest->driver_id)->first();
 
+        return response()->json([,'status' => true]);
         return response()->json(['status' => true]);
     }
 

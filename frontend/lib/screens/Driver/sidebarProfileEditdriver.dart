@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart'; 
 import 'package:http/http.dart' as http; // Import the http package
+// For setting content type of image
 import 'package:http_parser/http_parser.dart'; // For setting content type of image
 import '../config.dart'; 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -55,6 +56,10 @@ class _EditProfilePageState extends State<EditProfilePagedriver> {
 
   // Method to fetch the old phone number from shared preferences
   Future<void> _fetchOldPhoneNumber() async {
+   // final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      //_oldPhoneNumber = prefs.getString('phoneNumber'); // Assuming 'phoneNumber' is the key used to store the phone number
+      _oldPhoneNumber = '+251953289595';
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _oldPhoneNumber = prefs.getString('user_phone_number'); // Assuming 'phoneNumber' is the key used to store the phone number

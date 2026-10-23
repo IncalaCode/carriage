@@ -18,6 +18,12 @@ class ProfilePagedriver extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePagedriver> {
   File? _profileImage;
   bool isApproved = true;
+  String referralCode = "ABC123";
+  List<String> referrals = [];
+  final int referralReward = 1000;
+  String? _authToken;
+  String _displayName = 'Jabez Hap';
+  String _phoneNumber = '+251 963 488 972';
   String referralCode = "";
   List<String> referrals = [];
   final int referralReward = 1000;
@@ -101,6 +107,7 @@ class _ProfilePageState extends State<ProfilePagedriver> {
     }
   }
 
+  void _showLogoutConfirmation() {
     void _showLogoutConfirmation() {
     showDialog(
       context: context,
@@ -132,6 +139,7 @@ class _ProfilePageState extends State<ProfilePagedriver> {
                   gradient: LinearGradient(
                     colors: [
                       Color(0xFF000000),
+                      Color(0xFF9A839E),
                       Color(0xFF9A839E)
                     ],
                   ),

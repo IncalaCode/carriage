@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\Hash;
 class ProfileController extends Controller
 {
     // Method to show the user profile
+    public function show(Request $request)
+    public function show(Request $request)
+    {
+        $value = $request->input("token");
 
     public function show(Request $request)
     {

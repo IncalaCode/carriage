@@ -289,6 +289,7 @@ class client_request extends Controller
             $value  = [
                 "name" => $driverinfo->first_name . " " . $driverinfo->last_name,
                 "phone" => $driverinfo->phone_number,
+                "image" => Storage::url($driverinfo->user_photo),
                 "user_photo" =>  Storage::url( $driverinfo->user_photo),
                  "driver_licence_photos" => Storage::url( $driverinfo->driver_license_photo),
                  "car_plate_photo" => Storage::url( $driverinfo->car_plate_photo),
@@ -326,6 +327,10 @@ class client_request extends Controller
         return response()->json([
             "name" => $driver->first_name . " " . $driver->last_name,
             "phone" => $driver->phone_number,
+            "image" => array( Storage::url("user_photo/" . $driver->user_photo),Storage::url("driver_licence_photos/" . $driver->driver_license_photo),Storage::url("car_plate_photo/" . $driver->car_plate_photo)) ,
+            'latitude' => $driverRequest->latitude,
+            'longitude' => $driverRequest->longitude
+        ] , 303);
            "user_photo" =>  Storage::url( $driver->user_photo),
             "driver_licence_photos" => Storage::url( $driver->driver_license_photo),
             "car_plate_photo" => Storage::url( $driver->car_plate_photo),

@@ -72,6 +72,8 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
 
   Future<void> _acceptOrder(int index, String price, String requestId) async {
     try {
+      setState(() => loading = true);
+      setState(() => is_submit = false);
      setState(() {
       loading = true;
         is_submit  = true;
@@ -87,6 +89,8 @@ class _OrderRequestsPageState extends State<OrderRequestsPage> {
         SnackBar(content: Text(' faild to : $e')),
       );
     } finally {
+      setState(() => loading = false);
+      setState(() => is_submit = false);
      setState(() {
       loading = false;
       is_submit  = false;
@@ -221,6 +225,53 @@ void _showOrderDetails(
   String? price;
   bool isSubmitting = false;
 
+  void _showOrderDetails(
+      BuildContext context, Map<String, dynamic> order, int index) {
+    String? price;
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Order Details'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Name: ${order['user'] ?? 'Unknown'}'),
+              Text(
+                  'Address: ${order['from']} to ${order['destination'] ?? 'No Address'}'),
+              Text('Material Type: ${order["material_type"] ?? 'Unknown'}'),
+              SizedBox(height: 20),
+              TextField(
+                decoration: InputDecoration(labelText: 'Enter Price'),
+                keyboardType: TextInputType.number,
+                onChanged: (value) {
+                  price = value;
+                },
+              ),
+            ],
+          ),
+          actions: [
+            is_submit
+                ? Center(child: CircularProgressIndicator())
+                : TextButton(
+                    onPressed: () {
+                      if (price != null && price!.isNotEmpty) {
+                        _acceptOrder(
+                            index, price!, order['request_id'].toString());
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Please enter a price')),
+                        );
+                      }
+                    },
+                    child: Text('Submit'),
+                  ),
+          ],
+        );
+      },
+    );
+  }
   showDialog(
     context: context,
     builder: (BuildContext context) {

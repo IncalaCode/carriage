@@ -57,6 +57,10 @@ class _OrderFormState extends State<OrderForm> {
           setState(() {
             drivers = List<Map<String, dynamic>>.from(data['drivers'] ?? []);
             _hasActiveOrder = drivers.isNotEmpty;
+            _isLoading = false; // Update active order status
+          });
+        }
+      } else if (data['statusCode'] == 303) {
             _isLoading = !drivers.isNotEmpty; // Update active order status
           });
         }
@@ -71,6 +75,7 @@ class _OrderFormState extends State<OrderForm> {
             builder: (context) => RideInfoCard(
                 name: data['drivers']['name'] ?? "",
                 phone: data['drivers']['phone'] ?? "",
+                photoUrl: data['drivers']['image'] ?? "",
                 user_photo: data['drivers']['user_photo'] ?? "",
                      car_plate_photo: data['drivers']['car_plate_photo'] ?? "",
                           driver_licence_photos: data['drivers']['driver_licence_photos'] ?? "",
@@ -284,6 +289,7 @@ class _OrderFormState extends State<OrderForm> {
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           _hasActiveOrder ? "update" : "create": null,
+          "token": getToken(),
           "token": _authToken,
           'from': from,
           'destination': destination,
@@ -387,6 +393,7 @@ class _OrderFormState extends State<OrderForm> {
       is_accept = true;
     });
     print("Accept button pressed for driver ID: ${driverId}");
+    final String token = getToken(); // Get the token
     final String token = await getToken(); // Get the token
     final String url = '${Config.baseUrl}/client/handle-request'; // Backend URL
 
@@ -407,6 +414,7 @@ class _OrderFormState extends State<OrderForm> {
         // Assuming the response contains driver's details
         String driverName = data['driver']['name'] ?? "";
         String driverPhone = data['driver']['phone'] ?? "";
+        String driverImage = data['driver']['image'] ?? "";
       
 
         Navigator.pop(context);
@@ -418,6 +426,7 @@ class _OrderFormState extends State<OrderForm> {
             builder: (context) => RideInfoCard(
                 name: driverName,
                 phone: driverPhone,
+                photoUrl: driverImage,
                 user_photo: data['drivers']['user_photo'] ?? "",
                car_plate_photo: data['drivers']['car_plate_photo'] ?? "",
                driver_licence_photos: data['drivers']['driver_licence_photos'] ?? "",

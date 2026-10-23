@@ -14,6 +14,11 @@ import 'sidebarSettings.dart';
 import 'Order_form_screen.dart';
 import 'user_map/user_map_component.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../login_screen.dart';  
+import '../config.dart';
+late Function(bool) function;
+bool is_tracking = false;
+
 import '../login_screen.dart';
 import '../config.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -27,6 +32,7 @@ class MainAppScreen extends StatefulWidget {
 }
 
 class _MainAppScreenState extends State<MainAppScreen> {
+
   Stream<bool>? stream;
   bool isDrawerOpen = false;
 
@@ -35,6 +41,16 @@ class _MainAppScreenState extends State<MainAppScreen> {
   File? _profileImage;
   double _buttonScale = 1.0;
   bool _isIconRotated = false;
+    
+ 
+  // double _walletBalance = 1500.0;
+  // bool _isLoading = false;
+    double _walletBalance = 0.0;
+  bool _isLoading = true;
+  String? _paymentUrl;
+  String? _authToken;
+  String? _txRef;
+
 
   // double _walletBalance = 1500.0;
   // bool _isLoading = false;
@@ -52,6 +68,9 @@ class _MainAppScreenState extends State<MainAppScreen> {
 
   RideInfoCard? rideInfoCard;
 
+  @override
+  void initState() {
+    super.initState();
   bool _isOffline = false; // Added to track offline status
 
   @override
@@ -109,6 +128,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       rideInfoCard = RideInfoCard(
         name: prefs.getString('name') ?? '',
         phone: prefs.getString('phone') ?? '',
+        photoUrl: prefs.getString('photoUrl') ?? '',
         user_photo: prefs.getString('user_photo') ?? '',
            driver_licence_photos: prefs.getString('driver_licence_photos') ?? '',
               car_plate_photo: prefs.getString('car_plate_photo') ?? '',
@@ -146,6 +166,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
         builder: (_) => rideInfoCard = RideInfoCard(
               name: prefs.getString('name') ?? '',
               phone: prefs.getString('phone') ?? '',
+              photoUrl: prefs.getString('photoUrl') ?? '',
              user_photo : prefs.getString('user_photo') ?? '',
                 driver_licence_photos : prefs.getString('driver_licence_photos') ?? '',
                    car_plate_photo : prefs.getString('car_plate_photo') ?? '',
@@ -159,6 +180,10 @@ class _MainAppScreenState extends State<MainAppScreen> {
 
   Future<void> _initializeScreen() async {
     try {
+       await _checkAuthentication();
+       if (_authToken != null) {
+         await _fetchWalletBalance();
+       }
       await _checkAuthentication();
       if (_authToken != null) {
         await _fetchWalletBalance();
@@ -178,6 +203,9 @@ class _MainAppScreenState extends State<MainAppScreen> {
 
     if (token == null) {
       print('❌ No token found - Redirecting to login');
+       Navigator.of(context).pushReplacement(
+         MaterialPageRoute(builder: (context) => LoginScreen()),
+       );
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => LoginScreen()),
       );
@@ -194,6 +222,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
     if (_authToken == null) return;
 
     try {
+      final url = Uri.parse('${Config.baseUrl}/wallet/balance');
       print('🔄 Fetching wallet balance...');
       
       final url = Uri.parse('${Config.baseUrl}/user/wallet/balance');
@@ -222,6 +251,9 @@ class _MainAppScreenState extends State<MainAppScreen> {
             'Failed to load wallet balance: ${response.statusCode}');
       }
     } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
       print('❌ Error fetching wallet balance: $e');
       if (mounted) {
         setState(() {
@@ -258,6 +290,51 @@ class _MainAppScreenState extends State<MainAppScreen> {
 
       print('💳 Payment Initiation Response Status: ${response.statusCode}');
       print('💳 Payment Initiation Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('🔗 Payment URL Received: ${data['payment_url']}');
+        print('🔗 Payment URL Received: ${data['tx_ref']}');
+        setState(() {
+          _paymentUrl = data['payment_url'];
+          _txRef = data['tx_ref'];
+        });
+        _showPaymentWebView();
+      } else {
+        print('❌ Error Response: ${response.body}');
+        throw Exception('Failed to initiate payment: ${response.statusCode}');
+      }
+    }
+  }
+
+  Future<void> _initiatePayment() async {
+    if (_authToken == null) {
+      print('❌ No auth token available for payment');
+      return;
+    }
+
+    try {
+      print('💳 Initiating payment process...');
+      final url = Uri.parse('${Config.baseUrl}/client/order/initiate-payment');
+      print('🔗 Payment endpoint URL: $url');
+      print('🔑 Using Authorization Header: $_authToken');
+
+      final value = json.encode({
+        'token': _authToken,
+      });
+         print('🔑 Using Authorization Header: $value');
+
+final response = await http.post(
+  url, // Make sure to parse the URL into a Uri object
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: value,
+);
+
+      print('💳 Payment Initiation Response Status: ${response.statusCode}');
+      print('💳 Payment Initiation Response Body: ${response.body}');
+
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -360,6 +437,83 @@ class _MainAppScreenState extends State<MainAppScreen> {
       );
     }
   }
+  void _showPaymentWebView() async {
+    if (_paymentUrl == null) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            title: Text('Payment'),
+            backgroundColor: Colors.black,
+          ),
+          body: WebView(
+            initialUrl: _paymentUrl,
+            javascriptMode: JavascriptMode.unrestricted,
+            navigationDelegate: (NavigationRequest request) {
+              print('🔄 Navigation to: ${request.url}');
+              //Navigator.pop(context);
+              _confirmPayment(_txRef!);
+              return NavigationDecision.prevent;
+            },
+            onWebResourceError: (WebResourceError error) {
+              print('🚨 Web Resource Error: ${error.description}');
+            },
+          ),
+        ),
+      ),
+    );
+  }
+  Future<void> _confirmPayment(String txref) async {
+    try {
+      print('✅ Confirming payment with backend...');
+      final response = await http.post(
+        Uri.parse('${Config.baseUrl}/client/order/confirm-payment'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'tx_ref': txref,
+          'token': _authToken!,
+        }),
+      );
+
+      print('✅ Payment Confirmation Status: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        print('✅ Payment confirmed successfully');
+        Navigator.pop(context); // Close WebView
+        
+        // Fetch updated wallet balance
+        await _fetchWalletBalance();
+        
+        // Check if wallet balance is now sufficient
+        // if (_walletBalance >= 1500) {
+        //   // Navigate to order form if balance is sufficient
+        //   Navigator.push(
+        //     context,
+        //     MaterialPageRoute(builder: (context) => OrderForm()),
+        //   );
+        // }
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Payment successful! Wallet has been updated.')),
+        );
+      } else {
+        throw Exception('Payment confirmation failed');
+      }
+    } catch (e) {
+      print('❌ Payment Confirmation Error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content:
+                Text('Payment confirmation failed. Please contact support.')),
+      );
+    }
+  }
+
+
+
 
   void _showOrderForm() {
     Navigator.push(
@@ -367,6 +521,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       MaterialPageRoute(builder: (context) => OrderForm()),
     );
   }
+
 
   Widget _buildOrderButton() {
     if (_isLoading) {
@@ -383,6 +538,67 @@ class _MainAppScreenState extends State<MainAppScreen> {
         ),
       );
     }
+
+    if (_walletBalance >= 1500) {
+      return FloatingActionButton.extended(
+        onPressed: is_tracking ? _toggleRideInfoCard : _showOrderForm,
+        backgroundColor: Colors.transparent,
+        icon: Icon(FontAwesomeIcons.bell, color: Colors.white),
+        label: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF000000), Color(0xFF9A839E)],
+            ),
+            borderRadius: BorderRadius.circular(30),
+          ),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Text(
+            is_tracking ? "See your order" : "Order Now",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
+    } else {
+      return FloatingActionButton.extended(
+        onPressed: _initiatePayment,
+        backgroundColor: Colors.transparent,
+        icon: Icon(FontAwesomeIcons.lock, color: Colors.white),
+        label: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.red.shade900, Colors.red.shade700],
+            ),
+            borderRadius: BorderRadius.circular(30),
+          ),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Text(
+            'Pay 1500 ETB to Access Orders',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final pickedFile =
+          await ImagePicker().pickImage(source: ImageSource.gallery);
+      if (pickedFile != null) {
+        setState(() {
+          _profileImage = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      print('❌ Error picking image: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to pick image. Please try again.')),
+      );
+    }
+  }
+
+
+  @override
 
     if (_walletBalance >= 1500) {
       print(is_tracking);
@@ -538,6 +754,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
         children: [
           UserMapComponent(),
 
+          
           // Floating Nav Menu Icon
           Positioned(
             top: 30,
@@ -732,6 +949,104 @@ class PaymentWebView extends StatelessWidget {
     }
   }
 
+// Add payment verification function
+Future<bool> _verifyPayment() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('authToken');
+
+    print('Verifying payment with token: $token'); // Debug print
+
+    final response = await http.get(
+      Uri.parse('${Config.baseUrl}/driver/payment/verify'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    print(
+        'Payment verification response status: ${response.statusCode}'); // Debug print
+    print('Payment verification response: ${response.body}'); // Debug print
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return data['payment_verified'] == true;
+    }
+    return false;
+  } catch (e) {
+    print('Error verifying payment: $e'); // Debug print
+    return false;
+  }
+}
+
+   
+// Update the PaymentWebView to handle verification
+class PaymentWebView extends StatelessWidget {
+  final String paymentUrl;
+  final String token;
+
+  const PaymentWebView({
+    required this.paymentUrl,
+    required this.token,
+  });
+
+  Future<void> _handlePaymentSuccess(BuildContext context) async {
+    Navigator.pop(context); // Close payment webview
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Verifying payment...')
+            ],
+          ),
+        );
+      },
+    );
+
+    // Wait a bit for backend to process payment
+    await Future.delayed(Duration(seconds: 2));
+
+    // Verify payment
+    final bool isVerified = await _verifyPayment();
+
+    Navigator.pop(context); // Close loading dialog
+
+    if (isVerified) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Payment verified successfully!')));
+      // Refresh wallet balance and proceed
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => OrderForm()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(
+            'Payment verification failed. Please contact support if money was deducted.'),
+        duration: Duration(seconds: 5),
+      ));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Payment'),
+        leading: IconButton(
+          icon: Icon(Icons.close),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -742,6 +1057,7 @@ class PaymentWebView extends StatelessWidget {
           print('Navigation to: ${request.url}'); // Debug print
           if (request.url.contains('success')) {
             _handlePaymentSuccess(context);
+            return NavigationDecision.prevent;
             // return NavigationDecision.prevent;
           }
           return NavigationDecision.navigate;
@@ -756,6 +1072,7 @@ class PaymentWebView extends StatelessWidget {
 class RideInfoCard extends StatefulWidget {
   final String name;
   final String phone;
+  final String photoUrl;
   final String user_photo;
   final String driver_licence_photos;
   final String car_plate_photo;
@@ -766,6 +1083,7 @@ class RideInfoCard extends StatefulWidget {
   RideInfoCard({
     required this.name,
     required this.phone,
+    required this.photoUrl,
     required this.user_photo,
     required this.driver_licence_photos,
     required this.car_plate_photo,
@@ -826,6 +1144,7 @@ class _RideInfoCardState extends State<RideInfoCard>
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('name', widget.name);
     await prefs.setString('phone', widget.phone);
+    await prefs.setString('photoUrl', widget.photoUrl);
     await prefs.setString('user_photo', widget.user_photo);
     await prefs.setString('driver_licence_photos', widget.driver_licence_photos);
     await prefs.setString('car_plate_photo', widget.car_plate_photo);
@@ -838,6 +1157,8 @@ class _RideInfoCardState extends State<RideInfoCard>
   // Function to handle completion
   void _completeRide() async {
     final token = await getToken();
+    final prefs = await SharedPreferences
+        .getInstance(); // Retrieve token dynamically if async
     final prefs = await SharedPreferences.getInstance(); 
     
     setState(() {
@@ -872,6 +1193,8 @@ class _RideInfoCardState extends State<RideInfoCard>
         ),
       );
     }
+
+    // Logic for completing the ride
   }
 
   // Function to show warning before completing
@@ -909,6 +1232,72 @@ class _RideInfoCardState extends State<RideInfoCard>
   }
 
   @override
+  Widget build(BuildContext context) {
+    print("shsssssssssssss" + widget.photoUrl);
+
+    // final res = http.get(
+    //   Uri.parse(Config.imagebaseUrl + widget.photoUrl),
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //   },
+    // );
+
+    // print(res);
+
+    return SlideTransition(
+      position: _offsetAnimation,
+      child: _isOpen // Check the visibility state
+          ? Container(
+              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CircleAvatar(
+                        radius: 30,
+                        //  backgroundImage: NetworkImage(''),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.name,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "+" + widget.phone,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: _showCompletionWarning,
+                    child: Text('Complete Ride'),
+                  ),
+                ],
+              ),
+            )
+          : SizedBox.shrink(), // Return an empty widget when closed
+    );
+  }
+}
+
  @override
 Widget build(BuildContext context) {
   return SlideTransition(

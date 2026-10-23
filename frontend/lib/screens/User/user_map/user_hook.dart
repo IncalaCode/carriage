@@ -47,6 +47,7 @@ class UserHook {
           'error': data['error'] ?? 'Unknown error',
           "statusCode": response.statusCode
         };
+      } else if (data['image'] != null && response.statusCode == 303) {
       } else if (data['user_photo'] != null && response.statusCode == 201) {
         return {"drivers": data ?? [], "statusCode": response.statusCode};
       }
@@ -68,6 +69,8 @@ class UserHook {
     _isPolling = false;
   }
 
+  String getToken() {
+    return "1u"; // Replace with actual token logic
   Future getToken() async {
         final prefs = await SharedPreferences.getInstance();
         final token  = await prefs.getString('authToken');
